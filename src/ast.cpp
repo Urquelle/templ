@@ -149,6 +149,7 @@ enum Stmt_Kind {
     STMT_NONE,
     STMT_FOR,
     STMT_IF,
+    STMT_BLOCK,
     STMT_ELSEIF,
     STMT_ELSE,
     STMT_END,
@@ -175,6 +176,12 @@ struct Stmt {
             size_t num_elseifs;
             Stmt *else_stmt;
         } stmt_if;
+
+        struct {
+            char *name;
+            Stmt **stmts;
+            size_t num_stmts;
+        } stmt_block;
 
         struct {
             Item *item;
@@ -236,6 +243,17 @@ stmt_else(Stmt **stmts, size_t num_stmts) {
     result->stmt_if.cond = 0;
     result->stmt_if.stmts = stmts;
     result->stmt_if.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_block(char *name, Stmt **stmts, size_t num_stmts) {
+    Stmt *result = stmt_new(STMT_BLOCK);
+
+    result->stmt_block.name = name;
+    result->stmt_block.stmts = stmts;
+    result->stmt_block.num_stmts = num_stmts;
 
     return result;
 }

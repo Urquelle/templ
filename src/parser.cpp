@@ -289,6 +289,28 @@ parse_stmt_else(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_block(Parser *p) {
+    char *name = parse_name(p);
+    expect_token(p, T_CODE_END);
+
+    Stmt **stmts = 0;
+    for (;;) {
+        if ( is_token(p, T_CODE_BEGIN) ) {
+            Stmt *stmt = parse_stmt(p);
+            if ( stmt->kind == STMT_END ) {
+                break;
+            } else {
+                buf_push(stmts, stmt);
+            }
+        } else {
+            buf_push(stmts, parse_stmt(p));
+        }
+    }
+
+    return stmt_block(name, stmts, buf_len(stmts));
+}
+
+internal_proc Stmt *
 parse_stmt(Parser *p) {
     Stmt *result = 0;
     if ( match_token(p, T_CODE_BEGIN) ) {
@@ -304,6 +326,8 @@ parse_stmt(Parser *p) {
             } else {
                 result = parse_stmt_else(p);
             }
+        } else if ( match_keyword(p, keyword_block) ) {
+            result = parse_stmt_block(p);
         } else {
             assert(0);
         }

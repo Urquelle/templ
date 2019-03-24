@@ -1,4 +1,9 @@
-<a name="foo">123</a>
+{% block foo %}
+    <a name="foo">123</a>
+    {% block title %}
+        <div>title</div>
+    {% end %}
+{% end %}
 {{ a ? +b : c }}
 {{ foozle.bla | uppercase | ellipsis 20 "..." }}
 {# kommentar #}
