@@ -24,10 +24,6 @@ main(int argc, char **argv) {
     Parser *p = &parser;
     init_parser(p, content);
 
-    char *t1 = intern_str("foo");
-    char *t2 = intern_str("foo");
-    assert(t1 == t2);
-
     Item **items = 0;
     while (p->lex.token.kind != T_EOF) {
         if ( match_token(p, T_VAR_BEGIN) ) {

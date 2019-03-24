@@ -1,4 +1,5 @@
 struct Item;
+struct Var_Filter;
 
 enum Expr_Kind {
     EXPR_NONE,
@@ -155,6 +156,8 @@ enum Stmt_Kind {
     STMT_END,
     STMT_VAR,
     STMT_LIT,
+    STMT_EXTENDS,
+    STMT_FILTER,
 };
 
 struct Stmt {
@@ -190,6 +193,17 @@ struct Stmt {
         struct {
             Item *item;
         } stmt_lit;
+
+        struct {
+            char *name;
+        } stmt_extends;
+
+        struct {
+            Var_Filter *filter;
+            size_t num_filter;
+            Stmt **stmts;
+            size_t num_stmts;
+        } stmt_filter;
     };
 };
 
@@ -282,3 +296,25 @@ stmt_lit(Item *item) {
 
     return result;
 }
+
+internal_proc Stmt *
+stmt_extends(char *name) {
+    Stmt *result = stmt_new(STMT_EXTENDS);
+
+    result->stmt_extends.name = name;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
+    Stmt *result = stmt_new(STMT_FILTER);
+
+    result->stmt_filter.filter = filter;
+    result->stmt_filter.num_filter = num_filter;
+    result->stmt_filter.stmts = stmts;
+    result->stmt_filter.num_stmts = num_stmts;
+
+    return result;
+}
+

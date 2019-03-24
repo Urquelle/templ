@@ -6,6 +6,7 @@ internal_proc Expr * parse_expr(Parser *p);
 internal_proc Stmt * parse_stmt(Parser *p);
 internal_proc Item * parse_var(Parser *p);
 internal_proc Item * parse_lit(Parser *p);
+internal_proc Var_Filter parse_filter(Parser *p);
 
 global_var char ** keywords;
 global_var char *keyword_if;
@@ -16,6 +17,7 @@ global_var char *keyword_end;
 global_var char *keyword_extends;
 global_var char *keyword_block;
 global_var char *keyword_embed;
+global_var char *keyword_filter;
 
 internal_proc void
 init_keywords() {
@@ -29,6 +31,7 @@ init_keywords() {
     ADD_KEYWORD(extends);
     ADD_KEYWORD(block);
     ADD_KEYWORD(embed);
+    ADD_KEYWORD(filter);
 
 #undef ADD_KEYWORD
 }
@@ -205,6 +208,14 @@ parse_name(Parser *p) {
     return expr->expr_name.value;
 }
 
+internal_proc char *
+parse_str(Parser *p) {
+    Expr *expr = parse_expr(p);
+    assert(expr->kind == EXPR_STR);
+
+    return expr->expr_str.value;
+}
+
 internal_proc Stmt *
 parse_stmt_for(Parser *p) {
     Expr *it = parse_expr(p);
@@ -311,6 +322,41 @@ parse_stmt_block(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_extends(Parser *p) {
+    char *name = parse_str(p);
+    expect_token(p, T_CODE_END);
+
+    return stmt_extends(name);
+}
+
+internal_proc Stmt *
+parse_stmt_filter(Parser *p) {
+    Var_Filter *filter = 0;
+    buf_push(filter, parse_filter(p));
+
+    while ( match_token(p, T_BAR) ) {
+        buf_push(filter, parse_filter(p));
+    }
+    expect_token(p, T_CODE_END);
+
+    Stmt **stmts = 0;
+    for (;;) {
+        if ( is_token(p, T_CODE_BEGIN) ) {
+            Stmt *stmt = parse_stmt(p);
+            if ( stmt->kind == STMT_END ) {
+                break;
+            } else {
+                buf_push(stmts, stmt);
+            }
+        } else {
+            buf_push(stmts, parse_stmt(p));
+        }
+    }
+
+    return stmt_filter(filter, buf_len(filter), stmts, buf_len(stmts));
+}
+
+internal_proc Stmt *
 parse_stmt(Parser *p) {
     Stmt *result = 0;
     if ( match_token(p, T_CODE_BEGIN) ) {
@@ -328,6 +374,10 @@ parse_stmt(Parser *p) {
             }
         } else if ( match_keyword(p, keyword_block) ) {
             result = parse_stmt_block(p);
+        } else if ( match_keyword(p, keyword_extends) ) {
+            result = parse_stmt_extends(p);
+        } else if ( match_keyword(p, keyword_filter) ) {
+            result = parse_stmt_filter(p);
         } else {
             assert(0);
         }
@@ -344,7 +394,7 @@ internal_proc Var_Filter
 parse_filter(Parser *p) {
     char *name = parse_name(p);
     Expr **params = 0;
-    while ( !is_token(p, T_BAR) && !is_token(p, T_VAR_END) ) {
+    while ( !is_token(p, T_BAR) && !is_token(p, T_VAR_END) && !is_token(p, T_CODE_END) ) {
         buf_push(params, parse_expr(p));
     }
 

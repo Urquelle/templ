@@ -1,9 +1,16 @@
+{% extends "bla.tpl" %}
+
 {% block foo %}
     <a name="foo">123</a>
     {% block title %}
         <div>title</div>
     {% end %}
 {% end %}
+
+{% filter uppercase | escape "html" %}
+    irgendein text fuer den filter und so
+{% end %}
+
 {{ a ? +b : c }}
 {{ foozle.bla | uppercase | ellipsis 20 "..." }}
 {# kommentar #}
