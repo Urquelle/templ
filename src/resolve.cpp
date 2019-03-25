@@ -28,10 +28,24 @@ struct Sym {
     Type *type;
 };
 
+enum { MAX_LOCAL_SYMS = 1024 };
+global_var Sym global_scope_pointer[MAX_LOCAL_SYMS];
+global_var Sym *current_scope_marker = global_scope_pointer;
+
+internal_proc Sym *
+scope_enter() {
+    return global_scope_pointer;
+}
+
+internal_proc void
+scope_leave(Sym *scope_marker) {
+    current_scope_marker = scope_marker;
+}
+
 global_var Sym **doc_syms;
 
 internal_proc Sym *
-get_sym(char *name) {
+sym_get(char *name) {
     for ( int i = 0; i < buf_len(doc_syms); ++i ) {
         Sym *sym = doc_syms[i];
         if ( sym->name == name ) {
@@ -42,9 +56,14 @@ get_sym(char *name) {
     return 0;
 }
 
+internal_proc void
+sym_scoped_push(char *name, Type *type) {
+    //
+}
+
 internal_proc Sym *
 resolve_name(char *name) {
-    Sym *result = get_sym(name);
+    Sym *result = sym_get(name);
 
     return result;
 }
@@ -57,8 +76,15 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_FOR: {
-            resolve_expr(stmt->stmt_for.it);
+            Sym *scope_marker = scope_enter();
+
+            // sym_scoped_push(stmt->stmt_for.it)
             resolve_expr(stmt->stmt_for.cond);
+            for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
+                resolve_stmt(stmt->stmt_for.stmts[i]);
+            }
+
+            scope_leave(scope_marker);
         } break;
 
         case STMT_IF: {
@@ -91,12 +117,41 @@ resolve_expr(Expr *expr) {
     switch (expr->kind) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
+            if ( !sym ) {
+                assert(!"konnte symbol nicht auflösen");
+            }
         } break;
 
         case EXPR_STR: {
+            // ...
         } break;
 
         case EXPR_INT: {
+            // ...
+        } break;
+
+        case EXPR_UNARY: {
+            resolve_expr(expr->expr_unary.expr);
+        } break;
+
+        case EXPR_BINARY: {
+            resolve_expr(expr->expr_binary.left);
+            resolve_expr(expr->expr_binary.right);
+        } break;
+
+        case EXPR_TERNARY: {
+            resolve_expr(expr->expr_ternary.left);
+            resolve_expr(expr->expr_ternary.middle);
+            resolve_expr(expr->expr_ternary.right);
+        } break;
+
+        case EXPR_FIELD: {
+            resolve_expr(expr->expr_field.expr);
+        } break;
+
+        case EXPR_RANGE: {
+            resolve_expr(expr->expr_range.left);
+            resolve_expr(expr->expr_range.right);
         } break;
 
         default: {
@@ -107,7 +162,12 @@ resolve_expr(Expr *expr) {
 
 internal_proc void
 resolve_filter(Var_Filter filter) {
-    resolve_name(filter.name);
+    Sym *sym = resolve_name(filter.name);
+
+    if ( !sym ) {
+        assert(!"symbol konnte nicht gefunden werden!");
+    }
+
     for ( int i = 0; i < filter.num_params; ++i ) {
         resolve_expr(filter.params[i]);
     }
@@ -152,7 +212,7 @@ resolve_item(Item *item) {
 }
 
 internal_proc void
-resolve(Doc *d) {
+resolve_doc(Doc *d) {
     for ( int i = 0; i < d->num_items; ++i ) {
         resolve_item(d->items[i]);
     }

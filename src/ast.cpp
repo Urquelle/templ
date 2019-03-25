@@ -3,6 +3,7 @@ struct Var_Filter;
 
 enum Expr_Kind {
     EXPR_NONE,
+    EXPR_PAREN,
     EXPR_NAME,
     EXPR_INT,
     EXPR_STR,
@@ -11,12 +12,17 @@ enum Expr_Kind {
     EXPR_TERNARY,
     EXPR_FIELD,
     EXPR_RANGE,
+    EXPR_CALL,
 };
 
 struct Expr {
     Expr_Kind kind;
 
     union {
+        struct {
+            Expr *expr;
+        } expr_paren;
+
         struct {
             char *value;
         } expr_name;
@@ -55,6 +61,12 @@ struct Expr {
             Expr *left;
             Expr *right;
         } expr_range;
+
+        struct {
+            Expr *expr;
+            Expr **params;
+            size_t num_params;
+        } expr_call;
     };
 };
 
@@ -63,6 +75,15 @@ expr_new(Expr_Kind kind) {
     Expr *result = (Expr *)xmalloc(sizeof(Expr));
 
     result->kind = kind;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_paren(Expr *expr) {
+    Expr *result = expr_new(EXPR_PAREN);
+
+    result->expr_paren.expr = expr;
 
     return result;
 }
@@ -146,6 +167,17 @@ expr_range(Expr *left, Expr *right) {
     return result;
 }
 
+internal_proc Expr *
+expr_call(Expr *expr, Expr **params, size_t num_params) {
+    Expr *result = expr_new(EXPR_CALL);
+
+    result->expr_call.expr = expr;
+    result->expr_call.params = params;
+    result->expr_call.num_params = num_params;
+
+    return result;
+}
+
 enum Stmt_Kind {
     STMT_NONE,
     STMT_FOR,
@@ -165,7 +197,7 @@ struct Stmt {
 
     union {
         struct {
-            Expr *it;
+            char *it;
             Expr *cond;
             Stmt **stmts;
             size_t num_stmts;
@@ -217,7 +249,7 @@ stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Stmt *
-stmt_for(Expr *it, Expr *cond, Stmt **stmts, size_t num_stmts) {
+stmt_for(char *it, Expr *cond, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_FOR);
 
     result->stmt_for.it = it;

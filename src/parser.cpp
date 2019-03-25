@@ -96,30 +96,52 @@ expect_keyword(Parser *p, char *expected_keyword) {
 internal_proc Expr *
 parse_expr_base(Parser *p) {
     Lexer *lex = &p->lex;
+    Expr *result = 0;
+
     if ( is_token(p, T_INT) ) {
-        Expr *result = expr_int(lex->token.int_value);
+        result = expr_int(lex->token.int_value);
         next_token(lex);
-        return result;
     } else if ( is_token(p, T_STR) ) {
-        Expr *result = expr_str(lex->token.str_value);
+        result = expr_str(lex->token.str_value);
         next_token(lex);
-        return result;
     } else if ( is_token(p, T_NAME) ) {
-        Expr *result = expr_name(lex->token.name);
+        result = expr_name(lex->token.name);
         next_token(lex);
-        return result;
+    } else if ( match_token(p, T_LPAREN) ) {
+        result = expr_paren(parse_expr(p));
+        expect_token(p, T_RPAREN);
     } else {
         assert(0);
-        return 0;
     }
+
+    return result;
+}
+
+internal_proc Expr *
+parse_expr_call(Parser *p) {
+    Expr *left = parse_expr_base(p);
+
+    if ( match_token(p, T_LPAREN) ) {
+        Expr **exprs = 0;
+        if ( !match_token(p, T_RPAREN) ) {
+            buf_push(exprs, parse_expr(p));
+            while ( match_token(p, T_COMMA) ) {
+                buf_push(exprs, parse_expr(p));
+            }
+        }
+        expect_token(p, T_RPAREN);
+        left = expr_call(left, exprs, buf_len(exprs));
+    }
+
+    return left;
 }
 
 internal_proc Expr *
 parse_expr_field(Parser *p) {
-    Expr *left = parse_expr_base(p);
+    Expr *left = parse_expr_call(p);
 
     if ( match_token(p, T_DOT) ) {
-        left = expr_field(left, parse_expr_base(p));
+        left = expr_field(left, parse_expr_call(p));
     }
 
     return left;
@@ -218,7 +240,7 @@ parse_str(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_for(Parser *p) {
-    Expr *it = parse_expr(p);
+    char *it = parse_name(p);
     expect_keyword(p, keyword_in);
     Expr *cond = parse_expr(p);
     expect_token(p, T_CODE_END);

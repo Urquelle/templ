@@ -5,7 +5,10 @@ enum Token_Kind {
     T_STR,
     T_NAME,
     T_DOT,
+    T_COMMA,
     T_RANGE,
+    T_LPAREN,
+    T_RPAREN,
     T_LBRACE,
     T_RBRACE,
     T_BAR,
@@ -131,6 +134,11 @@ next_raw_token(Lexer *lex) {
             next(lex);
         } break;
 
+        case ',': {
+            lex->token.kind = T_COMMA;
+            next(lex);
+        } break;
+
         case '.': {
             lex->token.kind = T_DOT;
             next(lex);
@@ -139,6 +147,16 @@ next_raw_token(Lexer *lex) {
                 lex->token.kind = T_RANGE;
                 next(lex);
             }
+        } break;
+
+        case '(': {
+            lex->token.kind = T_LPAREN;
+            next(lex);
+        } break;
+
+        case ')': {
+            lex->token.kind = T_RPAREN;
+            next(lex);
         } break;
 
         case '=': {
