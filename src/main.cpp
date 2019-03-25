@@ -12,8 +12,9 @@
 #include "os.cpp"
 #include "lex.cpp"
 #include "ast.cpp"
-#include "template.cpp"
+#include "doc.cpp"
 #include "parser.cpp"
+#include "resolve.cpp"
 
 int
 main(int argc, char **argv) {
@@ -24,19 +25,19 @@ main(int argc, char **argv) {
     Parser *p = &parser;
     init_parser(p, content);
 
-    Item **items = 0;
+    Doc doc = {};
     while (p->lex.token.kind != T_EOF) {
         if ( match_token(p, T_VAR_BEGIN) ) {
-            Item *item = parse_var(p);
-            buf_push(items, item);
+            buf_push(doc.items, parse_var(p));
         } else if ( is_token(p, T_CODE_BEGIN) ) {
-            Item *item = parse_code(p);
-            buf_push(items, item);
+            buf_push(doc.items, parse_code(p));
         } else {
-            Item *item = parse_lit(p);
-            buf_push(items, item);
+            buf_push(doc.items, parse_lit(p));
         }
     }
+
+    doc.num_items = buf_len(doc.items);
+    resolve(&doc);
 
     return 0;
 }

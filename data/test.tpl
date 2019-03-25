@@ -1,5 +1,7 @@
 {% extends "bla.tpl" %}
 
+<div class="blö">töst</div>
+
 {% block foo %}
     <a name="foo">123</a>
     {% block title %}

@@ -31,6 +31,11 @@ struct Item {
     };
 };
 
+struct Doc {
+    Item **items;
+    size_t num_items;
+};
+
 internal_proc Var_Filter
 var_filter(char *name, Expr **params, size_t num_params) {
     Var_Filter result = {};

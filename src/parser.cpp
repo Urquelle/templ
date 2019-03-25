@@ -41,7 +41,7 @@ init_parser(Parser *p, char *input) {
     p->lex.input = input;
     refill(&p->lex);
     init_keywords();
-    next_token(&p->lex);
+    next_raw_token(&p->lex);
 }
 
 internal_proc b32
@@ -422,11 +422,16 @@ parse_code(Parser *p) {
 internal_proc Item *
 parse_lit(Parser *p) {
     char *lit = 0;
-    while ( !is_token(p, T_VAR_BEGIN) && !is_token(p, T_CODE_BEGIN) ) {
-        buf_printf(lit, "%s", p->lex.token.literal);
-        next_raw_token(&p->lex);
+
+    buf_printf(lit, "%s", p->lex.token.literal);
+    while ( is_lit(&p->lex) ) {
+        buf_printf(lit, "%c", p->lex.at[0]);
+        next(&p->lex);
     }
 
-    return item_lit(lit, strlen(lit));
+    Item *result = item_lit(lit, strlen(lit));
+    next_token(&p->lex);
+
+    return result;
 }
 

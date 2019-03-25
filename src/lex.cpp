@@ -1,6 +1,7 @@
 enum Token_Kind {
     T_EOF,
     T_INT = 129,
+    T_LIT,
     T_STR,
     T_NAME,
     T_DOT,
@@ -103,6 +104,19 @@ internal_proc b32
 is_space(Lexer *lex) {
     Token t = lex->token;
     b32 result = t.kind == T_SPACE || t.kind == T_TAB;
+
+    return result;
+}
+
+internal_proc b32
+is_lit(Lexer *lex) {
+    b32 result = true;
+
+    if ( lex->at[0] == '{' ) {
+        if ( lex->at[1] == '{' || lex->at[1] == '#' || lex->at[1] == '%' ) {
+            result = false;
+        }
+    }
 
     return result;
 }
