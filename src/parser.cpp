@@ -110,20 +110,18 @@ parse_expr_base(Parser *p) {
     } else if ( match_token(p, T_LPAREN) ) {
         result = expr_paren(parse_expr(p));
         expect_token(p, T_RPAREN);
-    } else {
-        assert(0);
     }
 
     return result;
 }
 
 internal_proc Expr *
-parse_expr_call(Parser *p) {
+parse_expr_call_or_index(Parser *p) {
     Expr *left = parse_expr_base(p);
 
     if ( match_token(p, T_LPAREN) ) {
         Expr **exprs = 0;
-        if ( !match_token(p, T_RPAREN) ) {
+        if ( !is_token(p, T_RPAREN) ) {
             buf_push(exprs, parse_expr(p));
             while ( match_token(p, T_COMMA) ) {
                 buf_push(exprs, parse_expr(p));
@@ -131,6 +129,15 @@ parse_expr_call(Parser *p) {
         }
         expect_token(p, T_RPAREN);
         left = expr_call(left, exprs, buf_len(exprs));
+    } else if ( match_token(p, T_LBRACKET) ) {
+        Expr *index = parse_expr(p);
+
+        if ( !index ) {
+            assert(!"index darf nicht leer sein");
+        }
+
+        left = expr_index(left, index);
+        expect_token(p, T_RBRACKET);
     }
 
     return left;
@@ -138,10 +145,10 @@ parse_expr_call(Parser *p) {
 
 internal_proc Expr *
 parse_expr_field(Parser *p) {
-    Expr *left = parse_expr_call(p);
+    Expr *left = parse_expr_call_or_index(p);
 
     if ( match_token(p, T_DOT) ) {
-        left = expr_field(left, parse_expr_call(p));
+        left = expr_field(left, parse_expr_call_or_index(p));
     }
 
     return left;

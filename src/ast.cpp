@@ -11,6 +11,7 @@ enum Expr_Kind {
     EXPR_BINARY,
     EXPR_TERNARY,
     EXPR_FIELD,
+    EXPR_INDEX,
     EXPR_RANGE,
     EXPR_CALL,
 };
@@ -56,6 +57,11 @@ struct Expr {
             Expr *expr;
             Expr *field;
         } expr_field;
+
+        struct {
+            Expr *expr;
+            Expr *index;
+        } expr_index;
 
         struct {
             Expr *left;
@@ -153,6 +159,16 @@ expr_field(Expr *expr, Expr *field) {
 
     result->expr_field.expr = expr;
     result->expr_field.field = field;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_index(Expr *expr, Expr *index) {
+    Expr *result = expr_new(EXPR_INDEX);
+
+    result->expr_index.expr = expr;
+    result->expr_index.index = index;
 
     return result;
 }

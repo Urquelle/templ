@@ -9,15 +9,13 @@
     {% end %}
 {% end %}
 
-{% filter uppercase | escape "html" %}
+{% filter upper | escape %}
     irgendein text fuer den filter und so
 {% end %}
 
-{{ a ? +b : c }}
-{{ foozle.bla | uppercase | ellipsis 20 "..." }}
+{{ user.name | upper | truncate 20 "..." }}
 {# kommentar #}
-{% for bla in 1..10 %}
-    {{ x.y }}
+{% for it in 1..10 %}
     {% if a == b %}
         <div>{{ a }}</div>
     {% else if a < b %}

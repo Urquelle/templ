@@ -1,25 +1,241 @@
 struct Type;
+struct Sym;
 
-internal_proc void resolve_item(Item *item);
-internal_proc void resolve_expr(Expr *expr);
+internal_proc void   resolve_item(Item *item);
+internal_proc Type * resolve_expr(Expr *expr);
+internal_proc void   resolve_filter(Var_Filter filter);
+
+enum Val_Kind {
+    VAL_NONE,
+    VAL_BOOL,
+    VAL_CHAR,
+    VAL_INT,
+    VAL_STR,
+};
+
+struct Val {
+    Val_Kind kind;
+
+    union {
+        b32   bool_val;
+        char  char_val;
+        int   int_val;
+        char *str_val;
+    };
+};
+
+global_var Val val_none;
+
+internal_proc Val
+val_new(Val_Kind kind) {
+    Val result = {};
+
+    result.kind = kind;
+
+    return result;
+}
+
+internal_proc Val
+val_bool(b32 val) {
+    Val result = val_new(VAL_BOOL);
+
+    result.bool_val = val;
+
+    return result;
+}
+
+internal_proc Val
+val_char(char val) {
+    Val result = val_new(VAL_CHAR);
+
+    result.char_val = val;
+
+    return result;
+}
+
+internal_proc Val
+val_int(int val) {
+    Val result = val_new(VAL_INT);
+
+    result.int_val = val;
+
+    return result;
+}
+
+internal_proc Val
+val_str(char *val) {
+    Val result = val_new(VAL_STR);
+
+    result.str_val = val;
+
+    return result;
+}
 
 struct Type_Field {
     char *name;
     Type *type;
+    Val   default_val;
 };
+
+internal_proc Type_Field
+type_field(char *name, Type *type, Val default_val = val_none) {
+    // Type_Field *result = (Type_Field *)xmalloc(sizeof(Type_Field));
+    Type_Field result = {};
+
+    result.name = name;
+    result.type = type;
+    result.default_val = default_val;
+
+    return result;
+}
 
 enum Type_Kind {
     TYPE_NONE,
+    TYPE_VOID,
+    TYPE_BOOL,
+    TYPE_CHAR,
+    TYPE_INT,
+    TYPE_STR,
+    TYPE_ARRAY,
+    TYPE_STRUCT,
+    TYPE_PROC,
+    TYPE_FILTER,
 };
 
 struct Type {
     Type_Kind kind;
-    Type_Field **fields;
-    size_t num_fields;
+
+    union {
+        struct {
+            Type_Field *fields;
+            size_t num_fields;
+        } type_aggr;
+
+        struct {
+            Type_Field *params;
+            size_t num_params;
+            Type *ret;
+        } type_proc;
+
+        struct {
+            Type *base;
+            int index;
+        } type_array;
+    };
 };
+
+global_var Type *type_void;
+global_var Type *type_bool;
+global_var Type *type_char;
+global_var Type *type_int;
+global_var Type *type_str;
+
+internal_proc Type *
+type_new(Type_Kind kind) {
+    Type *result = (Type *)xmalloc(sizeof(Type));
+
+    result->kind = kind;
+
+    return result;
+}
+
+internal_proc Type *
+type_struct(Type_Field *fields, size_t num_fields) {
+    Type *result = type_new(TYPE_STRUCT);
+
+    result->type_aggr.fields = fields;
+    result->type_aggr.num_fields = num_fields;
+
+    return result;
+}
+
+internal_proc Type *
+type_proc(Type_Field *params, size_t num_params, Type *ret) {
+    Type *result = type_new(TYPE_PROC);
+
+    result->type_proc.params = params;
+    result->type_proc.num_params = num_params;
+    result->type_proc.ret = ret;
+
+    return result;
+}
+
+internal_proc Type *
+type_filter(Type_Field *params, size_t num_params, Type *ret) {
+    Type *result = type_new(TYPE_FILTER);
+
+    result->type_proc.params = params;
+    result->type_proc.num_params = num_params;
+    result->type_proc.ret = ret;
+
+    return result;
+}
+
+internal_proc Type *
+type_array(Type *base, int index) {
+    Type *result = type_new(TYPE_ARRAY);
+
+    result->type_array.base = base;
+    result->type_array.index = index;
+
+    return result;
+}
+
+internal_proc void
+init_types() {
+    type_void = type_new(TYPE_VOID);
+    type_bool = type_new(TYPE_BOOL);
+    type_char = type_new(TYPE_CHAR);
+    type_int  = type_new(TYPE_INT);
+    type_str  = type_new(TYPE_STR);
+}
+
+internal_proc b32
+is_int(Type *type) {
+    b32 result = (type->kind == TYPE_INT || type->kind == TYPE_CHAR);
+
+    return result;
+}
+
+struct Scope {
+    Scope* parent;
+    Scope* next;
+    Sym**  syms;
+    size_t num_syms;
+};
+
+global_var Scope global_scope;
+global_var Scope *current_scope = &global_scope;
+
+internal_proc void
+scope_enter() {
+    Scope *new_scope = 0;
+
+    if ( !current_scope->next ) {
+        new_scope = (Scope *)xcalloc(1, sizeof(Scope));
+    } else {
+        new_scope = current_scope->next;
+        new_scope->syms = 0;
+        new_scope->num_syms = 0;
+    }
+
+    new_scope->parent = current_scope;
+    current_scope = new_scope;
+}
+
+internal_proc void
+scope_leave() {
+    if ( current_scope != &global_scope ) {
+        Scope *delete_me = current_scope;
+        current_scope = current_scope->parent;
+    }
+}
 
 enum Sym_Kind {
     SYM_NONE,
+    SYM_VAR,
+    SYM_PROC,
+    SYM_STRUCT,
 };
 
 struct Sym {
@@ -28,28 +244,25 @@ struct Sym {
     Type *type;
 };
 
-enum { MAX_LOCAL_SYMS = 1024 };
-global_var Sym global_scope_pointer[MAX_LOCAL_SYMS];
-global_var Sym *current_scope_marker = global_scope_pointer;
-
 internal_proc Sym *
-scope_enter() {
-    return global_scope_pointer;
-}
+sym_new(Sym_Kind kind, char *name, Type *type) {
+    Sym *result = (Sym *)xmalloc(sizeof(Sym));
 
-internal_proc void
-scope_leave(Sym *scope_marker) {
-    current_scope_marker = scope_marker;
-}
+    result->name = name;
+    result->kind = kind;
+    result->type = type;
 
-global_var Sym **doc_syms;
+    return result;
+}
 
 internal_proc Sym *
 sym_get(char *name) {
-    for ( int i = 0; i < buf_len(doc_syms); ++i ) {
-        Sym *sym = doc_syms[i];
-        if ( sym->name == name ) {
-            return sym;
+    for ( Scope *it = current_scope; it; it = it->parent ) {
+        for ( int i = 0; i < it->num_syms; ++i ) {
+            Sym *sym = it->syms[i];
+            if ( sym->name == name ) {
+                return sym;
+            }
         }
     }
 
@@ -57,8 +270,44 @@ sym_get(char *name) {
 }
 
 internal_proc void
-sym_scoped_push(char *name, Type *type) {
-    //
+sym_push(Sym_Kind kind, char *name, Type *type) {
+    /* @INFO: im lokalen scope nachschauen. falls vorhanden fehler ausgeben! */
+    for ( int i = 0; i < current_scope->num_syms; ++i ) {
+        if ( current_scope->syms[i]->name == name ) {
+            assert(!"symbols existiert bereits");
+        }
+    }
+
+    Sym *shadowed_sym = sym_get(name);
+    if ( shadowed_sym ) {
+        assert(!"warnung: symbol wird überschattet");
+    }
+
+    buf_push(current_scope->syms, sym_new(kind, name, type));
+    current_scope->num_syms++;
+}
+
+internal_proc void
+sym_filter_push(char *name, Type *type) {
+    sym_push(SYM_PROC, name, type);
+}
+
+internal_proc void
+init_builtin_filter() {
+    char *s = intern_str("s");
+
+    Type_Field str_type[] = { type_field(s, type_str) };
+    sym_filter_push(intern_str("upper"),  type_filter(str_type, 1, type_str));
+    sym_filter_push(intern_str("escape"), type_filter(str_type, 1, type_str));
+
+    Type_Field trunc_type[] = {
+        type_field(s, type_str),
+        type_field(intern_str("length"), type_int, val_int(255)),
+        type_field(intern_str("killwords"), type_bool, val_bool(false)),
+        type_field(intern_str("end"), type_str, val_str("...")),
+        type_field(intern_str("leeway"), type_int, val_int(0)),
+    };
+    sym_filter_push(intern_str("truncate"), type_filter(trunc_type, 5, type_str));
 }
 
 internal_proc Sym *
@@ -76,21 +325,24 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_FOR: {
-            Sym *scope_marker = scope_enter();
+            scope_enter();
 
-            // sym_scoped_push(stmt->stmt_for.it)
-            resolve_expr(stmt->stmt_for.cond);
+            Type *type = resolve_expr(stmt->stmt_for.cond);
+            sym_push(SYM_VAR, stmt->stmt_for.it, type);
             for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
                 resolve_stmt(stmt->stmt_for.stmts[i]);
             }
 
-            scope_leave(scope_marker);
+            scope_leave();
         } break;
 
         case STMT_IF: {
         } break;
 
         case STMT_BLOCK: {
+            for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
+                resolve_stmt(stmt->stmt_block.stmts[i]);
+            }
         } break;
 
         case STMT_END: {
@@ -104,6 +356,13 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_FILTER: {
+            for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
+                resolve_filter(stmt->stmt_filter.filter[i]);
+            }
+
+            for ( int i = 0; i < stmt->stmt_filter.num_stmts; ++i ) {
+                resolve_stmt(stmt->stmt_filter.stmts[i]);
+            }
         } break;
 
         default: {
@@ -112,7 +371,36 @@ resolve_stmt(Stmt *stmt) {
     }
 }
 
-internal_proc void
+internal_proc Type *
+resolve_expr_field(Expr *expr) {
+    assert(expr->kind == EXPR_FIELD);
+
+    Type *result = 0;
+    Type *type = resolve_expr(expr->expr_field.expr);
+    assert(type);
+    assert(type->kind == TYPE_STRUCT);
+
+    switch (expr->expr_field.field->kind) {
+        case EXPR_NAME: {
+            for ( int i = 0; i < type->type_aggr.num_fields; ++i ) {
+                Type_Field field = type->type_aggr.fields[i];
+
+                if (expr->expr_field.field->expr_name.value == field.name) {
+                    return field.type;
+                }
+            }
+            assert(!"kein passendes feld gefunden");
+        } break;
+
+        case EXPR_FIELD: {
+            // ...?
+        } break;
+    }
+
+    return result;
+}
+
+internal_proc Type *
 resolve_expr(Expr *expr) {
     switch (expr->kind) {
         case EXPR_NAME: {
@@ -120,42 +408,79 @@ resolve_expr(Expr *expr) {
             if ( !sym ) {
                 assert(!"konnte symbol nicht auflösen");
             }
+
+            return sym->type;
         } break;
 
         case EXPR_STR: {
-            // ...
+            return type_str;
         } break;
 
         case EXPR_INT: {
-            // ...
+            return type_int;
         } break;
 
         case EXPR_UNARY: {
-            resolve_expr(expr->expr_unary.expr);
+            return resolve_expr(expr->expr_unary.expr);
         } break;
 
         case EXPR_BINARY: {
-            resolve_expr(expr->expr_binary.left);
-            resolve_expr(expr->expr_binary.right);
+            Type *type_left  = resolve_expr(expr->expr_binary.left);
+            Type *type_right = resolve_expr(expr->expr_binary.right);
+
+            /* @TODO: typen überprüfen */
+            return 0;
         } break;
 
         case EXPR_TERNARY: {
-            resolve_expr(expr->expr_ternary.left);
-            resolve_expr(expr->expr_ternary.middle);
-            resolve_expr(expr->expr_ternary.right);
+            Type *type_left = resolve_expr(expr->expr_ternary.left);
+            Type *type_middle = resolve_expr(expr->expr_ternary.middle);
+            Type *type_right = resolve_expr(expr->expr_ternary.right);
+
+            /* @TODO: typen überprüfen */
+            return 0;
         } break;
 
         case EXPR_FIELD: {
-            resolve_expr(expr->expr_field.expr);
+            return resolve_expr_field(expr);
         } break;
 
         case EXPR_RANGE: {
-            resolve_expr(expr->expr_range.left);
-            resolve_expr(expr->expr_range.right);
+            Type *type_left  = resolve_expr(expr->expr_range.left);
+            Type *type_right = resolve_expr(expr->expr_range.right);
+
+            if ( !is_int(type_left) ) {
+                assert(!"range typ muss vom typ int sein");
+            }
+
+            if ( !is_int(type_right) ) {
+                assert(!"range typ muss vom typ int sein");
+            }
+
+            return type_int;
+        } break;
+
+        case EXPR_CALL: {
+            Type *type = resolve_expr(expr->expr_call.expr);
+            if ( type->kind != TYPE_PROC ) {
+                assert(!"aufruf einer nicht-prozedur");
+            }
+
+            return type->type_proc.ret;
+        } break;
+
+        case EXPR_INDEX: {
+            Type *type = resolve_expr(expr->expr_index.expr);
+            if (type->kind != TYPE_ARRAY) {
+                assert(!"indizierung auf einem nicht-array");
+            }
+
+            return type;
         } break;
 
         default: {
             assert(0);
+            return 0;
         } break;
     }
 }
@@ -168,8 +493,25 @@ resolve_filter(Var_Filter filter) {
         assert(!"symbol konnte nicht gefunden werden!");
     }
 
-    for ( int i = 0; i < filter.num_params; ++i ) {
-        resolve_expr(filter.params[i]);
+    assert(sym->type);
+    assert(sym->type->kind == TYPE_FILTER);
+    Type *type = sym->type;
+
+    if ( type->type_proc.num_params-1 < filter.num_params ) {
+        assert(!"zu viele argumente");
+    }
+
+    for ( int i = 1; i < type->type_proc.num_params; ++i ) {
+        Type_Field param = type->type_proc.params[i];
+
+        if ( param.default_val.kind != VAL_NONE && (i-1 > filter.num_params) ) {
+            assert(!"zu wenige parameter übergeben");
+        }
+
+        Type *arg_type = resolve_expr(filter.params[i-1]);
+        if (arg_type != param.type) {
+            assert(!"datentyp des arguments stimmt nicht");
+        }
     }
 }
 
@@ -216,4 +558,10 @@ resolve_doc(Doc *d) {
     for ( int i = 0; i < d->num_items; ++i ) {
         resolve_item(d->items[i]);
     }
+}
+
+internal_proc void
+init_resolver() {
+    init_types();
+    init_builtin_filter();
 }

@@ -37,6 +37,7 @@ main(int argc, char **argv) {
     }
 
     doc.num_items = buf_len(doc.items);
+    init_resolver();
     resolve_doc(&doc);
 
     return 0;

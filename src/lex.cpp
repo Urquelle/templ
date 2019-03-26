@@ -3,12 +3,15 @@ enum Token_Kind {
     T_INT = 129,
     T_LIT,
     T_STR,
+    T_CHAR,
     T_NAME,
     T_DOT,
     T_COMMA,
     T_RANGE,
     T_LPAREN,
     T_RPAREN,
+    T_LBRACKET,
+    T_RBRACKET,
     T_LBRACE,
     T_RBRACE,
     T_BAR,
@@ -45,6 +48,7 @@ struct Token {
     union {
         char *str_value;
         int   int_value;
+        int   char_value;
         char *name;
     };
 };
@@ -149,6 +153,22 @@ next_raw_token(Lexer *lex) {
             }
         } break;
 
+        case '\'': {
+            lex->token.kind = T_CHAR;
+            next(lex);
+
+            if ( lex->at[0] == '\\' ) {
+                next(lex);
+            }
+
+            if ( lex->at[1] != '\'' ) {
+                assert(!"fehler beim parsen eines char tokens");
+            }
+
+            lex->token.char_value = lex->at[0];
+            next(lex, 2);
+        } break;
+
         case '(': {
             lex->token.kind = T_LPAREN;
             next(lex);
@@ -156,6 +176,16 @@ next_raw_token(Lexer *lex) {
 
         case ')': {
             lex->token.kind = T_RPAREN;
+            next(lex);
+        } break;
+
+        case '[': {
+            lex->token.kind = T_LBRACKET;
+            next(lex);
+        } break;
+
+        case ']': {
+            lex->token.kind = T_RBRACKET;
             next(lex);
         } break;
 

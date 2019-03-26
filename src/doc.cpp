@@ -1,7 +1,7 @@
 struct Var_Filter {
     char *name;
     Expr **params;
-    s64    num_params;
+    size_t    num_params;
 };
 
 enum Item_Kind {

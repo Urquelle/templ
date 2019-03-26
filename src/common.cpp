@@ -141,7 +141,7 @@ intern_str(char *start, char *end) {
 
     Intern new_intern = {};
     new_intern.len = len;
-    new_intern.str = (char *)malloc(sizeof(char)*len + 1);
+    new_intern.str = (char *)xmalloc(sizeof(char)*len + 1);
     memcpy(new_intern.str, start, sizeof(char)*len);
     new_intern.str[len] = 0;
     buf_push(interns, new_intern);
