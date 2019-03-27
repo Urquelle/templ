@@ -18,27 +18,9 @@
 
 int
 main(int argc, char **argv) {
-    char *content = 0;
-    file_read("test.tpl", &content);
-
-    Parser parser = {};
-    Parser *p = &parser;
-    init_parser(p, content);
-
-    Doc doc = {};
-    while (p->lex.token.kind != T_EOF) {
-        if ( match_token(p, T_VAR_BEGIN) ) {
-            buf_push(doc.items, parse_var(p));
-        } else if ( is_token(p, T_CODE_BEGIN) ) {
-            buf_push(doc.items, parse_code(p));
-        } else {
-            buf_push(doc.items, parse_lit(p));
-        }
-    }
-
-    doc.num_items = buf_len(doc.items);
+    Doc *doc = parse_file("test.tpl");
     init_resolver();
-    resolve_doc(&doc);
+    resolve_doc(doc);
 
     return 0;
 }

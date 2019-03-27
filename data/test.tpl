@@ -1,5 +1,4 @@
-{% extends "bla.tpl" %}
-
+{% extends "main.tpl" %}
 <div class="blö">töst</div>
 
 {% block foo %}
@@ -7,6 +6,10 @@
     {% block title %}
         <div>title</div>
     {% end %}
+{% end %}
+
+{% block main %}
+    hauptinhalt
 {% end %}
 
 {% filter upper | escape %}

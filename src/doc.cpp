@@ -32,6 +32,7 @@ struct Item {
 };
 
 struct Doc {
+    Doc *parent;
     Item **items;
     size_t num_items;
 };

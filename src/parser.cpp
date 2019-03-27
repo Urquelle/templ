@@ -54,6 +54,13 @@ is_token(Parser *p, Token_Kind kind) {
 }
 
 internal_proc b32
+is_valid(Parser *p) {
+    b32 result = p->lex.at[0] != 0;
+
+    return result;
+}
+
+internal_proc b32
 match_token(Parser *p, Token_Kind kind) {
     if ( is_token(p, kind) ) {
         next_token(&p->lex);
@@ -171,7 +178,7 @@ internal_proc Expr *
 parse_expr_mul(Parser *p) {
     Expr *left = parse_expr_unary(p);
 
-    if ( match_token(p, T_MUL) ) {
+    while ( match_token(p, T_MUL) ) {
         left = expr_binary(T_MUL, left, parse_expr_unary(p));
     }
 
@@ -182,7 +189,7 @@ internal_proc Expr *
 parse_expr_add(Parser *p) {
     Expr *left = parse_expr_mul(p);
 
-    if ( match_token(p, T_PLUS) ) {
+    while ( match_token(p, T_PLUS) ) {
         left = expr_binary(T_PLUS, left, parse_expr_mul(p));
     }
 
@@ -204,10 +211,12 @@ internal_proc Expr *
 parse_expr_cmp(Parser *p) {
     Expr *left = parse_expr_range(p);
 
-    if ( match_token(p, T_EQL) ) {
-        left = expr_binary(T_EQL, left, parse_expr_range(p));
-    } else if ( match_token(p, T_LT) ) {
-        left = expr_binary(T_LT, left, parse_expr_range(p));
+    while ( is_token(p, T_EQL) || is_token(p, T_LT) ) {
+        if ( match_token(p, T_EQL) ) {
+            left = expr_binary(T_EQL, left, parse_expr_range(p));
+        } else if ( match_token(p, T_LT) ) {
+            left = expr_binary(T_LT, left, parse_expr_range(p));
+        }
     }
 
     return left;
@@ -457,7 +466,7 @@ parse_lit(Parser *p) {
     char *lit = 0;
 
     buf_printf(lit, "%s", p->lex.token.literal);
-    while ( is_lit(&p->lex) ) {
+    while ( is_valid(p) && is_lit(&p->lex) ) {
         buf_printf(lit, "%c", p->lex.at[0]);
         next(&p->lex);
     }
@@ -466,5 +475,32 @@ parse_lit(Parser *p) {
     next_token(&p->lex);
 
     return result;
+}
+
+internal_proc Doc *
+parse_file(char *filename) {
+    char *content = 0;
+    Doc *doc = (Doc *)xcalloc(1, sizeof(Doc));
+
+    if ( file_read(filename, &content) ) {
+        Parser parser = {};
+        Parser *p = &parser;
+        init_parser(p, content);
+
+        while (p->lex.token.kind != T_EOF) {
+            if ( match_token(p, T_VAR_BEGIN) ) {
+                buf_push(doc->items, parse_var(p));
+            } else if ( is_token(p, T_CODE_BEGIN) ) {
+                buf_push(doc->items, parse_code(p));
+            } else {
+                buf_push(doc->items, parse_lit(p));
+            }
+        }
+    } else {
+        assert(!"konnte datei nicht lesen");
+    }
+
+    doc->num_items = buf_len(doc->items);
+    return doc;
 }
 

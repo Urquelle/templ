@@ -1,10 +1,22 @@
 struct Type;
 struct Sym;
 
+Doc *current_doc;
+internal_proc void
+enter_doc(Doc *d) {
+    current_doc = d;
+}
+
+internal_proc void
+set_parent(Doc *d) {
+    current_doc->parent = d;
+}
+
 internal_proc void   resolve_item(Item *item);
 internal_proc Type * resolve_expr(Expr *expr);
 internal_proc void   resolve_filter(Var_Filter filter);
 internal_proc void   resolve_stmt(Stmt *stmt);
+internal_proc void   resolve_doc(Doc *d);
 
 enum Val_Kind {
     VAL_NONE,
@@ -366,6 +378,9 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_EXTENDS: {
+            Doc *doc = parse_file(stmt->stmt_extends.name);
+            resolve_doc(doc);
+            set_parent(doc);
         } break;
 
         case STMT_FILTER: {
@@ -581,6 +596,7 @@ resolve_item(Item *item) {
 
 internal_proc void
 resolve_doc(Doc *d) {
+    enter_doc(d);
     for ( int i = 0; i < d->num_items; ++i ) {
         resolve_item(d->items[i]);
     }
