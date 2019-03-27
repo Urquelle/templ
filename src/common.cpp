@@ -67,6 +67,22 @@ memdup(void *mem, size_t size) {
     return result;
 }
 
+internal_proc char *
+strf(char *fmt, ...) {
+    va_list args = NULL;
+    va_start(args, fmt);
+    int size = 1 + vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+
+    char *str = (char *)malloc(size);
+
+    va_start(args, fmt);
+    vsnprintf(str, size, fmt, args);
+    va_end(args);
+
+    return str;
+}
+
 typedef struct BufHdr {
     size_t len;
     size_t cap;

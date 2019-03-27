@@ -2,8 +2,16 @@ struct Type;
 struct Sym;
 
 Doc *current_doc;
+internal_proc Doc *
+doc_enter(Doc *d) {
+    Doc *result = current_doc;
+    current_doc = d;
+
+    return result;
+}
+
 internal_proc void
-enter_doc(Doc *d) {
+doc_leave(Doc *d) {
     current_doc = d;
 }
 
@@ -292,7 +300,7 @@ sym_push(Sym_Kind kind, char *name, Type *type) {
     /* @INFO: im lokalen scope nachschauen. falls vorhanden fehler ausgeben! */
     for ( int i = 0; i < current_scope->num_syms; ++i ) {
         if ( current_scope->syms[i]->name == name ) {
-            assert(!"symbols existiert bereits");
+            assert(!"symbol existiert bereits");
         }
     }
 
@@ -467,6 +475,10 @@ resolve_expr(Expr *expr) {
             return type_float;
         } break;
 
+        case EXPR_BOOL: {
+            return type_bool;
+        } break;
+
         case EXPR_PAREN: {
             return resolve_expr(expr->expr_paren.expr);
         } break;
@@ -608,10 +620,11 @@ resolve_item(Item *item) {
 
 internal_proc void
 resolve_doc(Doc *d) {
-    enter_doc(d);
+    Doc *prev_doc = doc_enter(d);
     for ( int i = 0; i < d->num_items; ++i ) {
         resolve_item(d->items[i]);
     }
+    doc_leave(prev_doc);
 }
 
 internal_proc void

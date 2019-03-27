@@ -15,12 +15,14 @@
 #include "doc.cpp"
 #include "parser.cpp"
 #include "resolve.cpp"
+#include "gen_html.cpp"
 
 int
 main(int argc, char **argv) {
     Doc *doc = parse_file("test.tpl");
     init_resolver();
     resolve_doc(doc);
+    gen_doc(doc);
 
     return 0;
 }

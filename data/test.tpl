@@ -1,6 +1,6 @@
 {% extends "main.tpl" %}
 <div class="blö">töst</div>
-{% set a = 5.3 %}
+{% set a = true %}
 
 {% block title %}
     test - {{ default_title }}

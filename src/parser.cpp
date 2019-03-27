@@ -121,8 +121,14 @@ parse_expr_base(Parser *p) {
         result = expr_str(lex->token.str_value);
         next_token(lex);
     } else if ( is_token(p, T_NAME) ) {
-        result = expr_name(lex->token.name);
-        next_token(lex);
+        if ( match_keyword(p, keyword_true) ) {
+            result = expr_bool(true);
+        } else if ( match_keyword(p, keyword_false) ) {
+            result = expr_bool(false);
+        } else {
+            result = expr_name(lex->token.name);
+            next_token(lex);
+        }
     } else if ( match_token(p, T_LPAREN) ) {
         result = expr_paren(parse_expr(p));
         expect_token(p, T_RPAREN);
