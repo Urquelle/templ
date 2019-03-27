@@ -6,6 +6,7 @@ enum Expr_Kind {
     EXPR_PAREN,
     EXPR_NAME,
     EXPR_INT,
+    EXPR_FLOAT,
     EXPR_STR,
     EXPR_UNARY,
     EXPR_BINARY,
@@ -31,6 +32,10 @@ struct Expr {
         struct {
             int value;
         } expr_int;
+
+        struct {
+            float value;
+        } expr_float;
 
         struct {
             char *value;
@@ -108,6 +113,15 @@ expr_int(int value) {
     Expr *result = expr_new(EXPR_INT);
 
     result->expr_int.value = value;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_float(float value) {
+    Expr *result = expr_new(EXPR_FLOAT);
+
+    result->expr_float.value = value;
 
     return result;
 }

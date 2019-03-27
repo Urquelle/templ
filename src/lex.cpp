@@ -1,10 +1,11 @@
 enum Token_Kind {
     T_EOF,
     T_INT = 129,
-    T_LIT,
+    T_FLOAT,
     T_STR,
     T_CHAR,
     T_NAME,
+    T_LIT,
     T_DOT,
     T_COMMA,
     T_RANGE,
@@ -48,6 +49,7 @@ struct Token {
     union {
         char *str_value;
         int   int_value;
+        float float_value;
         int   char_value;
         char *name;
     };
@@ -124,6 +126,35 @@ is_lit(Lexer *lex) {
             result = false;
         }
     }
+
+    return result;
+}
+
+internal_proc int
+scan_int(Lexer *lex) {
+    int value = 0;
+    while (isdigit(lex->at[0])) {
+        int digit = lex->at[0] - '0';
+        value *= 10;
+        value += digit;
+
+        next(lex);
+    }
+
+    return value;
+}
+
+internal_proc double
+scan_float(Lexer *lex) {
+    char *start = lex->input;
+    int int_value = scan_int(lex);
+    if ( lex->at[0] == '.' ) {
+        next(lex);
+        while ( isdigit(lex->at[0]) ) {
+            next(lex);
+        }
+    }
+    double result = int_value + strtod(start, NULL);
 
     return result;
 }
@@ -307,16 +338,15 @@ next_raw_token(Lexer *lex) {
         case '5': case '6': case '7': case '8': case '9': {
             lex->token.kind = T_INT;
 
-            int value = 0;
-            while (isdigit(lex->at[0])) {
-                int digit = lex->at[0] - '0';
-                value *= 10;
-                value += digit;
+            int int_value = scan_int(lex);
 
-                next(lex);
+            if ( lex->at[0] == '.' && isdigit(lex->at[1]) ) {
+                lex->token.kind = T_FLOAT;
+                float dec_value = (float)scan_float(lex);
+                lex->token.float_value = int_value + dec_value;
+            } else {
+                lex->token.int_value = int_value;
             }
-
-            lex->token.int_value = value;
         } break;
 
         case 'a': case 'b': case 'c': case 'd': case 'e':

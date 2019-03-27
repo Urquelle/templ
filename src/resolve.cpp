@@ -107,6 +107,7 @@ enum Type_Kind {
     TYPE_BOOL,
     TYPE_CHAR,
     TYPE_INT,
+    TYPE_FLOAT,
     TYPE_STR,
     TYPE_ARRAY,
     TYPE_STRUCT,
@@ -140,6 +141,7 @@ global_var Type *type_void;
 global_var Type *type_bool;
 global_var Type *type_char;
 global_var Type *type_int;
+global_var Type *type_float;
 global_var Type *type_str;
 
 internal_proc Type *
@@ -195,11 +197,12 @@ type_array(Type *base, int index) {
 
 internal_proc void
 init_types() {
-    type_void = type_new(TYPE_VOID);
-    type_bool = type_new(TYPE_BOOL);
-    type_char = type_new(TYPE_CHAR);
-    type_int  = type_new(TYPE_INT);
-    type_str  = type_new(TYPE_STR);
+    type_void  = type_new(TYPE_VOID);
+    type_bool  = type_new(TYPE_BOOL);
+    type_char  = type_new(TYPE_CHAR);
+    type_int   = type_new(TYPE_INT);
+    type_float = type_new(TYPE_FLOAT);
+    type_str   = type_new(TYPE_STR);
 }
 
 internal_proc b32
@@ -458,6 +461,10 @@ resolve_expr(Expr *expr) {
 
         case EXPR_INT: {
             return type_int;
+        } break;
+
+        case EXPR_FLOAT: {
+            return type_float;
         } break;
 
         case EXPR_PAREN: {

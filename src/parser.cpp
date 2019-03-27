@@ -114,6 +114,9 @@ parse_expr_base(Parser *p) {
     if ( is_token(p, T_INT) ) {
         result = expr_int(lex->token.int_value);
         next_token(lex);
+    } else if ( is_token(p, T_FLOAT) ) {
+        result = expr_float(lex->token.float_value);
+        next_token(lex);
     } else if ( is_token(p, T_STR) ) {
         result = expr_str(lex->token.str_value);
         next_token(lex);
