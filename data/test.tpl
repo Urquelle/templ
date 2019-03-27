@@ -16,9 +16,9 @@
 {{ user.name | upper | truncate 20 "..." }}
 {# kommentar #}
 {% for it in 1..10 %}
-    {% if a == b %}
-        <div>{{ a }}</div>
-    {% else if a < b %}
-        <div>{{ b }}</div>
+    {% if it == 5 %}
+        <div>{{ it }}</div>
+    {% else if it < 10 %}
+        <div>{{ it }}</div>
     {% end %}
 {% end %}

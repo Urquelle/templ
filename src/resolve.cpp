@@ -4,6 +4,7 @@ struct Sym;
 internal_proc void   resolve_item(Item *item);
 internal_proc Type * resolve_expr(Expr *expr);
 internal_proc void   resolve_filter(Var_Filter filter);
+internal_proc void   resolve_stmt(Stmt *stmt);
 
 enum Val_Kind {
     VAL_NONE,
@@ -77,14 +78,13 @@ struct Type_Field {
     Val   default_val;
 };
 
-internal_proc Type_Field
+internal_proc Type_Field *
 type_field(char *name, Type *type, Val default_val = val_none) {
-    // Type_Field *result = (Type_Field *)xmalloc(sizeof(Type_Field));
-    Type_Field result = {};
+    Type_Field *result = (Type_Field *)xmalloc(sizeof(Type_Field));
 
-    result.name = name;
-    result.type = type;
-    result.default_val = default_val;
+    result->name = intern_str(name);
+    result->type = type;
+    result->default_val = default_val;
 
     return result;
 }
@@ -107,12 +107,12 @@ struct Type {
 
     union {
         struct {
-            Type_Field *fields;
+            Type_Field **fields;
             size_t num_fields;
         } type_aggr;
 
         struct {
-            Type_Field *params;
+            Type_Field **params;
             size_t num_params;
             Type *ret;
         } type_proc;
@@ -140,7 +140,7 @@ type_new(Type_Kind kind) {
 }
 
 internal_proc Type *
-type_struct(Type_Field *fields, size_t num_fields) {
+type_struct(Type_Field **fields, size_t num_fields) {
     Type *result = type_new(TYPE_STRUCT);
 
     result->type_aggr.fields = fields;
@@ -150,7 +150,7 @@ type_struct(Type_Field *fields, size_t num_fields) {
 }
 
 internal_proc Type *
-type_proc(Type_Field *params, size_t num_params, Type *ret) {
+type_proc(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_PROC);
 
     result->type_proc.params = params;
@@ -161,7 +161,7 @@ type_proc(Type_Field *params, size_t num_params, Type *ret) {
 }
 
 internal_proc Type *
-type_filter(Type_Field *params, size_t num_params, Type *ret) {
+type_filter(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_FILTER);
 
     result->type_proc.params = params;
@@ -198,6 +198,7 @@ is_int(Type *type) {
 }
 
 struct Scope {
+    char *name;
     Scope* parent;
     Scope* next;
     Sym**  syms;
@@ -219,6 +220,7 @@ scope_enter() {
         new_scope->num_syms = 0;
     }
 
+    current_scope->next = new_scope;
     new_scope->parent = current_scope;
     current_scope = new_scope;
 }
@@ -226,7 +228,6 @@ scope_enter() {
 internal_proc void
 scope_leave() {
     if ( current_scope != &global_scope ) {
-        Scope *delete_me = current_scope;
         current_scope = current_scope->parent;
     }
 }
@@ -271,6 +272,8 @@ sym_get(char *name) {
 
 internal_proc void
 sym_push(Sym_Kind kind, char *name, Type *type) {
+    name = intern_str(name);
+
     /* @INFO: im lokalen scope nachschauen. falls vorhanden fehler ausgeben! */
     for ( int i = 0; i < current_scope->num_syms; ++i ) {
         if ( current_scope->syms[i]->name == name ) {
@@ -288,26 +291,29 @@ sym_push(Sym_Kind kind, char *name, Type *type) {
 }
 
 internal_proc void
-sym_filter_push(char *name, Type *type) {
+sym_push_filter(char *name, Type *type) {
     sym_push(SYM_PROC, name, type);
 }
 
 internal_proc void
+sym_push_var(char *name, Type *type) {
+    sym_push(SYM_VAR, name, type);
+}
+
+internal_proc void
 init_builtin_filter() {
-    char *s = intern_str("s");
+    Type_Field *str_type[] = { type_field("s", type_str) };
+    sym_push_filter("upper",  type_filter(str_type, 1, type_str));
+    sym_push_filter("escape", type_filter(str_type, 1, type_str));
 
-    Type_Field str_type[] = { type_field(s, type_str) };
-    sym_filter_push(intern_str("upper"),  type_filter(str_type, 1, type_str));
-    sym_filter_push(intern_str("escape"), type_filter(str_type, 1, type_str));
-
-    Type_Field trunc_type[] = {
-        type_field(s, type_str),
-        type_field(intern_str("length"), type_int, val_int(255)),
-        type_field(intern_str("killwords"), type_bool, val_bool(false)),
-        type_field(intern_str("end"), type_str, val_str("...")),
-        type_field(intern_str("leeway"), type_int, val_int(0)),
+    Type_Field *trunc_type[] = {
+        type_field("s", type_str),
+        type_field("length", type_int, val_int(255)),
+        type_field("killwords", type_bool, val_bool(false)),
+        type_field("end", type_str, val_str("...")),
+        type_field("leeway", type_int, val_int(0)),
     };
-    sym_filter_push(intern_str("truncate"), type_filter(trunc_type, 5, type_str));
+    sym_push_filter("truncate", type_filter(trunc_type, 5, type_str));
 }
 
 internal_proc Sym *
@@ -315,6 +321,13 @@ resolve_name(char *name) {
     Sym *result = sym_get(name);
 
     return result;
+}
+
+internal_proc void
+resolve_stmts(Stmt **stmts, size_t num_stmts) {
+    for ( int i = 0; i < num_stmts; ++i ) {
+        resolve_stmt(stmts[i]);
+    }
 }
 
 internal_proc void
@@ -326,23 +339,23 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_FOR: {
             scope_enter();
-
             Type *type = resolve_expr(stmt->stmt_for.cond);
-            sym_push(SYM_VAR, stmt->stmt_for.it, type);
-            for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
-                resolve_stmt(stmt->stmt_for.stmts[i]);
-            }
-
+            sym_push_var(stmt->stmt_for.it, type);
+            resolve_stmts(stmt->stmt_for.stmts, stmt->stmt_for.num_stmts);
             scope_leave();
         } break;
 
         case STMT_IF: {
+            scope_enter();
+            Type *type = resolve_expr(stmt->stmt_if.cond);
+            resolve_stmts(stmt->stmt_if.stmts, stmt->stmt_if.num_stmts);
+            scope_leave();
         } break;
 
         case STMT_BLOCK: {
-            for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
-                resolve_stmt(stmt->stmt_block.stmts[i]);
-            }
+            scope_enter();
+            resolve_stmts(stmt->stmt_block.stmts, stmt->stmt_block.num_stmts);
+            scope_leave();
         } break;
 
         case STMT_END: {
@@ -359,10 +372,7 @@ resolve_stmt(Stmt *stmt) {
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
                 resolve_filter(stmt->stmt_filter.filter[i]);
             }
-
-            for ( int i = 0; i < stmt->stmt_filter.num_stmts; ++i ) {
-                resolve_stmt(stmt->stmt_filter.stmts[i]);
-            }
+            resolve_stmts(stmt->stmt_filter.stmts, stmt->stmt_filter.num_stmts);
         } break;
 
         default: {
@@ -374,30 +384,40 @@ resolve_stmt(Stmt *stmt) {
 internal_proc Type *
 resolve_expr_field(Expr *expr) {
     assert(expr->kind == EXPR_FIELD);
-
-    Type *result = 0;
     Type *type = resolve_expr(expr->expr_field.expr);
     assert(type);
-    assert(type->kind == TYPE_STRUCT);
 
+    char *name = NULL;
     switch (expr->expr_field.field->kind) {
         case EXPR_NAME: {
-            for ( int i = 0; i < type->type_aggr.num_fields; ++i ) {
-                Type_Field field = type->type_aggr.fields[i];
-
-                if (expr->expr_field.field->expr_name.value == field.name) {
-                    return field.type;
-                }
-            }
-            assert(!"kein passendes feld gefunden");
+            name = expr->expr_field.field->expr_name.value;
         } break;
 
-        case EXPR_FIELD: {
-            // ...?
+        case EXPR_CALL: {
+            assert(expr->expr_call.expr->kind == EXPR_NAME);
+            name = expr->expr_call.expr->expr_name.value;
+        } break;
+
+        case EXPR_INDEX: {
+            assert(expr->expr_index.expr->kind == EXPR_NAME);
+            name = expr->expr_index.expr->expr_name.value;
+        } break;
+
+        default: {
+            assert(!"nicht unterstützter ausdruck");
         } break;
     }
 
-    return result;
+    for ( int i = 0; i < type->type_aggr.num_fields; ++i ) {
+        Type_Field *field = type->type_aggr.fields[i];
+
+        if (name == field->name) {
+            return field->type;
+        }
+    }
+
+    assert(!"kein passendes feld gefunden");
+    return 0;
 }
 
 internal_proc Type *
@@ -418,6 +438,10 @@ resolve_expr(Expr *expr) {
 
         case EXPR_INT: {
             return type_int;
+        } break;
+
+        case EXPR_PAREN: {
+            return resolve_expr(expr->expr_paren.expr);
         } break;
 
         case EXPR_UNARY: {
@@ -501,16 +525,18 @@ resolve_filter(Var_Filter filter) {
         assert(!"zu viele argumente");
     }
 
-    for ( int i = 1; i < type->type_proc.num_params; ++i ) {
-        Type_Field param = type->type_proc.params[i];
+    for ( int i = 1; i < type->type_proc.num_params-1; ++i ) {
+        Type_Field *param = type->type_proc.params[i];
 
-        if ( param.default_val.kind != VAL_NONE && (i-1 > filter.num_params) ) {
+        if ( param->default_val.kind != VAL_NONE && (i-1 > filter.num_params) ) {
             assert(!"zu wenige parameter übergeben");
         }
 
-        Type *arg_type = resolve_expr(filter.params[i-1]);
-        if (arg_type != param.type) {
-            assert(!"datentyp des arguments stimmt nicht");
+        if ( i-1 < filter.num_params ) {
+            Type *arg_type = resolve_expr(filter.params[i-1]);
+            if (arg_type != param->type) {
+                assert(!"datentyp des arguments stimmt nicht");
+            }
         }
     }
 }
@@ -519,7 +545,7 @@ internal_proc void
 resolve_var(Item *item) {
     assert(item->kind == ITEM_VAR);
 
-    resolve_expr(item->item_var.expr);
+    Type *type = resolve_expr(item->item_var.expr);
     for ( int i = 0; i < item->item_var.num_filter; ++i ) {
         resolve_filter(item->item_var.filter[i]);
     }
@@ -561,7 +587,15 @@ resolve_doc(Doc *d) {
 }
 
 internal_proc void
+init_test_datatype() {
+    Type_Field *user_fields[] = { type_field("name", type_str) };
+    Type *user_type = type_struct(user_fields, 1);
+    sym_push_var("user", user_type);
+}
+
+internal_proc void
 init_resolver() {
     init_types();
     init_builtin_filter();
+    init_test_datatype();
 }

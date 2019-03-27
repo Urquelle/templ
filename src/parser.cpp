@@ -9,6 +9,8 @@ internal_proc Item * parse_lit(Parser *p);
 internal_proc Var_Filter parse_filter(Parser *p);
 
 global_var char ** keywords;
+global_var char *keyword_true;
+global_var char *keyword_false;
 global_var char *keyword_if;
 global_var char *keyword_else;
 global_var char *keyword_for;
@@ -23,6 +25,8 @@ internal_proc void
 init_keywords() {
 #define ADD_KEYWORD(K) keyword_##K = intern_str(#K); buf_push(keywords, keyword_##K)
 
+    ADD_KEYWORD(true);
+    ADD_KEYWORD(false);
     ADD_KEYWORD(if);
     ADD_KEYWORD(else);
     ADD_KEYWORD(for);
@@ -147,7 +151,7 @@ internal_proc Expr *
 parse_expr_field(Parser *p) {
     Expr *left = parse_expr_call_or_index(p);
 
-    if ( match_token(p, T_DOT) ) {
+    while ( match_token(p, T_DOT) ) {
         left = expr_field(left, parse_expr_call_or_index(p));
     }
 
