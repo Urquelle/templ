@@ -1,6 +1,10 @@
 {% extends "main.tpl" %}
 <div class="blö">töst</div>
 
+{% block title %}
+    test - {{ default_title }}
+{% end %}
+
 {% block foo %}
     <a name="foo">123</a>
     {% block title %}

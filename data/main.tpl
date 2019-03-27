@@ -1,5 +1,6 @@
 <html>
     <head>
+        {% set default_title = "tmpl" %}
         <title>{% block title %}{% end %}</title>
     </head>
     <body>

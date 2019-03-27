@@ -383,6 +383,11 @@ resolve_stmt(Stmt *stmt) {
             set_parent(doc);
         } break;
 
+        case STMT_SET: {
+            Type *type = resolve_expr(stmt->stmt_set.expr);
+            sym_push_var(stmt->stmt_set.name, type);
+        } break;
+
         case STMT_FILTER: {
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
                 resolve_filter(stmt->stmt_filter.filter[i]);

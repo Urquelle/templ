@@ -205,6 +205,7 @@ enum Stmt_Kind {
     STMT_VAR,
     STMT_LIT,
     STMT_EXTENDS,
+    STMT_SET,
     STMT_FILTER,
 };
 
@@ -245,6 +246,11 @@ struct Stmt {
         struct {
             char *name;
         } stmt_extends;
+
+        struct {
+            char *name;
+            Expr *expr;
+        } stmt_set;
 
         struct {
             Var_Filter *filter;
@@ -350,6 +356,16 @@ stmt_extends(char *name) {
     Stmt *result = stmt_new(STMT_EXTENDS);
 
     result->stmt_extends.name = name;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_set(char *name, Expr *expr) {
+    Stmt *result = stmt_new(STMT_SET);
+
+    result->stmt_set.name = name;
+    result->stmt_set.expr = expr;
 
     return result;
 }
