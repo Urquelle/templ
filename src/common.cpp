@@ -139,30 +139,157 @@ buf__printf(char *buf, const char *fmt, ...) {
     return buf;
 }
 
-struct Intern {
-    s64   len;
-    char *str;
+internal_proc uint64_t
+uint64_hash(uint64_t x) {
+    x *= 0xff51afd7ed558ccd;
+    x ^= x >> 32;
+
+    return x;
+}
+
+internal_proc uint64_t
+ptr_hash(void *ptr) {
+    return uint64_hash((uintptr_t)ptr);
+}
+
+internal_proc uint64_t
+mix_hash(uint64_t x, uint64_t y) {
+    x ^= y;
+    x *= 0xff51afd7ed558ccd;
+    x ^= x >> 32;
+
+    return x;
+}
+
+internal_proc uint64_t
+bytes_hash(void *ptr, size_t len) {
+    uint64_t x = 0xcbf29ce484222325;
+    char *buf = (char *)ptr;
+
+    for (size_t i = 0; i < len; i++) {
+        x ^= buf[i];
+        x *= 0x100000001b3;
+        x ^= x >> 32;
+    }
+
+    return x;
+}
+
+struct Map {
+    void **vals;
+    void **keys;
+    size_t len;
+    size_t cap;
 };
 
-global_var Intern *interns;
-internal_proc char *
-intern_str(char *start, char *end) {
-    s64 len = end - start;
-    for ( int i = 0; i < buf_len(interns); ++i ) {
-        Intern intern = interns[i];
-        if ( intern.len == len && strncmp(intern.str, start, len) == 0 ) {
-            return intern.str;
+internal_proc void *
+map_get(Map *map, void *key) {
+    if (map->len == 0) {
+        return NULL;
+    }
+
+    assert(IS_POW2(map->cap));
+    size_t i = (size_t)ptr_hash(key);
+    assert(map->len < map->cap);
+
+    for (;;) {
+        i &= map->cap - 1;
+
+        if ( map->keys[i] == key ) {
+            return map->vals[i];
+        } else if ( !map->keys[i] ) {
+            return NULL;
+        }
+        i++;
+    }
+
+    return NULL;
+}
+
+internal_proc void map_put(Map *map, void *key, void *val);
+
+internal_proc void
+map_grow(Map *map, size_t new_cap) {
+    new_cap = MAX(16, new_cap);
+    Map new_map = {};
+
+    new_map.keys = (void **)xcalloc(new_cap, sizeof(void *));
+    new_map.vals = (void **)xmalloc(new_cap * sizeof(void *));
+    new_map.cap  = new_cap;
+
+    for ( size_t i = 0; i < map->cap; i++ ) {
+        if ( map->keys[i] ) {
+            map_put(&new_map, map->keys[i], map->vals[i]);
         }
     }
 
-    Intern new_intern = {};
-    new_intern.len = len;
-    new_intern.str = (char *)xmalloc(sizeof(char)*len + 1);
-    memcpy(new_intern.str, start, sizeof(char)*len);
-    new_intern.str[len] = 0;
-    buf_push(interns, new_intern);
+    free(map->keys);
+    free(map->vals);
+    *map = new_map;
+}
 
-    return new_intern.str;
+internal_proc void
+map_put(Map *map, void *key, void *val) {
+    assert(key);
+    assert(val);
+
+    if (2*map->len >= map->cap) {
+        map_grow(map, 2*map->cap);
+    }
+
+    assert(2*map->len < map->cap);
+    assert(IS_POW2(map->cap));
+
+    size_t i = (size_t)ptr_hash(key);
+    for (;;) {
+        i &= map->cap - 1;
+
+        if ( !map->keys[i] ) {
+            map->len++;
+            map->keys[i] = key;
+            map->vals[i] = val;
+
+            return;
+        } else if ( map->keys[i] == key ) {
+            map->vals[i] = val;
+
+            return;
+        }
+
+        i++;
+    }
+}
+
+struct Intern {
+    size_t   len;
+    Intern*  next;
+    char     str[1];
+};
+
+global_var Map interns;
+
+internal_proc char *
+intern_str(char *start, char *end) {
+    size_t len = end - start;
+    uint64_t hash = bytes_hash(start, len);
+    void *key = (void *)(uintptr_t)(hash ? hash : 1);
+
+    Intern *intern = (Intern *)map_get(&interns, key);
+    for (Intern *it = intern; it; it = it->next) {
+        if (it->len == len && strncmp(it->str, start, len) == 0) {
+            return it->str;
+        }
+    }
+
+    Intern *new_intern = (Intern *)malloc(offsetof(Intern, str) + len + 1);
+
+    new_intern->len = len;
+    new_intern->next   = intern;
+    memcpy(new_intern->str, start, len);
+    new_intern->str[len] = 0;
+    map_put(&interns, key, new_intern);
+
+    return new_intern->str;
 }
 
 internal_proc char *
