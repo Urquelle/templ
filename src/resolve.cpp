@@ -1,5 +1,6 @@
 struct Type;
 struct Sym;
+struct Operand;
 
 Doc *current_doc;
 internal_proc Doc *
@@ -20,18 +21,21 @@ set_parent(Doc *d) {
     current_doc->parent = d;
 }
 
-internal_proc void   resolve_item(Item *item);
-internal_proc Type * resolve_expr(Expr *expr);
-internal_proc void   resolve_filter(Var_Filter filter);
-internal_proc void   resolve_stmt(Stmt *stmt);
-internal_proc void   resolve_doc(Doc *d);
+internal_proc void      resolve_item(Item *item);
+internal_proc Operand * resolve_expr(Expr *expr);
+internal_proc void      resolve_filter(Var_Filter filter);
+internal_proc void      resolve_stmt(Stmt *stmt);
+internal_proc void      resolve_doc(Doc *d);
 
 enum Val_Kind {
     VAL_NONE,
     VAL_BOOL,
     VAL_CHAR,
     VAL_INT,
+    VAL_FLOAT,
     VAL_STR,
+    VAL_RANGE,
+    VAL_STRUCT,
 };
 
 struct Val {
@@ -41,7 +45,16 @@ struct Val {
         b32   bool_val;
         char  char_val;
         int   int_val;
+        float float_val;
         char *str_val;
+        struct {
+            int min;
+            int max;
+        } range_val;
+
+        struct {
+            void* ptr;
+        } struct_val;
     };
 };
 
@@ -84,10 +97,38 @@ val_int(int val) {
 }
 
 internal_proc Val
+val_float(float val) {
+    Val result = val_new(VAL_FLOAT);
+
+    result.float_val = val;
+
+    return result;
+}
+
+internal_proc Val
 val_str(char *val) {
     Val result = val_new(VAL_STR);
 
     result.str_val = val;
+
+    return result;
+}
+
+internal_proc Val
+val_range(int min, int max) {
+    Val result = val_new(VAL_RANGE);
+
+    result.range_val.min = min;
+    result.range_val.max = max;
+
+    return result;
+}
+
+internal_proc Val
+val_struct(void *ptr) {
+    Val result = val_new(VAL_STRUCT);
+
+    result.struct_val.ptr = ptr;
 
     return result;
 }
@@ -152,6 +193,9 @@ global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
 
+global_var Type *arithmetic_result_type_table[3][3];
+global_var Type *scalar_result_type_table[4][4];
+
 internal_proc Type *
 type_new(Type_Kind kind) {
     Type *result = (Type *)xmalloc(sizeof(Type));
@@ -165,7 +209,7 @@ internal_proc Type *
 type_struct(Type_Field **fields, size_t num_fields) {
     Type *result = type_new(TYPE_STRUCT);
 
-    result->type_aggr.fields = fields;
+    result->type_aggr.fields = (Type_Field **)AST_DUP(fields);
     result->type_aggr.num_fields = num_fields;
 
     return result;
@@ -175,7 +219,7 @@ internal_proc Type *
 type_proc(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_PROC);
 
-    result->type_proc.params = params;
+    result->type_proc.params = (Type_Field **)AST_DUP(params);
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
 
@@ -186,7 +230,7 @@ internal_proc Type *
 type_filter(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_FILTER);
 
-    result->type_proc.params = params;
+    result->type_proc.params = (Type_Field **)AST_DUP(params);
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
 
@@ -204,13 +248,45 @@ type_array(Type *base, int index) {
 }
 
 internal_proc void
-init_types() {
+init_builtin_types() {
     type_void  = type_new(TYPE_VOID);
     type_bool  = type_new(TYPE_BOOL);
     type_char  = type_new(TYPE_CHAR);
     type_int   = type_new(TYPE_INT);
     type_float = type_new(TYPE_FLOAT);
     type_str   = type_new(TYPE_STR);
+
+    arithmetic_result_type_table[TYPE_CHAR][TYPE_CHAR]   = type_char;
+    arithmetic_result_type_table[TYPE_CHAR][TYPE_INT]    = type_int;
+    arithmetic_result_type_table[TYPE_CHAR][TYPE_FLOAT]  = type_float;
+
+    arithmetic_result_type_table[TYPE_INT][TYPE_CHAR]    = type_int;
+    arithmetic_result_type_table[TYPE_INT][TYPE_INT]     = type_int;
+    arithmetic_result_type_table[TYPE_INT][TYPE_FLOAT]   = type_float;
+
+    arithmetic_result_type_table[TYPE_FLOAT][TYPE_CHAR]  = type_float;
+    arithmetic_result_type_table[TYPE_FLOAT][TYPE_INT]   = type_float;
+    arithmetic_result_type_table[TYPE_FLOAT][TYPE_FLOAT] = type_float;
+
+    scalar_result_type_table[TYPE_CHAR][TYPE_BOOL]       = type_void;
+    scalar_result_type_table[TYPE_CHAR][TYPE_CHAR]       = type_char;
+    scalar_result_type_table[TYPE_CHAR][TYPE_INT]        = type_int;
+    scalar_result_type_table[TYPE_CHAR][TYPE_FLOAT]      = type_float;
+
+    scalar_result_type_table[TYPE_INT][TYPE_BOOL]        = type_void;
+    scalar_result_type_table[TYPE_INT][TYPE_CHAR]        = type_int;
+    scalar_result_type_table[TYPE_INT][TYPE_INT]         = type_int;
+    scalar_result_type_table[TYPE_INT][TYPE_FLOAT]       = type_float;
+
+    scalar_result_type_table[TYPE_FLOAT][TYPE_BOOL]      = type_void;
+    scalar_result_type_table[TYPE_FLOAT][TYPE_CHAR]      = type_float;
+    scalar_result_type_table[TYPE_FLOAT][TYPE_INT]       = type_float;
+    scalar_result_type_table[TYPE_FLOAT][TYPE_FLOAT]     = type_float;
+
+    scalar_result_type_table[TYPE_BOOL][TYPE_BOOL]      = type_bool;
+    scalar_result_type_table[TYPE_BOOL][TYPE_CHAR]      = type_void;
+    scalar_result_type_table[TYPE_BOOL][TYPE_INT]       = type_void;
+    scalar_result_type_table[TYPE_BOOL][TYPE_FLOAT]     = type_void;
 }
 
 internal_proc b32
@@ -220,6 +296,28 @@ is_int(Type *type) {
     return result;
 }
 
+internal_proc b32
+is_arithmetic(Type *type) {
+    b32 result = TYPE_CHAR <= type->kind && type->kind <= TYPE_FLOAT;
+
+    return result;
+}
+
+internal_proc b32
+is_scalar(Type *type) {
+    b32 result = TYPE_BOOL <= type->kind && type->kind <= TYPE_FLOAT;
+
+    return result;
+}
+
+internal_proc b32
+is_callable(Type *type) {
+    b32 result = ( type->kind == TYPE_PROC || type->kind == TYPE_FILTER );
+
+    return result;
+}
+
+/* @TODO: eventuell auf statisches array mit MAX_SCOPE_NUM umstellen */
 struct Scope {
     char *name;
     Scope* parent;
@@ -253,6 +351,80 @@ scope_leave() {
     if ( current_scope != &global_scope ) {
         current_scope = current_scope->parent;
     }
+}
+
+struct Operand {
+    Type* type;
+    Val   val;
+
+    b32 is_const;
+    b32 is_lvalue;
+};
+
+internal_proc Operand *
+operand_new(Type *type, Val val) {
+    Operand *result = (Operand *)xcalloc(1, sizeof(Operand));
+
+    result->type = type;
+    result->val  = val;
+
+    return result;
+}
+
+internal_proc Operand *
+operand_lvalue(Type *type, Val val = val_none) {
+    Operand *result = operand_new(type, val);
+
+    result->is_lvalue = true;
+
+    return result;
+}
+
+internal_proc Operand *
+operand_rvalue(Type *type, Val val = val_none) {
+    Operand *result = operand_new(type, val);
+
+    return result;
+}
+
+internal_proc Operand *
+operand_const(Type *type, Val val = val_none) {
+    Operand *result = operand_new(type, val);
+
+    result->is_const = true;
+
+    return result;
+}
+
+internal_proc b32
+unify_arithmetic_operands(Operand *left, Operand *right) {
+    if ( is_arithmetic(left->type) && is_arithmetic(right->type) ) {
+        Type *type  = arithmetic_result_type_table[left->type->kind][right->type->kind];
+        left->type  = type;
+        right->type = type;
+
+        return true;
+    }
+
+    return false;
+}
+
+internal_proc b32
+unify_scalar_operands(Operand *left, Operand *right) {
+    if ( is_scalar(left->type) && is_scalar(right->type) ) {
+        Type *type  = scalar_result_type_table[left->type->kind][right->type->kind];
+
+        if ( type == type_void ) {
+            return false;
+        }
+
+        left->type  = type;
+        right->type = type;
+
+        return true;
+    }
+
+    return false;
 }
 
 enum Sym_Kind {
@@ -332,8 +504,8 @@ init_builtin_filter() {
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
         type_field("length", type_int, val_int(255)),
-        type_field("killwords", type_bool, val_bool(false)),
         type_field("end", type_str, val_str("...")),
+        type_field("killwords", type_bool, val_bool(false)),
         type_field("leeway", type_int, val_int(0)),
     };
     sym_push_filter("truncate", type_filter(trunc_type, 5, type_str));
@@ -362,15 +534,15 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_FOR: {
             scope_enter();
-            Type *type = resolve_expr(stmt->stmt_for.cond);
-            sym_push_var(stmt->stmt_for.it, type);
+            Operand *operand = resolve_expr(stmt->stmt_for.cond);
+            sym_push_var(stmt->stmt_for.it, operand->type);
             resolve_stmts(stmt->stmt_for.stmts, stmt->stmt_for.num_stmts);
             scope_leave();
         } break;
 
         case STMT_IF: {
             scope_enter();
-            Type *type = resolve_expr(stmt->stmt_if.cond);
+            Operand *operand = resolve_expr(stmt->stmt_if.cond);
             resolve_stmts(stmt->stmt_if.stmts, stmt->stmt_if.num_stmts);
             scope_leave();
         } break;
@@ -395,8 +567,16 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_SET: {
-            Type *type = resolve_expr(stmt->stmt_set.expr);
-            sym_push_var(stmt->stmt_set.name, type);
+            Sym *sym = resolve_name(stmt->stmt_set.name);
+            Operand *operand = resolve_expr(stmt->stmt_set.expr);
+
+            if ( !sym ) {
+                sym_push_var(stmt->stmt_set.name, operand->type);
+            } else {
+                if ( sym->type != operand->type ) {
+                    assert(!"datentyp des operanden passt nicht");
+                }
+            }
         } break;
 
         case STMT_FILTER: {
@@ -412,11 +592,12 @@ resolve_stmt(Stmt *stmt) {
     }
 }
 
-internal_proc Type *
+internal_proc Operand *
 resolve_expr_field(Expr *expr) {
     assert(expr->kind == EXPR_FIELD);
-    Type *type = resolve_expr(expr->expr_field.expr);
-    assert(type);
+    Operand *operand = resolve_expr(expr->expr_field.expr);
+    assert(operand->type);
+    Type *type = operand->type;
 
     char *name = NULL;
     switch (expr->expr_field.field->kind) {
@@ -443,7 +624,7 @@ resolve_expr_field(Expr *expr) {
         Type_Field *field = type->type_aggr.fields[i];
 
         if (name == field->name) {
-            return field->type;
+            return operand_rvalue(field->type);
         }
     }
 
@@ -451,7 +632,18 @@ resolve_expr_field(Expr *expr) {
     return 0;
 }
 
-internal_proc Type *
+internal_proc Operand *
+resolve_expr_cond(Expr *expr) {
+    Operand *operand = resolve_expr(expr);
+
+    if ( operand->type != type_bool ) {
+        assert(!"boolischen ausdruck erwartet");
+    }
+
+    return operand;
+}
+
+internal_proc Operand *
 resolve_expr(Expr *expr) {
     switch (expr->kind) {
         case EXPR_NAME: {
@@ -460,23 +652,23 @@ resolve_expr(Expr *expr) {
                 assert(!"konnte symbol nicht auflösen");
             }
 
-            return sym->type;
+            return operand_lvalue(sym->type);
         } break;
 
         case EXPR_STR: {
-            return type_str;
+            return operand_const(type_str, val_str(expr->expr_str.value));
         } break;
 
         case EXPR_INT: {
-            return type_int;
+            return operand_const(type_int, val_int(expr->expr_int.value));
         } break;
 
         case EXPR_FLOAT: {
-            return type_float;
+            return operand_const(type_float, val_float(expr->expr_float.value));
         } break;
 
         case EXPR_BOOL: {
-            return type_bool;
+            return operand_const(type_bool, val_bool(expr->expr_bool.value));
         } break;
 
         case EXPR_PAREN: {
@@ -488,20 +680,28 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_BINARY: {
-            Type *type_left  = resolve_expr(expr->expr_binary.left);
-            Type *type_right = resolve_expr(expr->expr_binary.right);
+            Operand *left  = resolve_expr(expr->expr_binary.left);
+            Operand *right = resolve_expr(expr->expr_binary.right);
 
-            /* @TODO: typen überprüfen */
-            return 0;
+            if ( is_eql(expr->expr_binary.op) ) {
+                unify_scalar_operands(left, right);
+            } else {
+                unify_arithmetic_operands(left, right);
+            }
+
+            return operand_rvalue(left->type);
         } break;
 
         case EXPR_TERNARY: {
-            Type *type_left = resolve_expr(expr->expr_ternary.left);
-            Type *type_middle = resolve_expr(expr->expr_ternary.middle);
-            Type *type_right = resolve_expr(expr->expr_ternary.right);
+            Operand *left   = resolve_expr_cond(expr->expr_ternary.left);
+            Operand *middle = resolve_expr(expr->expr_ternary.middle);
+            Operand *right  = resolve_expr(expr->expr_ternary.right);
 
-            /* @TODO: typen überprüfen */
-            return 0;
+            if ( middle->type != right->type ) {
+                assert(!"beide datentypen der zuweisung müssen gleich sein");
+            }
+
+            return operand_rvalue(middle->type);
         } break;
 
         case EXPR_FIELD: {
@@ -509,36 +709,57 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_RANGE: {
-            Type *type_left  = resolve_expr(expr->expr_range.left);
-            Type *type_right = resolve_expr(expr->expr_range.right);
+            Operand *left  = resolve_expr(expr->expr_range.left);
+            Operand *right = resolve_expr(expr->expr_range.right);
 
-            if ( !is_int(type_left) ) {
+            if ( !is_int(left->type) ) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            if ( !is_int(type_right) ) {
+            if ( !is_int(right->type) ) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            return type_int;
+            /* @TODO: operanden zurückgeben mit range als Val */
+            return operand_rvalue(type_int);
         } break;
 
         case EXPR_CALL: {
-            Type *type = resolve_expr(expr->expr_call.expr);
-            if ( type->kind != TYPE_PROC ) {
+            Operand *operand = resolve_expr(expr->expr_call.expr);
+            Type *type = operand->type;
+            if ( !is_callable(type) ) {
                 assert(!"aufruf einer nicht-prozedur");
             }
 
-            return type->type_proc.ret;
+            if ( type->type_proc.num_params < expr->expr_call.num_params ) {
+                assert(!"zu viele argumente");
+            }
+
+            for ( int i = 0; i < type->type_proc.num_params; ++i ) {
+                Type_Field *param = type->type_proc.params[i];
+
+                if ( param->default_val.kind == VAL_NONE && (i >= expr->expr_call.num_params) ) {
+                    assert(!"zu wenige parameter übergeben");
+                }
+
+                if ( i < expr->expr_call.num_params ) {
+                    Operand *arg = resolve_expr(expr->expr_call.params[i]);
+                    if (arg->type != param->type) {
+                        assert(!"datentyp des arguments stimmt nicht");
+                    }
+                }
+            }
+
+            return operand_rvalue(type->type_proc.ret);
         } break;
 
         case EXPR_INDEX: {
-            Type *type = resolve_expr(expr->expr_index.expr);
-            if (type->kind != TYPE_ARRAY) {
+            Operand *operand = resolve_expr(expr->expr_index.expr);
+            if (operand->type->kind != TYPE_ARRAY) {
                 assert(!"indizierung auf einem nicht-array");
             }
 
-            return type;
+            return operand_const(operand->type);
         } break;
 
         default: {
@@ -567,13 +788,13 @@ resolve_filter(Var_Filter filter) {
     for ( int i = 1; i < type->type_proc.num_params-1; ++i ) {
         Type_Field *param = type->type_proc.params[i];
 
-        if ( param->default_val.kind != VAL_NONE && (i-1 > filter.num_params) ) {
+        if ( param->default_val.kind == VAL_NONE && (i-1 >= filter.num_params) ) {
             assert(!"zu wenige parameter übergeben");
         }
 
         if ( i-1 < filter.num_params ) {
-            Type *arg_type = resolve_expr(filter.params[i-1]);
-            if (arg_type != param->type) {
+            Operand *arg = resolve_expr(filter.params[i-1]);
+            if (arg->type != param->type) {
                 assert(!"datentyp des arguments stimmt nicht");
             }
         }
@@ -584,7 +805,7 @@ internal_proc void
 resolve_var(Item *item) {
     assert(item->kind == ITEM_VAR);
 
-    Type *type = resolve_expr(item->item_var.expr);
+    Operand *operand = resolve_expr(item->item_var.expr);
     for ( int i = 0; i < item->item_var.num_filter; ++i ) {
         resolve_filter(item->item_var.filter[i]);
     }
@@ -627,16 +848,24 @@ resolve_doc(Doc *d) {
     doc_leave(prev_doc);
 }
 
+struct Test_User {
+    char *name;
+};
+
 internal_proc void
 init_test_datatype() {
     Type_Field *user_fields[] = { type_field("name", type_str) };
     Type *user_type = type_struct(user_fields, 1);
+
+    Test_User *user = (Test_User *)xmalloc(sizeof(Test_User));
+    user->name = "Noob";
+
     sym_push_var("user", user_type);
 }
 
 internal_proc void
 init_resolver() {
-    init_types();
+    init_builtin_types();
     init_builtin_filter();
     init_test_datatype();
 }

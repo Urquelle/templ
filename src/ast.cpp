@@ -1,6 +1,20 @@
 struct Item;
 struct Var_Filter;
 
+internal_proc void *
+ast_dup(void *src, size_t size) {
+    if (size == 0) {
+        return NULL;
+    }
+
+    void *ptr = xmalloc(size);
+    memcpy(ptr, src, size);
+
+    return ptr;
+}
+
+#define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
+
 enum Expr_Kind {
     EXPR_NONE,
     EXPR_PAREN,
@@ -216,7 +230,7 @@ expr_call(Expr *expr, Expr **params, size_t num_params) {
     Expr *result = expr_new(EXPR_CALL);
 
     result->expr_call.expr = expr;
-    result->expr_call.params = params;
+    result->expr_call.params = (Expr **)AST_DUP(params);
     result->expr_call.num_params = num_params;
 
     return result;
@@ -304,7 +318,7 @@ stmt_for(char *it, Expr *cond, Stmt **stmts, size_t num_stmts) {
 
     result->stmt_for.it = it;
     result->stmt_for.cond = cond;
-    result->stmt_for.stmts = stmts;
+    result->stmt_for.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_for.num_stmts = num_stmts;
 
     return result;

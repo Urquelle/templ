@@ -222,12 +222,9 @@ internal_proc Expr *
 parse_expr_cmp(Parser *p) {
     Expr *left = parse_expr_range(p);
 
-    while ( is_token(p, T_EQL) || is_token(p, T_LT) ) {
-        if ( match_token(p, T_EQL) ) {
-            left = expr_binary(T_EQL, left, parse_expr_range(p));
-        } else if ( match_token(p, T_LT) ) {
-            left = expr_binary(T_LT, left, parse_expr_range(p));
-        }
+    while ( is_cmp(p->lex.token.kind) ) {
+        Token op = eat_token(&p->lex);
+        left = expr_binary(op.kind, left, parse_expr_range(p));
     }
 
     return left;

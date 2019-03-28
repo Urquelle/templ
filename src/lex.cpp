@@ -19,6 +19,7 @@ enum Token_Kind {
     T_HASH,
     T_PERCENT,
     T_QMARK,
+    T_BANG,
     T_ASSIGN,
     T_COLON,
     T_PLUS,
@@ -30,11 +31,13 @@ enum Token_Kind {
     T_COMMENT,
 
     T_LT,
+    T_CMP_FIRST = T_LT,
     T_LEQ,
     T_EQL,
-    T_UNEQL,
+    T_NEQ,
     T_GEQ,
     T_GT,
+    T_CMP_LAST = T_GT,
 
     T_VAR_BEGIN,
     T_VAR_END,
@@ -43,7 +46,7 @@ enum Token_Kind {
 };
 
 struct Token {
-    int kind;
+    Token_Kind kind;
     char *literal;
 
     union {
@@ -130,6 +133,20 @@ is_lit(Lexer *lex) {
     return result;
 }
 
+internal_proc b32
+is_cmp(Token_Kind kind) {
+    b32 result = T_CMP_FIRST <= kind && kind <= T_CMP_LAST;
+
+    return result;
+}
+
+internal_proc b32
+is_eql(Token_Kind kind) {
+    b32 result = (kind == T_EQL || kind == T_NEQ);
+
+    return result;
+}
+
 internal_proc int
 scan_int(Lexer *lex) {
     int value = 0;
@@ -144,19 +161,18 @@ scan_int(Lexer *lex) {
     return value;
 }
 
-internal_proc double
+internal_proc float
 scan_float(Lexer *lex) {
     char *start = lex->input;
-    int int_value = scan_int(lex);
+
     if ( lex->at[0] == '.' ) {
         next(lex);
         while ( isdigit(lex->at[0]) ) {
             next(lex);
         }
     }
-    double result = int_value + strtod(start, NULL);
 
-    return result;
+    return strtof(start, NULL);
 }
 
 internal_proc void
@@ -218,6 +234,16 @@ next_raw_token(Lexer *lex) {
         case ']': {
             lex->token.kind = T_RBRACKET;
             next(lex);
+        } break;
+
+        case '!': {
+            lex->token.kind = T_BANG;
+            next(lex);
+
+            if ( lex->at[0] == '=' ) {
+                lex->token.kind = T_NEQ;
+                next(lex);
+            }
         } break;
 
         case '=': {
@@ -337,13 +363,11 @@ next_raw_token(Lexer *lex) {
         case '0': case '1': case '2': case '3': case '4':
         case '5': case '6': case '7': case '8': case '9': {
             lex->token.kind = T_INT;
-
             int int_value = scan_int(lex);
 
             if ( lex->at[0] == '.' && isdigit(lex->at[1]) ) {
                 lex->token.kind = T_FLOAT;
-                float dec_value = (float)scan_float(lex);
-                lex->token.float_value = int_value + dec_value;
+                lex->token.float_value = int_value + scan_float(lex);
             } else {
                 lex->token.int_value = int_value;
             }
@@ -370,7 +394,7 @@ next_raw_token(Lexer *lex) {
         } break;
 
         default: {
-            lex->token.kind = lex->at[0];
+            lex->token.kind = (Token_Kind)lex->at[0];
             next(lex);
         } break;
     }
@@ -384,5 +408,13 @@ next_token(Lexer *lex) {
     while ( is_raw(lex) ) {
         next_raw_token(lex);
     }
+}
+
+internal_proc Token
+eat_token(Lexer *lex) {
+    Token result = lex->token;
+    next_token(lex);
+
+    return result;
 }
 
