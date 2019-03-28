@@ -374,7 +374,7 @@ operand_rvalue(Type *type, Val val = val_none) {
 }
 
 internal_proc Operand *
-operand_const(Type *type, Val val = val_none) {
+operand_const(Type *type, Val val) {
     Operand *result = operand_new(type, val);
 
     result->is_const = true;
@@ -745,7 +745,12 @@ resolve_expr(Expr *expr) {
                 assert(!"indizierung auf einem nicht-array");
             }
 
-            return operand_const(operand->type);
+            Operand *index = resolve_expr(expr->expr_index.index);
+            if ( !is_int(index->type) ) {
+                assert(!"index muss vom typ int sein");
+            }
+
+            return operand_rvalue(operand->type);
         } break;
 
         default: {
