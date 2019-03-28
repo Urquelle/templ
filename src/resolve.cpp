@@ -317,40 +317,26 @@ is_callable(Type *type) {
     return result;
 }
 
-/* @TODO: eventuell auf statisches array mit MAX_SCOPE_NUM umstellen */
 struct Scope {
-    char *name;
-    Scope* parent;
-    Scope* next;
+    char*  name;
     Sym**  syms;
     size_t num_syms;
 };
 
-global_var Scope global_scope;
-global_var Scope *current_scope = &global_scope;
+enum { MAX_SCOPE_DEPTH = 124 };
+Scope scopes[MAX_SCOPE_DEPTH] = {0};
+global_var int current_scope_idx;
 
 internal_proc void
 scope_enter() {
-    Scope *new_scope = 0;
-
-    if ( !current_scope->next ) {
-        new_scope = (Scope *)xcalloc(1, sizeof(Scope));
-    } else {
-        new_scope = current_scope->next;
-        new_scope->syms = 0;
-        new_scope->num_syms = 0;
-    }
-
-    current_scope->next = new_scope;
-    new_scope->parent = current_scope;
-    current_scope = new_scope;
+    assert(current_scope_idx < MAX_SCOPE_DEPTH);
+    current_scope_idx++;
 }
 
 internal_proc void
 scope_leave() {
-    if ( current_scope != &global_scope ) {
-        current_scope = current_scope->parent;
-    }
+    assert(current_scope_idx > 0);
+    current_scope_idx--;
 }
 
 struct Operand {
@@ -453,9 +439,9 @@ sym_new(Sym_Kind kind, char *name, Type *type) {
 
 internal_proc Sym *
 sym_get(char *name) {
-    for ( Scope *it = current_scope; it; it = it->parent ) {
-        for ( int i = 0; i < it->num_syms; ++i ) {
-            Sym *sym = it->syms[i];
+    for ( int i = current_scope_idx; i >= 0; --i ) {
+        for ( int j = 0; j < scopes[i].num_syms; ++j ) {
+            Sym *sym = scopes[i].syms[j];
             if ( sym->name == name ) {
                 return sym;
             }
@@ -470,8 +456,8 @@ sym_push(Sym_Kind kind, char *name, Type *type) {
     name = intern_str(name);
 
     /* @INFO: im lokalen scope nachschauen. falls vorhanden fehler ausgeben! */
-    for ( int i = 0; i < current_scope->num_syms; ++i ) {
-        if ( current_scope->syms[i]->name == name ) {
+    for ( int i = 0; i < scopes[current_scope_idx].num_syms; ++i ) {
+        if ( scopes[current_scope_idx].syms[i]->name == name ) {
             assert(!"symbol existiert bereits");
         }
     }
@@ -481,8 +467,8 @@ sym_push(Sym_Kind kind, char *name, Type *type) {
         assert(!"warnung: symbol wird überschattet");
     }
 
-    buf_push(current_scope->syms, sym_new(kind, name, type));
-    current_scope->num_syms++;
+    buf_push(scopes[current_scope_idx].syms, sym_new(kind, name, type));
+    scopes[current_scope_idx].num_syms++;
 }
 
 internal_proc void
