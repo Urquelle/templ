@@ -1,9 +1,3 @@
-struct Var_Filter {
-    char *name;
-    Expr **params;
-    size_t    num_params;
-};
-
 enum Item_Kind {
     ITEM_NONE,
     ITEM_CODE,

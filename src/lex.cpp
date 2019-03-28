@@ -1,3 +1,8 @@
+struct Pos {
+    char *name;
+    s64 row;
+};
+
 enum Token_Kind {
     T_EOF,
     T_INT = 129,
@@ -46,6 +51,7 @@ enum Token_Kind {
 };
 
 struct Token {
+    Pos pos;
     Token_Kind kind;
     char *literal;
 
@@ -60,6 +66,7 @@ struct Token {
 
 struct Lexer {
     Token token;
+    Pos pos;
     char *input;
     char at[2];
 };
@@ -81,6 +88,10 @@ refill(Lexer *lex) {
 internal_proc void
 next(Lexer *lex, int count = 1) {
     for ( int i = 0; i < count; ++i ) {
+        if (lex->at[0] == '\n') {
+            lex->pos.row++;
+        }
+
         if (lex->input == 0) break;
         lex->input++;
     }

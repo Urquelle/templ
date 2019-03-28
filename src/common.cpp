@@ -260,6 +260,43 @@ map_put(Map *map, void *key, void *val) {
     }
 }
 
+enum { ARENA_SIZE = 1024*1024, ARENA_ALIGNMENT = 8 };
+struct Arena {
+    char *base;
+    char *ptr;
+    size_t size;
+    char **buckets;
+};
+
+internal_proc void
+arena_grow(Arena *arena, size_t size) {
+    char *buf = (char *)xmalloc(MAX(size, ARENA_SIZE));
+    arena->base = buf;
+    arena->ptr = buf;
+    arena->size = 0;
+    buf_push(arena->buckets, buf);
+}
+
+internal_proc void *
+arena_alloc(Arena *arena, size_t size) {
+    if (!arena->base || arena->ptr + size > arena->base + ARENA_SIZE) {
+        arena_grow(arena, size);
+    }
+
+    void *result = (void *)arena->ptr;
+    arena->ptr = (char *)ALIGN_UP_PTR(arena->ptr + size, ARENA_ALIGNMENT);
+
+    return result;
+}
+
+internal_proc void
+arena_free(Arena *arena) {
+    for ( int i = 0; i < buf_len(arena->buckets); ++i ) {
+        free(arena->buckets[i]);
+    }
+    buf_free(arena->buckets);
+}
+
 struct Intern {
     size_t   len;
     Intern*  next;
@@ -267,6 +304,7 @@ struct Intern {
 };
 
 global_var Map interns;
+global_var Arena intern_arena;
 
 internal_proc char *
 intern_str(char *start, char *end) {
@@ -281,7 +319,7 @@ intern_str(char *start, char *end) {
         }
     }
 
-    Intern *new_intern = (Intern *)malloc(offsetof(Intern, str) + len + 1);
+    Intern *new_intern = (Intern *)arena_alloc(&intern_arena, offsetof(Intern, str) + len + 1);
 
     new_intern->len = len;
     new_intern->next   = intern;

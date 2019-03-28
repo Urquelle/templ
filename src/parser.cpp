@@ -43,8 +43,10 @@ init_keywords() {
 }
 
 internal_proc void
-init_parser(Parser *p, char *input) {
+init_parser(Parser *p, char *input, char *name) {
     p->lex.input = input;
+    p->lex.pos.name = name;
+    p->lex.pos.row = 1;
     refill(&p->lex);
     init_keywords();
     next_raw_token(&p->lex);
@@ -245,7 +247,9 @@ parse_expr_ternary(Parser *p) {
 
 internal_proc Expr *
 parse_expr(Parser *p) {
+    Pos pos = p->lex.pos;
     Expr *expr = parse_expr_ternary(p);
+    expr->pos = pos;
 
     return expr;
 }
@@ -287,7 +291,10 @@ parse_stmt_for(Parser *p) {
         }
     }
 
-    return stmt_for(it, cond, stmts, buf_len(stmts));
+    Stmt *result = stmt_for(it, cond, stmts, buf_len(stmts));
+    buf_free(stmts);
+
+    return result;
 }
 
 internal_proc Stmt *
@@ -368,7 +375,10 @@ parse_stmt_block(Parser *p) {
         }
     }
 
-    return stmt_block(name, stmts, buf_len(stmts));
+    Stmt *result = stmt_block(name, stmts, buf_len(stmts));
+    buf_free(stmts);
+
+    return result;
 }
 
 internal_proc Stmt *
@@ -403,7 +413,11 @@ parse_stmt_filter(Parser *p) {
         }
     }
 
-    return stmt_filter(filter, buf_len(filter), stmts, buf_len(stmts));
+    Stmt *result = stmt_filter(filter, buf_len(filter), stmts, buf_len(stmts));
+    buf_free(filter);
+    buf_free(stmts);
+
+    return result;
 }
 
 internal_proc Stmt *
@@ -505,7 +519,7 @@ parse_file(char *filename) {
     if ( file_read(filename, &content) ) {
         Parser parser = {};
         Parser *p = &parser;
-        init_parser(p, content);
+        init_parser(p, content, filename);
 
         while (p->lex.token.kind != T_EOF) {
             if ( match_token(p, T_VAR_BEGIN) ) {

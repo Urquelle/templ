@@ -1,5 +1,4 @@
 struct Item;
-struct Var_Filter;
 
 internal_proc void *
 ast_dup(void *src, size_t size) {
@@ -33,6 +32,7 @@ enum Expr_Kind {
 };
 
 struct Expr {
+    Pos pos;
     Expr_Kind kind;
 
     union {
@@ -236,6 +236,12 @@ expr_call(Expr *expr, Expr **params, size_t num_params) {
     return result;
 }
 
+struct Var_Filter {
+    char *name;
+    Expr **params;
+    size_t    num_params;
+};
+
 enum Stmt_Kind {
     STMT_NONE,
     STMT_FOR,
@@ -329,7 +335,7 @@ stmt_if(Expr *cond, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_IF);
 
     result->stmt_if.cond = cond;
-    result->stmt_if.stmts = stmts;
+    result->stmt_if.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_if.num_stmts = num_stmts;
 
     return result;
@@ -340,7 +346,7 @@ stmt_elseif(Expr *cond, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_ELSEIF);
 
     result->stmt_if.cond = cond;
-    result->stmt_if.stmts = stmts;
+    result->stmt_if.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_if.num_stmts = num_stmts;
 
     return result;
@@ -351,7 +357,7 @@ stmt_else(Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_ELSE);
 
     result->stmt_if.cond = 0;
-    result->stmt_if.stmts = stmts;
+    result->stmt_if.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_if.num_stmts = num_stmts;
 
     return result;
@@ -362,7 +368,7 @@ stmt_block(char *name, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_BLOCK);
 
     result->stmt_block.name = name;
-    result->stmt_block.stmts = stmts;
+    result->stmt_block.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_block.num_stmts = num_stmts;
 
     return result;
@@ -416,9 +422,9 @@ internal_proc Stmt *
 stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_FILTER);
 
-    result->stmt_filter.filter = filter;
+    result->stmt_filter.filter = (Var_Filter *)AST_DUP(filter);
     result->stmt_filter.num_filter = num_filter;
-    result->stmt_filter.stmts = stmts;
+    result->stmt_filter.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_filter.num_stmts = num_stmts;
 
     return result;

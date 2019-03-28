@@ -1,18 +1,15 @@
 {% extends "main.tpl" %}
 
-<div class="blö">töst</div>
-{% set a = upper("test") %}
-{% set a = user.name %}
-
 {% block title %}
     test - {{ default_title }}
 {% end %}
 
+<div class="blö">töst</div>
+{% set a = upper("test") %}
+{% set a = user.name %}
+
 {% block foo %}
     <a name="foo">123</a>
-    {% block title %}
-        <div>title</div>
-    {% end %}
 {% end %}
 
 {% block main %}

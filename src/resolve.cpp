@@ -25,7 +25,7 @@ internal_proc void      resolve_item(Item *item);
 internal_proc Operand * resolve_expr(Expr *expr);
 internal_proc void      resolve_filter(Var_Filter filter);
 internal_proc void      resolve_stmt(Stmt *stmt);
-internal_proc void      resolve_doc(Doc *d);
+internal_proc void      resolve(Doc *d);
 
 enum Val_Kind {
     VAL_NONE,
@@ -136,6 +136,7 @@ val_struct(void *ptr) {
 struct Type_Field {
     char *name;
     Type *type;
+    s64   offset;
     Val   default_val;
 };
 
@@ -166,6 +167,7 @@ enum Type_Kind {
 
 struct Type {
     Type_Kind kind;
+    s64 size;
 
     union {
         struct {
@@ -181,10 +183,12 @@ struct Type {
 
         struct {
             Type *base;
-            int index;
+            int num_elems;
         } type_array;
     };
 };
+
+#define PTR_SIZE 8
 
 global_var Type *type_void;
 global_var Type *type_bool;
@@ -212,6 +216,13 @@ type_struct(Type_Field **fields, size_t num_fields) {
     result->type_aggr.fields = (Type_Field **)AST_DUP(fields);
     result->type_aggr.num_fields = num_fields;
 
+    s64 offset = 0;
+    for ( int i = 0; i < num_fields; ++i ) {
+        fields[i]->offset = offset;
+        result->size += fields[i]->type->size;
+        offset += fields[i]->type->size;
+    }
+
     return result;
 }
 
@@ -219,6 +230,7 @@ internal_proc Type *
 type_proc(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_PROC);
 
+    result->size = PTR_SIZE;
     result->type_proc.params = (Type_Field **)AST_DUP(params);
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
@@ -230,6 +242,7 @@ internal_proc Type *
 type_filter(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_FILTER);
 
+    result->size = PTR_SIZE;
     result->type_proc.params = (Type_Field **)AST_DUP(params);
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
@@ -238,11 +251,12 @@ type_filter(Type_Field **params, size_t num_params, Type *ret) {
 }
 
 internal_proc Type *
-type_array(Type *base, int index) {
+type_array(Type *base, int num_elems) {
     Type *result = type_new(TYPE_ARRAY);
 
+    result->size = base->size * num_elems;
     result->type_array.base = base;
-    result->type_array.index = index;
+    result->type_array.num_elems = num_elems;
 
     return result;
 }
@@ -250,11 +264,22 @@ type_array(Type *base, int index) {
 internal_proc void
 init_builtin_types() {
     type_void  = type_new(TYPE_VOID);
+    type_void->size = 0;
+
     type_bool  = type_new(TYPE_BOOL);
+    type_bool->size = 1;
+
     type_char  = type_new(TYPE_CHAR);
+    type_char->size = 1;
+
     type_int   = type_new(TYPE_INT);
+    type_int->size = 4;
+
     type_float = type_new(TYPE_FLOAT);
+    type_float->size = 4;
+
     type_str   = type_new(TYPE_STR);
+    type_str->size = PTR_SIZE;
 
     arithmetic_result_type_table[TYPE_CHAR][TYPE_CHAR]   = type_char;
     arithmetic_result_type_table[TYPE_CHAR][TYPE_INT]    = type_int;
@@ -317,26 +342,31 @@ is_callable(Type *type) {
     return result;
 }
 
+/*
+   @TODO: einen scopebaum aufbauen, damit der scope permanent im Sym
+          gespeichert werden kann
+ */
 struct Scope {
     char*  name;
+    Scope* parent;
     Sym**  syms;
     size_t num_syms;
 };
 
-enum { MAX_SCOPE_DEPTH = 124 };
-Scope scopes[MAX_SCOPE_DEPTH] = {0};
-global_var int current_scope_idx;
+global_var Scope global_scope;
+global_var Scope *current_scope = &global_scope;
 
 internal_proc void
 scope_enter() {
-    assert(current_scope_idx < MAX_SCOPE_DEPTH);
-    current_scope_idx++;
+    Scope *scope = (Scope *)xcalloc(1, sizeof(Scope));
+    scope->parent = current_scope;
+    current_scope = scope;
 }
 
 internal_proc void
 scope_leave() {
-    assert(current_scope_idx > 0);
-    current_scope_idx--;
+    assert(current_scope->parent);
+    current_scope = current_scope->parent;
 }
 
 struct Operand {
@@ -422,26 +452,30 @@ enum Sym_Kind {
 
 struct Sym {
     Sym_Kind kind;
+    Scope *scope;
     char *name;
     Type *type;
+    Val   val;
 };
 
 internal_proc Sym *
-sym_new(Sym_Kind kind, char *name, Type *type) {
+sym_new(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
     Sym *result = (Sym *)xmalloc(sizeof(Sym));
 
-    result->name = name;
-    result->kind = kind;
-    result->type = type;
+    result->kind  = kind;
+    result->scope = current_scope;
+    result->name  = name;
+    result->type  = type;
+    result->val   = val;
 
     return result;
 }
 
 internal_proc Sym *
 sym_get(char *name) {
-    for ( int i = current_scope_idx; i >= 0; --i ) {
-        for ( int j = 0; j < scopes[i].num_syms; ++j ) {
-            Sym *sym = scopes[i].syms[j];
+    for ( Scope *it = current_scope; it; it = it->parent ) {
+        for ( int j = 0; j < it->num_syms; ++j ) {
+            Sym *sym = it->syms[j];
             if ( sym->name == name ) {
                 return sym;
             }
@@ -452,12 +486,12 @@ sym_get(char *name) {
 }
 
 internal_proc void
-sym_push(Sym_Kind kind, char *name, Type *type) {
+sym_push(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
     name = intern_str(name);
 
     /* @INFO: im lokalen scope nachschauen. falls vorhanden fehler ausgeben! */
-    for ( int i = 0; i < scopes[current_scope_idx].num_syms; ++i ) {
-        if ( scopes[current_scope_idx].syms[i]->name == name ) {
+    for ( int i = 0; i < current_scope->num_syms; ++i ) {
+        if ( current_scope->syms[i]->name == name ) {
             assert(!"symbol existiert bereits");
         }
     }
@@ -467,8 +501,8 @@ sym_push(Sym_Kind kind, char *name, Type *type) {
         assert(!"warnung: symbol wird überschattet");
     }
 
-    buf_push(scopes[current_scope_idx].syms, sym_new(kind, name, type));
-    scopes[current_scope_idx].num_syms++;
+    buf_push(current_scope->syms, sym_new(kind, name, type, val));
+    current_scope->num_syms++;
 }
 
 internal_proc void
@@ -477,8 +511,8 @@ sym_push_filter(char *name, Type *type) {
 }
 
 internal_proc void
-sym_push_var(char *name, Type *type) {
-    sym_push(SYM_VAR, name, type);
+sym_push_var(char *name, Type *type, Val val = val_none) {
+    sym_push(SYM_VAR, name, type, val);
 }
 
 internal_proc void
@@ -521,7 +555,7 @@ resolve_stmt(Stmt *stmt) {
         case STMT_FOR: {
             scope_enter();
             Operand *operand = resolve_expr(stmt->stmt_for.cond);
-            sym_push_var(stmt->stmt_for.it, operand->type);
+            sym_push_var(stmt->stmt_for.it, operand->type, operand->val);
             resolve_stmts(stmt->stmt_for.stmts, stmt->stmt_for.num_stmts);
             scope_leave();
         } break;
@@ -548,7 +582,7 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_EXTENDS: {
             Doc *doc = parse_file(stmt->stmt_extends.name);
-            resolve_doc(doc);
+            resolve(doc);
             set_parent(doc);
         } break;
 
@@ -557,7 +591,7 @@ resolve_stmt(Stmt *stmt) {
             Operand *operand = resolve_expr(stmt->stmt_set.expr);
 
             if ( !sym ) {
-                sym_push_var(stmt->stmt_set.name, operand->type);
+                sym_push_var(stmt->stmt_set.name, operand->type, operand->val);
             } else {
                 if ( sym->type != operand->type ) {
                     assert(!"datentyp des operanden passt nicht");
@@ -631,6 +665,8 @@ resolve_expr_cond(Expr *expr) {
 
 internal_proc Operand *
 resolve_expr(Expr *expr) {
+    Operand *result = 0;
+
     switch (expr->kind) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
@@ -638,31 +674,31 @@ resolve_expr(Expr *expr) {
                 assert(!"konnte symbol nicht auflösen");
             }
 
-            return operand_lvalue(sym->type);
+            result = operand_lvalue(sym->type, sym->val);
         } break;
 
         case EXPR_STR: {
-            return operand_const(type_str, val_str(expr->expr_str.value));
+            result = operand_const(type_str, val_str(expr->expr_str.value));
         } break;
 
         case EXPR_INT: {
-            return operand_const(type_int, val_int(expr->expr_int.value));
+            result = operand_const(type_int, val_int(expr->expr_int.value));
         } break;
 
         case EXPR_FLOAT: {
-            return operand_const(type_float, val_float(expr->expr_float.value));
+            result = operand_const(type_float, val_float(expr->expr_float.value));
         } break;
 
         case EXPR_BOOL: {
-            return operand_const(type_bool, val_bool(expr->expr_bool.value));
+            result = operand_const(type_bool, val_bool(expr->expr_bool.value));
         } break;
 
         case EXPR_PAREN: {
-            return resolve_expr(expr->expr_paren.expr);
+            result = resolve_expr(expr->expr_paren.expr);
         } break;
 
         case EXPR_UNARY: {
-            return resolve_expr(expr->expr_unary.expr);
+            result = resolve_expr(expr->expr_unary.expr);
         } break;
 
         case EXPR_BINARY: {
@@ -675,7 +711,7 @@ resolve_expr(Expr *expr) {
                 unify_arithmetic_operands(left, right);
             }
 
-            return operand_rvalue(left->type);
+            result = operand_rvalue(left->type);
         } break;
 
         case EXPR_TERNARY: {
@@ -687,11 +723,11 @@ resolve_expr(Expr *expr) {
                 assert(!"beide datentypen der zuweisung müssen gleich sein");
             }
 
-            return operand_rvalue(middle->type);
+            result = operand_rvalue(middle->type);
         } break;
 
         case EXPR_FIELD: {
-            return resolve_expr_field(expr);
+            result = resolve_expr_field(expr);
         } break;
 
         case EXPR_RANGE: {
@@ -706,8 +742,7 @@ resolve_expr(Expr *expr) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            /* @TODO: operanden zurückgeben mit range als Val */
-            return operand_rvalue(type_int);
+            result = operand_rvalue(type_int);
         } break;
 
         case EXPR_CALL: {
@@ -736,7 +771,7 @@ resolve_expr(Expr *expr) {
                 }
             }
 
-            return operand_rvalue(type->type_proc.ret);
+            result = operand_rvalue(type->type_proc.ret);
         } break;
 
         case EXPR_INDEX: {
@@ -750,14 +785,15 @@ resolve_expr(Expr *expr) {
                 assert(!"index muss vom typ int sein");
             }
 
-            return operand_rvalue(operand->type);
+            result = operand_rvalue(operand->type);
         } break;
 
         default: {
             assert(0);
-            return 0;
         } break;
     }
+
+    return result;
 }
 
 internal_proc void
@@ -830,15 +866,6 @@ resolve_item(Item *item) {
     }
 }
 
-internal_proc void
-resolve_doc(Doc *d) {
-    Doc *prev_doc = doc_enter(d);
-    for ( int i = 0; i < d->num_items; ++i ) {
-        resolve_item(d->items[i]);
-    }
-    doc_leave(prev_doc);
-}
-
 struct Test_User {
     char *name;
 };
@@ -851,7 +878,7 @@ init_test_datatype() {
     Test_User *user = (Test_User *)xmalloc(sizeof(Test_User));
     user->name = "Noob";
 
-    sym_push_var("user", user_type);
+    sym_push_var("user", user_type, val_struct(user));
 }
 
 internal_proc void
@@ -860,3 +887,13 @@ init_resolver() {
     init_builtin_filter();
     init_test_datatype();
 }
+
+internal_proc void
+resolve(Doc *d) {
+    Doc *prev_doc = doc_enter(d);
+    for ( int i = 0; i < d->num_items; ++i ) {
+        resolve_item(d->items[i]);
+    }
+    doc_leave(prev_doc);
+}
+
