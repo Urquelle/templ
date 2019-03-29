@@ -24,6 +24,10 @@ typedef uint64_t u64;
 #define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
 #define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
 
+#define KB(X) (  (X)*1024)
+#define MB(X) (KB(X)*1024)
+#define GB(X) (MB(X)*1024)
+
 internal_proc void *
 xmalloc(size_t size) {
     void *mem = malloc(size);
@@ -74,7 +78,7 @@ strf(char *fmt, ...) {
     int size = 1 + vsnprintf(NULL, 0, fmt, args);
     va_end(args);
 
-    char *str = (char *)malloc(size);
+    char *str = (char *)xmalloc(size);
 
     va_start(args, fmt);
     vsnprintf(str, size, fmt, args);
@@ -267,6 +271,13 @@ struct Arena {
     size_t size;
     char **buckets;
 };
+
+internal_proc void
+arena_init(Arena *arena, size_t size) {
+    arena->base = (char *)xmalloc(size);
+    arena->ptr  = arena->base;
+    arena->size = 0;
+}
 
 internal_proc void
 arena_grow(Arena *arena, size_t size) {

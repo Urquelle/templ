@@ -31,6 +31,7 @@ enum Expr_Kind {
     EXPR_CALL,
 };
 
+struct Sym;
 struct Expr {
     Pos pos;
     Expr_Kind kind;
@@ -41,6 +42,7 @@ struct Expr {
         } expr_paren;
 
         struct {
+            Sym *sym;
             char *value;
         } expr_name;
 
@@ -102,7 +104,7 @@ struct Expr {
 
 internal_proc Expr *
 expr_new(Expr_Kind kind) {
-    Expr *result = (Expr *)xmalloc(sizeof(Expr));
+    Expr *result = (Expr *)xcalloc(1, sizeof(Expr));
 
     result->kind = kind;
 
@@ -237,9 +239,10 @@ expr_call(Expr *expr, Expr **params, size_t num_params) {
 }
 
 struct Var_Filter {
-    char *name;
-    Expr **params;
-    size_t    num_params;
+    char*  name;
+    Sym*   sym;
+    Expr** params;
+    size_t num_params;
 };
 
 enum Stmt_Kind {

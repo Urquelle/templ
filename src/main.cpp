@@ -20,7 +20,11 @@
 
 int
 main(int argc, char **argv) {
-    Doc *doc = parse_file("test.tpl");
+    if ( argc < 2 ) {
+        printf("templ.exe <filename>\n");
+    }
+
+    Doc *doc = parse_file(argv[1]);
     init_resolver();
     resolve(doc);
     eval(doc);
