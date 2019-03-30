@@ -14,6 +14,7 @@
 #include "ast.cpp"
 #include "doc.cpp"
 #include "parser.cpp"
+#include "frame.cpp"
 #include "resolve.cpp"
 #include "eval.cpp"
 #include "gen.cpp"

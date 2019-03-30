@@ -71,6 +71,16 @@ struct Lexer {
     char at[2];
 };
 
+internal_proc char
+at0(Lexer *lex) {
+    return lex->at[0];
+}
+
+internal_proc char
+at1(Lexer *lex) {
+    return lex->at[1];
+}
+
 internal_proc void
 refill(Lexer *lex) {
     if ( lex->input[0] == 0 ) {
@@ -88,7 +98,7 @@ refill(Lexer *lex) {
 internal_proc void
 next(Lexer *lex, int count = 1) {
     for ( int i = 0; i < count; ++i ) {
-        if (lex->at[0] == '\n') {
+        if (at0(lex) == '\n') {
             lex->pos.row++;
         }
 
@@ -101,12 +111,12 @@ next(Lexer *lex, int count = 1) {
 internal_proc void
 skip_comment(Lexer *lex) {
     while ( lex->input ) {
-        if ( lex->at[0] == '#' && lex->at[1] == '}' ) {
+        if ( at0(lex) == '#' && at1(lex) == '}' ) {
             next(lex, 2);
             return;
         }
 
-        if ( lex->at[0] == '{' && lex->at[1] == '#' ) {
+        if ( at0(lex) == '{' && at1(lex) == '#' ) {
             next(lex, 2);
             skip_comment(lex);
         }
@@ -135,8 +145,8 @@ internal_proc b32
 is_lit(Lexer *lex) {
     b32 result = true;
 
-    if ( lex->at[0] == '{' ) {
-        if ( lex->at[1] == '{' || lex->at[1] == '#' || lex->at[1] == '%' ) {
+    if ( at0(lex) == '{' ) {
+        if ( at1(lex) == '{' || at1(lex) == '#' || at1(lex) == '%' ) {
             result = false;
         }
     }
@@ -161,8 +171,8 @@ is_eql(Token_Kind kind) {
 internal_proc int
 scan_int(Lexer *lex) {
     int value = 0;
-    while (isdigit(lex->at[0])) {
-        int digit = lex->at[0] - '0';
+    while (isdigit(at0(lex))) {
+        int digit = at0(lex) - '0';
         value *= 10;
         value += digit;
 
@@ -176,9 +186,9 @@ internal_proc float
 scan_float(Lexer *lex) {
     char *start = lex->input;
 
-    if ( lex->at[0] == '.' ) {
+    if ( at0(lex) == '.' ) {
         next(lex);
-        while ( isdigit(lex->at[0]) ) {
+        while ( isdigit(at0(lex)) ) {
             next(lex);
         }
     }
@@ -190,7 +200,7 @@ internal_proc void
 next_raw_token(Lexer *lex) {
     char *start = lex->input;
 
-    switch ( lex->at[0] ) {
+    switch ( at0(lex) ) {
         case 0: {
             lex->token.kind = T_EOF;
             next(lex);
@@ -205,7 +215,7 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_DOT;
             next(lex);
 
-            if ( lex->at[0] == '.' ) {
+            if ( at0(lex) == '.' ) {
                 lex->token.kind = T_RANGE;
                 next(lex);
             }
@@ -215,15 +225,15 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_CHAR;
             next(lex);
 
-            if ( lex->at[0] == '\\' ) {
+            if ( at0(lex) == '\\' ) {
                 next(lex);
             }
 
-            if ( lex->at[1] != '\'' ) {
+            if ( at1(lex) != '\'' ) {
                 assert(!"fehler beim parsen eines char tokens");
             }
 
-            lex->token.char_value = lex->at[0];
+            lex->token.char_value = at0(lex);
             next(lex, 2);
         } break;
 
@@ -251,7 +261,7 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_BANG;
             next(lex);
 
-            if ( lex->at[0] == '=' ) {
+            if ( at0(lex) == '=' ) {
                 lex->token.kind = T_NEQ;
                 next(lex);
             }
@@ -261,7 +271,7 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_ASSIGN;
             next(lex);
 
-            if ( lex->at[0] == '=' ) {
+            if ( at0(lex) == '=' ) {
                 lex->token.kind = T_EQL;
                 next(lex);
             }
@@ -271,8 +281,18 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_LT;
             next(lex);
 
-            if ( lex->at[0] == '=' ) {
+            if ( at0(lex) == '=' ) {
                 lex->token.kind = T_LEQ;
+                next(lex);
+            }
+        } break;
+
+        case '>': {
+            lex->token.kind = T_GT;
+            next(lex);
+
+            if ( at0(lex) == '=' ) {
+                lex->token.kind = T_GEQ;
                 next(lex);
             }
         } break;
@@ -321,14 +341,14 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_LBRACE;
             next(lex);
 
-            if ( lex->at[0] == '{' ) {
+            if ( at0(lex) == '{' ) {
                 lex->token.kind = T_VAR_BEGIN;
                 next(lex);
-            } else if ( lex->at[0] == '#' ) {
+            } else if ( at0(lex) == '#' ) {
                 lex->token.kind = T_COMMENT;
                 next(lex);
                 skip_comment(lex);
-            } else if ( lex->at[0] == '%' ) {
+            } else if ( at0(lex) == '%' ) {
                 lex->token.kind = T_CODE_BEGIN;
                 next(lex);
             }
@@ -338,7 +358,7 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_RBRACE;
             next(lex);
 
-            if ( lex->at[0] == '}' ) {
+            if ( at0(lex) == '}' ) {
                 lex->token.kind = T_VAR_END;
                 next(lex);
             }
@@ -348,7 +368,7 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_STR;
             next(lex);
 
-            while (lex->at[0] != '"') {
+            while (at0(lex) != '"') {
                 next(lex);
             }
 
@@ -365,7 +385,7 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_PERCENT;
             next(lex);
 
-            if ( lex->at[0] == '}' ) {
+            if ( at0(lex) == '}' ) {
                 lex->token.kind = T_CODE_END;
                 next(lex);
             }
@@ -376,7 +396,7 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_INT;
             int int_value = scan_int(lex);
 
-            if ( lex->at[0] == '.' && isdigit(lex->at[1]) ) {
+            if ( at0(lex) == '.' && isdigit(at1(lex)) ) {
                 lex->token.kind = T_FLOAT;
                 lex->token.float_value = int_value + scan_float(lex);
             } else {
@@ -392,7 +412,7 @@ next_raw_token(Lexer *lex) {
         case 'z': case '_': {
             lex->token.kind = T_NAME;
 
-            while ( isalnum(lex->at[0]) || lex->at[0] == '_' ) {
+            while ( isalnum(at0(lex)) || at0(lex) == '_' ) {
                 next(lex);
             }
 
@@ -405,7 +425,7 @@ next_raw_token(Lexer *lex) {
         } break;
 
         default: {
-            lex->token.kind = (Token_Kind)lex->at[0];
+            lex->token.kind = (Token_Kind)at0(lex);
             next(lex);
         } break;
     }

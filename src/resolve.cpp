@@ -2,9 +2,7 @@ struct Type;
 struct Sym;
 struct Operand;
 
-global_var Arena type_arena;
-global_var Arena operand_arena;
-global_var Arena sym_arena;
+global_var Arena resolve_arena;
 
 Doc *current_doc;
 internal_proc Doc *
@@ -62,8 +60,6 @@ struct Val {
 };
 
 global_var Val val_none;
-
-internal_proc Sym * sym_push_var(char *name, Type *type, Val val = val_none);
 
 internal_proc Val
 val_new(Val_Kind kind) {
@@ -138,7 +134,9 @@ val_struct(void *ptr) {
     return result;
 }
 
-#define FILTER_CALLBACK(name) void name(Val *val, Expr **params, size_t num_params)
+internal_proc Sym * sym_push_var(char *name, Type *type, Val val = val_none);
+
+#define FILTER_CALLBACK(name) char * name(Val *val, Expr **params, size_t num_params)
 typedef FILTER_CALLBACK(Callback);
 
 struct Type_Field {
@@ -150,7 +148,7 @@ struct Type_Field {
 
 internal_proc Type_Field *
 type_field(char *name, Type *type, Val default_val = val_none) {
-    Type_Field *result = (Type_Field *)xmalloc(sizeof(Type_Field));
+    Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
 
     result->name = intern_str(name);
     result->type = type;
@@ -162,8 +160,7 @@ type_field(char *name, Type *type, Val default_val = val_none) {
 struct Scope {
     char*  name;
     Scope* parent;
-    // Sym**  syms;
-    // size_t num_syms;
+    Frame* frame;
     Map    syms;
 };
 
@@ -171,17 +168,20 @@ global_var Scope global_scope;
 global_var Scope *current_scope = &global_scope;
 
 internal_proc Scope *
-scope_new(Scope *parent) {
-    Scope *result = (Scope *)xcalloc(1, sizeof(Scope));
+scope_new(Scope *parent, char *name = NULL) {
+    Scope *result = ALLOC_STRUCT(&resolve_arena, Scope);
 
+    result->name   = name;
     result->parent = parent;
+    result->frame  = frame_new(KB(1));
+    result->syms   = {};
 
     return result;
 }
 
 internal_proc Scope *
-scope_enter() {
-    Scope *scope = scope_new(current_scope);
+scope_enter(char *name = NULL) {
+    Scope *scope = scope_new(current_scope, name);
     current_scope = scope;
 
     return scope;
@@ -253,7 +253,7 @@ global_var Type *scalar_result_type_table[4][4];
 
 internal_proc Type *
 type_new(Type_Kind kind) {
-    Type *result = (Type *)arena_alloc(&type_arena, sizeof(Type));
+    Type *result = ALLOC_STRUCT(&resolve_arena, Type);
 
     result->kind = kind;
 
@@ -410,7 +410,7 @@ struct Operand {
 
 internal_proc Operand *
 operand_new(Type *type, Val val) {
-    Operand *result = (Operand *)arena_alloc(&operand_arena, sizeof(Operand));
+    Operand *result = ALLOC_STRUCT(&resolve_arena, Operand);
 
     result->type      = type;
     result->val       = val;
@@ -476,6 +476,37 @@ unify_scalar_operands(Operand *left, Operand *right) {
     return false;
 }
 
+internal_proc b32
+convert_operand(Operand *op, Type *dest_type) {
+    b32 result = false;
+
+    if ( op->type == dest_type ) {
+        return true;
+    }
+
+    if ( op->type->kind == TYPE_INT ) {
+        if ( dest_type->kind == TYPE_FLOAT ) {
+            op->type = type_float;
+
+            return true;
+        } else if ( dest_type->kind == TYPE_CHAR ) {
+            return true;
+        } else if ( dest_type->kind == TYPE_BOOL ) {
+            return true;
+        }
+    }
+
+    if ( op->type->kind == TYPE_CHAR ) {
+        if ( dest_type->kind == TYPE_INT ) {
+            op->type = type_int;
+
+            return true;
+        }
+    }
+
+    return result;
+}
+
 enum Sym_Kind {
     SYM_NONE,
     SYM_VAR,
@@ -493,7 +524,7 @@ struct Sym {
 
 internal_proc Sym *
 sym_new(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
-    Sym *result = (Sym *)arena_alloc(&sym_arena, sizeof(Sym));
+    Sym *result = ALLOC_STRUCT(&resolve_arena, Sym);
 
     result->kind  = kind;
     result->scope = current_scope;
@@ -506,6 +537,7 @@ sym_new(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
 
 internal_proc Sym *
 sym_get(char *name) {
+    /* @INFO: symbole werden in einer map ohne external chaining gespeichert! */
     for ( Scope *it = current_scope; it; it = it->parent ) {
         Sym *sym = (Sym *)map_get(&it->syms, name);
         if ( sym ) {
@@ -527,6 +559,9 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
         assert(!"warnung: symbol wird überschattet");
     }
 
+    /* @TODO: im aktuellen stackframe speicher für die variable reservieren
+     *        und den Val zeiger auf diesen speicher zeigen lassen
+     */
     Sym *result = sym_new(kind, name, type, val);
     map_put(&current_scope->syms, name, result);
 
@@ -544,16 +579,15 @@ sym_push_var(char *name, Type *type, Val val) {
 }
 
 internal_proc FILTER_CALLBACK(upper) {
-    assert(val->kind == VAL_STR);
-    for ( int i = 0; i < strlen(val->str_val); ++i ) {
-        val->str_val[i] = 'A';
-    }
+    return "";
 }
 
 internal_proc FILTER_CALLBACK(escape) {
+    return "";
 }
 
 internal_proc FILTER_CALLBACK(truncate) {
+    return "";
 }
 
 internal_proc void
@@ -635,7 +669,7 @@ resolve_stmt(Stmt *stmt) {
             if ( !sym ) {
                 sym_push_var(stmt->stmt_set.name, operand->type, operand->val);
             } else {
-                if ( sym->type != operand->type ) {
+                if ( !convert_operand(operand, sym->type) ) {
                     assert(!"datentyp des operanden passt nicht");
                 }
             }
@@ -655,25 +689,10 @@ resolve_stmt(Stmt *stmt) {
 }
 
 internal_proc Operand *
-resolve_expr_field(Expr *expr) {
-    assert(expr->kind == EXPR_FIELD);
-    Operand *base = resolve_expr(expr->expr_field.expr);
-
-    assert(base->type);
-    Type *type = base->type;
-    assert(type->kind == TYPE_STRUCT);
-
-    scope_set(type->type_aggr.scope);
-    Operand *operand = resolve_expr(expr->expr_field.field);
-    scope_set(type->type_aggr.scope->parent);
-
-    return operand;
-}
-
-internal_proc Operand *
 resolve_expr_cond(Expr *expr) {
     Operand *operand = resolve_expr(expr);
 
+    /* @TODO: char, int, str akzeptieren */
     if ( operand->type != type_bool ) {
         assert(!"boolischen ausdruck erwartet");
     }
@@ -746,12 +765,23 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_FIELD: {
-            result = resolve_expr_field(expr);
+            Operand *base = resolve_expr(expr->expr_field.expr);
+
+            assert(base->type);
+            Type *type = base->type;
+            assert(type->kind == TYPE_STRUCT);
+
+            scope_set(type->type_aggr.scope);
+            Operand *operand = resolve_expr(expr->expr_field.field);
+            scope_set(type->type_aggr.scope->parent);
+
+            result = operand;
         } break;
 
         case EXPR_RANGE: {
             Operand *left  = resolve_expr(expr->expr_range.left);
             Operand *right = resolve_expr(expr->expr_range.right);
+            unify_arithmetic_operands(left, right);
 
             if ( !is_int(left->type) ) {
                 assert(!"range typ muss vom typ int sein");
@@ -761,7 +791,7 @@ resolve_expr(Expr *expr) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            result = operand_rvalue(type_int);
+            result = operand_rvalue(type_int, val_range(left->val.int_val, right->val.int_val));
         } break;
 
         case EXPR_CALL: {
@@ -912,51 +942,73 @@ field_set(Sym *sym, char *field_name, Val val) {
         }
     }
 }
-internal_proc char *
+internal_proc void *
 field_get(Sym *sym, char *field_name) {
     assert(sym->type->kind == TYPE_STRUCT);
     assert(sym->val.struct_val.ptr);
 
     field_name = intern_str(field_name);
-    char **ptr = (char **)sym->val.struct_val.ptr;
+    char *ptr = (char *)sym->val.struct_val.ptr;
     for ( int i = 0; i < sym->type->type_aggr.num_fields; ++i ) {
         Type_Field *field = sym->type->type_aggr.fields[i];
         if ( field->name == field_name ) {
-            return *(ptr + field->offset);
+            void *result = (void *)(ptr + field->offset);
+            return result;
         }
     }
 
     return 0;
 }
 
+internal_proc char *
+field_get_char(Sym *sym, char *field_name) {
+    char *result = *(char **)field_get(sym, field_name);
+
+    return result;
+}
+
+internal_proc int
+field_get_int(Sym *sym, char *field_name) {
+    int result = *(int *)field_get(sym, field_name);
+
+    return result;
+}
+
 struct User {
     char *name;
+    int age;
 };
 
 internal_proc void
 init_test_datatype() {
-    Type_Field *user_fields[] = { type_field("name", type_str) };
-    Type *user_type = type_struct(user_fields, 1);
+    Type_Field *user_fields[] = { type_field("name", type_str), type_field("age", type_int) };
+    Type *user_type = type_struct(user_fields, 2);
 
     User *user = (User *)xmalloc(sizeof(User));
     user->name = "Noob";
+    user->age  = 40;
 
     Sym *sym = sym_push_var("user", user_type, val_struct(user));
-    char *old_val = field_get(sym, "name");
+    char *old_val = field_get_char(sym, "name");
+    int old_age   = field_get_int(sym, "age");
     field_set(sym, "name", val_str("Saibot"));
-    char *new_val = field_get(sym, "name");
+    char *new_val = field_get_char(sym, "name");
 }
 
 internal_proc void
 init_arenas() {
-    arena_init(&type_arena, MB(10));
-    arena_init(&operand_arena, MB(10));
-    arena_init(&sym_arena, MB(100));
+    arena_init(&resolve_arena, MB(100));
+}
+
+internal_proc void
+init_global_scope() {
+    global_scope.frame = frame_new(KB(1));
 }
 
 internal_proc void
 init_resolver() {
     init_arenas();
+    init_global_scope();
     init_builtin_types();
     init_builtin_filter();
     init_test_datatype();
