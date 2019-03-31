@@ -59,10 +59,6 @@ gen_stmt(Stmt *stmt) {
 internal_proc void
 gen_var(Item *item) {
     assert(item->kind == ITEM_VAR);
-
-    for ( int i = 0; i < item->item_var.num_filter; ++i ) {
-        Var_Filter filter = item->item_var.filter[i];
-    }
 }
 
 internal_proc void

@@ -31,7 +31,6 @@ enum Expr_Kind {
     EXPR_CALL,
 };
 
-struct Sym;
 struct Expr {
     Pos pos;
     Expr_Kind kind;
@@ -42,7 +41,6 @@ struct Expr {
         } expr_paren;
 
         struct {
-            Sym *sym;
             char *value;
         } expr_name;
 
@@ -240,7 +238,6 @@ expr_call(Expr *expr, Expr **params, size_t num_params) {
 
 struct Var_Filter {
     char*  name;
-    Sym*   sym;
     Expr** params;
     size_t num_params;
 };

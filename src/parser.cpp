@@ -68,10 +68,11 @@ internal_proc b32
 match_token(Parser *p, Token_Kind kind) {
     if ( is_token(p, kind) ) {
         next_token(&p->lex);
-        return 1;
+
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
 internal_proc void
@@ -88,6 +89,7 @@ is_keyword(Parser *p, char *expected_keyword) {
     if ( p->lex.token.name == expected_keyword ) {
         return true;
     }
+
     return false;
 }
 
@@ -95,8 +97,10 @@ internal_proc b32
 match_keyword(Parser *p, char *expected_keyword) {
     if ( is_keyword(p, expected_keyword) ) {
         next_token(&p->lex);
+
         return true;
     }
+
     return false;
 }
 
@@ -180,8 +184,9 @@ parse_expr_field(Parser *p) {
 
 internal_proc Expr *
 parse_expr_unary(Parser *p) {
-    if ( match_token(p, T_PLUS) ) {
-        return expr_unary(T_PLUS, parse_expr_unary(p));
+    if ( is_unary(p->lex.token.kind) ) {
+        Token op = eat_token(&p->lex);
+        return expr_unary(op.kind, parse_expr_unary(p));
     } else {
         return parse_expr_field(p);
     }

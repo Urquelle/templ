@@ -24,11 +24,15 @@ enum Token_Kind {
     T_HASH,
     T_PERCENT,
     T_QMARK,
-    T_BANG,
     T_ASSIGN,
     T_COLON,
-    T_PLUS,
     T_MUL,
+
+    T_BANG,
+    T_UNARY_FIRST = T_BANG,
+    T_MINUS,
+    T_PLUS,
+    T_UNARY_LAST = T_PLUS,
 
     T_SPACE,
     T_TAB,
@@ -57,10 +61,10 @@ struct Token {
 
     union {
         char *str_value;
+        char *name;
         int   int_value;
         float float_value;
         int   char_value;
-        char *name;
     };
 };
 
@@ -157,6 +161,13 @@ is_lit(Lexer *lex) {
 internal_proc b32
 is_cmp(Token_Kind kind) {
     b32 result = T_CMP_FIRST <= kind && kind <= T_CMP_LAST;
+
+    return result;
+}
+
+internal_proc b32
+is_unary(Token_Kind kind) {
+    b32 result = T_UNARY_FIRST <= kind && kind <= T_UNARY_LAST;
 
     return result;
 }
@@ -299,6 +310,11 @@ next_raw_token(Lexer *lex) {
 
         case '+': {
             lex->token.kind = T_PLUS;
+            next(lex);
+        } break;
+
+        case '-': {
+            lex->token.kind = T_MINUS;
             next(lex);
         } break;
 

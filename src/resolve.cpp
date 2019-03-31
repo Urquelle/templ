@@ -29,134 +29,6 @@ internal_proc void      resolve_filter(Var_Filter *filter);
 internal_proc void      resolve_stmt(Stmt *stmt);
 internal_proc void      resolve(Doc *d);
 
-enum Val_Kind {
-    VAL_NONE,
-    VAL_BOOL,
-    VAL_CHAR,
-    VAL_INT,
-    VAL_FLOAT,
-    VAL_STR,
-    VAL_RANGE,
-    VAL_STRUCT,
-};
-
-struct Val {
-    Val_Kind kind;
-
-    union {
-        b32   bool_val;
-        char  char_val;
-        int   int_val;
-        float float_val;
-        char *str_val;
-        struct {
-            int min;
-            int max;
-        } range_val;
-        struct {
-            void* ptr;
-        } struct_val;
-    };
-};
-
-global_var Val val_none;
-
-internal_proc Val
-val_new(Val_Kind kind) {
-    Val result = {};
-
-    result.kind = kind;
-
-    return result;
-}
-
-internal_proc Val
-val_bool(b32 val) {
-    Val result = val_new(VAL_BOOL);
-
-    result.bool_val = val;
-
-    return result;
-}
-
-internal_proc Val
-val_char(char val) {
-    Val result = val_new(VAL_CHAR);
-
-    result.char_val = val;
-
-    return result;
-}
-
-internal_proc Val
-val_int(int val) {
-    Val result = val_new(VAL_INT);
-
-    result.int_val = val;
-
-    return result;
-}
-
-internal_proc Val
-val_float(float val) {
-    Val result = val_new(VAL_FLOAT);
-
-    result.float_val = val;
-
-    return result;
-}
-
-internal_proc Val
-val_str(char *val) {
-    Val result = val_new(VAL_STR);
-
-    result.str_val = val;
-
-    return result;
-}
-
-internal_proc Val
-val_range(int min, int max) {
-    Val result = val_new(VAL_RANGE);
-
-    result.range_val.min = min;
-    result.range_val.max = max;
-
-    return result;
-}
-
-internal_proc Val
-val_struct(void *ptr) {
-    Val result = val_new(VAL_STRUCT);
-
-    result.struct_val.ptr = ptr;
-
-    return result;
-}
-
-internal_proc Sym * sym_push_var(char *name, Type *type, Val val = val_none);
-
-#define FILTER_CALLBACK(name) char * name(Val *val, Expr **params, size_t num_params)
-typedef FILTER_CALLBACK(Callback);
-
-struct Type_Field {
-    char *name;
-    Type *type;
-    s64   offset;
-    Val   default_val;
-};
-
-internal_proc Type_Field *
-type_field(char *name, Type *type, Val default_val = val_none) {
-    Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
-
-    result->name = intern_str(name);
-    result->type = type;
-    result->default_val = default_val;
-
-    return result;
-}
-
 struct Scope {
     char*  name;
     Scope* parent;
@@ -198,6 +70,156 @@ scope_set(Scope *scope) {
     if ( scope ) {
         current_scope = scope;
     }
+}
+
+enum Val_Kind {
+    VAL_NONE,
+    VAL_BOOL,
+    VAL_CHAR,
+    VAL_INT,
+    VAL_FLOAT,
+    VAL_STR,
+    VAL_RANGE,
+    VAL_STRUCT,
+    VAL_FIELD,
+};
+
+struct Val {
+    Val_Kind kind;
+    size_t offset;
+    Frame *frame;
+};
+
+global_var Val val_none;
+
+internal_proc Val
+val_new(Val_Kind kind, size_t offset) {
+    Val result = {};
+
+    result.kind   = kind;
+    result.offset = offset;
+    result.frame  = current_scope->frame;
+
+    return result;
+}
+
+internal_proc Val
+val_field(size_t offset) {
+    return val_new(VAL_FIELD, offset);
+}
+
+internal_proc Val
+val_bool(b32 val) {
+    size_t size = 1;
+
+    size_t offset = frame_set(current_scope->frame, &val, size);
+    Val result = val_new(VAL_BOOL, offset);
+
+    return result;
+}
+
+internal_proc Val
+val_char(char val) {
+    size_t size = 1;
+
+    size_t offset = frame_set(current_scope->frame, &val, size);
+    Val result = val_new(VAL_CHAR, offset);
+
+    return result;
+}
+
+internal_proc Val
+val_int(int val) {
+    size_t size = 8;
+
+    size_t offset = frame_set(current_scope->frame, &val, size);
+    Val result = val_new(VAL_INT, offset);
+
+    return result;
+}
+
+internal_proc Val
+val_float(float val) {
+    size_t size = 8;
+
+    size_t offset = frame_set(current_scope->frame, &val, size);
+    Val result = val_new(VAL_FLOAT, offset);
+
+    return result;
+}
+
+internal_proc Val
+val_str(char *val) {
+    size_t size = 8;
+
+    size_t offset = frame_set(current_scope->frame, val, strlen(val));
+    Val result = val_new(VAL_STR, offset);
+
+    return result;
+}
+
+internal_proc Val
+val_range(int min, int max) {
+    size_t size = 2*8;
+    int t[] = {min, max};
+
+    size_t offset = frame_set(current_scope->frame, t, size);
+    Val result = val_new(VAL_RANGE, offset);
+
+    return result;
+}
+
+internal_proc Val
+val_struct(void *ptr, size_t size) {
+
+    size_t offset = frame_set(current_scope->frame, ptr, size);
+    Val result = val_new(VAL_STRUCT, offset);
+
+    return result;
+}
+
+internal_proc void *
+val_get(Val val) {
+    void *result = (void *)(val.frame->mem + val.offset);
+
+    return result;
+}
+
+internal_proc int
+val_get_int(Val val) {
+    int result = *(int *)val_get(val);
+
+    return result;
+}
+
+internal_proc char *
+val_get_str(Val val) {
+    char *result = (char *)val_get(val);
+
+    return result;
+}
+
+internal_proc Sym * sym_push_var(char *name, Type *type, Val val = val_none);
+
+#define FILTER_CALLBACK(name) char * name(void *val, Expr **params, size_t num_params)
+typedef FILTER_CALLBACK(Callback);
+
+struct Type_Field {
+    char *name;
+    Type *type;
+    s64   offset;
+    Val   default_val;
+};
+
+internal_proc Type_Field *
+type_field(char *name, Type *type, Val default_val = val_none) {
+    Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
+
+    result->name = intern_str(name);
+    result->type = type;
+    result->default_val = default_val;
+
+    return result;
 }
 
 enum Type_Kind {
@@ -559,9 +581,6 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
         assert(!"warnung: symbol wird überschattet");
     }
 
-    /* @TODO: im aktuellen stackframe speicher für die variable reservieren
-     *        und den Val zeiger auf diesen speicher zeigen lassen
-     */
     Sym *result = sym_new(kind, name, type, val);
     map_put(&current_scope->syms, name, result);
 
@@ -579,15 +598,26 @@ sym_push_var(char *name, Type *type, Val val) {
 }
 
 internal_proc FILTER_CALLBACK(upper) {
-    return "";
+    char *str = *(char **)val;
+    char *result = "";
+
+    for ( int i = 0; i < strlen(str); ++i ) {
+        result = strf("%s%c", result, toupper(str[i]));
+    }
+
+    return result;
 }
 
 internal_proc FILTER_CALLBACK(escape) {
-    return "";
+    char *str = *(char **)val;
+
+    return str;
 }
 
 internal_proc FILTER_CALLBACK(truncate) {
-    return "";
+    char *str = *(char **)val;
+
+    return str;
 }
 
 internal_proc void
@@ -643,7 +673,7 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
-            scope_enter();
+            scope_enter(stmt->stmt_block.name);
             resolve_stmts(stmt->stmt_block.stmts, stmt->stmt_block.num_stmts);
             scope_leave();
         } break;
@@ -711,7 +741,6 @@ resolve_expr(Expr *expr) {
                 assert(!"konnte symbol nicht auflösen");
             }
 
-            expr->expr_name.sym = sym;
             result = operand_lvalue(sym->type, sym->val);
         } break;
 
@@ -791,7 +820,10 @@ resolve_expr(Expr *expr) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            result = operand_rvalue(type_int, val_range(left->val.int_val, right->val.int_val));
+            int min = val_get_int(left->val);
+            int max = val_get_int(right->val);
+
+            result = operand_rvalue(type_int, val_range(min, max));
         } break;
 
         case EXPR_CALL: {
@@ -856,7 +888,6 @@ resolve_filter(Var_Filter *filter) {
     assert(sym->type);
     assert(sym->type->kind == TYPE_FILTER);
     Type *type = sym->type;
-    filter->sym = sym;
 
     if ( type->type_proc.num_params-1 < filter->num_params ) {
         assert(!"zu viele argumente");
@@ -916,64 +947,6 @@ resolve_item(Item *item) {
     }
 }
 
-internal_proc void
-field_set(Sym *sym, char *field_name, Val val) {
-    assert(sym->type->kind == TYPE_STRUCT);
-    assert(sym->val.struct_val.ptr);
-
-    field_name = intern_str(field_name);
-    char **ptr = (char **)sym->val.struct_val.ptr;
-    for ( int i = 0; i < sym->type->type_aggr.num_fields; ++i ) {
-        Type_Field *field = sym->type->type_aggr.fields[i];
-        if ( field->name == field_name ) {
-            switch ( val.kind ) {
-                case VAL_STR: {
-                    *(ptr + field->offset) = val.str_val;
-                } break;
-
-                case VAL_INT: {
-                    *(int *)(ptr + field->offset) = val.int_val;
-                } break;
-
-                default: {
-                    assert(0);
-                } break;
-            }
-        }
-    }
-}
-internal_proc void *
-field_get(Sym *sym, char *field_name) {
-    assert(sym->type->kind == TYPE_STRUCT);
-    assert(sym->val.struct_val.ptr);
-
-    field_name = intern_str(field_name);
-    char *ptr = (char *)sym->val.struct_val.ptr;
-    for ( int i = 0; i < sym->type->type_aggr.num_fields; ++i ) {
-        Type_Field *field = sym->type->type_aggr.fields[i];
-        if ( field->name == field_name ) {
-            void *result = (void *)(ptr + field->offset);
-            return result;
-        }
-    }
-
-    return 0;
-}
-
-internal_proc char *
-field_get_char(Sym *sym, char *field_name) {
-    char *result = *(char **)field_get(sym, field_name);
-
-    return result;
-}
-
-internal_proc int
-field_get_int(Sym *sym, char *field_name) {
-    int result = *(int *)field_get(sym, field_name);
-
-    return result;
-}
-
 struct User {
     char *name;
     int age;
@@ -988,11 +961,7 @@ init_test_datatype() {
     user->name = "Noob";
     user->age  = 40;
 
-    Sym *sym = sym_push_var("user", user_type, val_struct(user));
-    char *old_val = field_get_char(sym, "name");
-    int old_age   = field_get_int(sym, "age");
-    field_set(sym, "name", val_str("Saibot"));
-    char *new_val = field_get_char(sym, "name");
+    Sym *sym = sym_push_var("user", user_type, val_struct(user, sizeof(User)));
 }
 
 internal_proc void
