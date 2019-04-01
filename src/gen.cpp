@@ -17,7 +17,15 @@ gen_instr(Instr *instr) {
             genf("%s", instr->instr_print.val);
         } break;
 
+        case INSTR_NOP: {
+            //
+        } break;
+
         case INSTR_LOOP: {
+            //
+        } break;
+
+        case INSTR_SET: {
             //
         } break;
 

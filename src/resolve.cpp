@@ -19,12 +19,13 @@ doc_leave(Doc *d) {
 }
 
 internal_proc void
-set_parent(Doc *d) {
+set_this_doc_to_be_parent_of_current_scope(Doc *d) {
     current_doc->parent = d;
 }
 
 internal_proc void      resolve_item(Item *item);
 internal_proc Operand * resolve_expr(Expr *expr);
+internal_proc Operand * resolve_expr_cond(Expr *expr);
 internal_proc void      resolve_filter(Var_Filter *filter);
 internal_proc void      resolve_stmt(Stmt *stmt);
 internal_proc void      resolve(Doc *d);
@@ -669,9 +670,26 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_IF: {
             scope_enter();
-            Operand *operand = resolve_expr(stmt->stmt_if.cond);
+            Operand *operand = resolve_expr_cond(stmt->stmt_if.cond);
             resolve_stmts(stmt->stmt_if.stmts, stmt->stmt_if.num_stmts);
             scope_leave();
+
+            if ( stmt->stmt_if.num_elseifs ) {
+                for ( int i = 0; i < stmt->stmt_if.num_elseifs; ++i ) {
+                    scope_enter();
+                    Stmt *elseif = stmt->stmt_if.elseifs[i];
+                    Operand *elseif_operand = resolve_expr_cond(elseif->stmt_if.cond);
+                    resolve_stmts(elseif->stmt_if.stmts, elseif->stmt_if.num_stmts);
+                    scope_leave();
+                }
+            }
+
+            if ( stmt->stmt_if.else_stmt ) {
+                scope_enter();
+                Stmt *else_stmt = stmt->stmt_if.else_stmt;
+                resolve_stmts(else_stmt->stmt_if.stmts, else_stmt->stmt_if.num_stmts);
+                scope_leave();
+            }
         } break;
 
         case STMT_BLOCK: {
@@ -680,28 +698,25 @@ resolve_stmt(Stmt *stmt) {
             scope_leave();
         } break;
 
-        case STMT_END: {
-            /* nichts zu tun */
-        } break;
-
+        case STMT_END:
         case STMT_LIT: {
-            resolve_item(stmt->stmt_lit.item);
+            /* nichts zu tun */
         } break;
 
         case STMT_EXTENDS: {
             Doc *doc = parse_file(stmt->stmt_extends.name);
             resolve(doc);
-            set_parent(doc);
+            set_this_doc_to_be_parent_of_current_scope(doc);
         } break;
 
         case STMT_SET: {
-            Sym *sym = resolve_name(stmt->stmt_set.name);
             Operand *operand = resolve_expr(stmt->stmt_set.expr);
+            operand->sym = resolve_name(stmt->stmt_set.name);
 
-            if ( !sym ) {
+            if ( !operand->sym ) {
                 sym_push_var(stmt->stmt_set.name, operand->type, operand->val);
             } else {
-                if ( !convert_operand(operand, sym->type) ) {
+                if ( !convert_operand(operand, operand->sym->type) ) {
                     assert(!"datentyp des operanden passt nicht");
                 }
             }
@@ -780,7 +795,11 @@ resolve_expr(Expr *expr) {
                 unify_arithmetic_operands(left, right);
             }
 
-            result = operand_rvalue(left->type);
+            if ( is_cmp(expr->expr_binary.op) ) {
+                result = operand_rvalue(type_bool);
+            } else {
+                result = operand_rvalue(left->type);
+            }
         } break;
 
         case EXPR_TERNARY: {

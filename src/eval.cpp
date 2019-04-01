@@ -17,11 +17,12 @@ eval_stmt(Stmt *stmt) {
             for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
                 buf_push(instr, eval_stmt(stmt->stmt_if.stmts[i]));
             }
+
             return instr_if(instr, buf_len(instr));
         } break;
 
         case STMT_EXTENDS: {
-            return 0;
+            return &instr_nop;
         } break;
 
         case STMT_SET: {
@@ -29,11 +30,11 @@ eval_stmt(Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
-            return 0;
+            return &instr_nop;
         } break;
 
         case STMT_FILTER: {
-            return 0;
+            return &instr_nop;
         } break;
 
         case STMT_FOR: {
@@ -88,6 +89,6 @@ eval_item(Item *item) {
 internal_proc void
 eval(Doc *doc) {
     for ( int i = 0; i < doc->num_items; ++i ) {
-        eval_item(doc->items[i]);
+        push_instr(eval_item(doc->items[i]));
     }
 }

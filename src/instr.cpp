@@ -2,6 +2,7 @@ global_var Arena instr_arena;
 
 enum Instr_Kind {
     INSTR_NONE,
+    INSTR_NOP,
     INSTR_PRINT,
     INSTR_ADD,
     INSTR_SET,
@@ -29,6 +30,8 @@ struct Instr {
         } instr_for;
     };
 };
+
+global_var Instr instr_nop = { INSTR_NOP };
 
 global_var Instr **instructions;
 

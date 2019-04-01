@@ -47,6 +47,7 @@ init_parser(Parser *p, char *input, char *name) {
     p->lex.input = input;
     p->lex.pos.name = name;
     p->lex.pos.row = 1;
+    p->lex.token.pos = p->lex.pos;
     refill(&p->lex);
     init_keywords();
     next_raw_token(&p->lex);
@@ -252,7 +253,7 @@ parse_expr_ternary(Parser *p) {
 
 internal_proc Expr *
 parse_expr(Parser *p) {
-    Pos pos = p->lex.pos;
+    Pos pos = p->lex.token.pos;
     Expr *expr = parse_expr_ternary(p);
     expr->pos = pos;
 
@@ -333,7 +334,7 @@ parse_stmt_if(Parser *p) {
         }
     }
 
-    if_stmt->stmt_if.elseif_stmts = stmt_elseifs;
+    if_stmt->stmt_if.elseifs = stmt_elseifs;
     if_stmt->stmt_if.num_elseifs = buf_len(stmt_elseifs);
     if_stmt->stmt_if.else_stmt = stmt_else;
 

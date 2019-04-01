@@ -1,6 +1,7 @@
 struct Pos {
     char *name;
     s64 row;
+    char *start;
 };
 
 enum Token_Kind {
@@ -210,6 +211,8 @@ scan_float(Lexer *lex) {
 internal_proc void
 next_raw_token(Lexer *lex) {
     char *start = lex->input;
+    lex->token.pos = lex->pos;
+    lex->token.pos.start = start;
 
     switch ( at0(lex) ) {
         case 0: {

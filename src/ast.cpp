@@ -272,7 +272,7 @@ struct Stmt {
             Expr *cond;
             Stmt **stmts;
             size_t num_stmts;
-            Stmt **elseif_stmts;
+            Stmt **elseifs;
             size_t num_elseifs;
             Stmt *else_stmt;
         } stmt_if;

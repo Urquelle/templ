@@ -1,5 +1,7 @@
 {% extends "main.tpl" %}
 
+<meta charset="utf-8">
+
 {% block title %}
     test - {{ default_title }}
 {% end %}
