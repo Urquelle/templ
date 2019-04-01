@@ -15,9 +15,15 @@
 #include "doc.cpp"
 #include "parser.cpp"
 #include "frame.cpp"
+#include "instr.cpp"
 #include "resolve.cpp"
 #include "eval.cpp"
 #include "gen.cpp"
+
+internal_proc void
+init() {
+    init_resolver();
+}
 
 int
 main(int argc, char **argv) {
@@ -25,11 +31,11 @@ main(int argc, char **argv) {
         printf("templ.exe <filename>\n");
     }
 
+    init();
     Doc *doc = parse_file(argv[1]);
-    init_resolver();
     resolve(doc);
     eval(doc);
-    gen(doc);
+    gen();
     file_write("test.html", gen_result, strlen(gen_result));
 
     return 0;

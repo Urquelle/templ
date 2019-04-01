@@ -425,6 +425,7 @@ is_callable(Type *type) {
 struct Operand {
     Type* type;
     Val   val;
+    Sym*  sym;
 
     b32 is_const;
     b32 is_lvalue;
@@ -443,10 +444,11 @@ operand_new(Type *type, Val val) {
 }
 
 internal_proc Operand *
-operand_lvalue(Type *type, Val val = val_none) {
+operand_lvalue(Type *type, Sym *sym = NULL, Val val = val_none) {
     Operand *result = operand_new(type, val);
 
     result->is_lvalue = true;
+    result->sym = sym;
 
     return result;
 }
@@ -741,7 +743,7 @@ resolve_expr(Expr *expr) {
                 assert(!"konnte symbol nicht auflösen");
             }
 
-            result = operand_lvalue(sym->type, sym->val);
+            result = operand_lvalue(sym->type, sym, sym->val);
         } break;
 
         case EXPR_STR: {

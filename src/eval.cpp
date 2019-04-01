@@ -1,7 +1,7 @@
-internal_proc char * eval_item(Item *item);
-internal_proc char * eval_var(Item *item);
+internal_proc Instr * eval_item(Item *item);
+internal_proc char  * eval_var(Item *item);
 
-internal_proc char *
+internal_proc Instr *
 eval_stmt(Stmt *stmt) {
     switch ( stmt->kind ) {
         case STMT_LIT: {
@@ -9,36 +9,44 @@ eval_stmt(Stmt *stmt) {
         } break;
 
         case STMT_VAR: {
-            return eval_var(stmt->stmt_var.item);
+            return instr_print(eval_var(stmt->stmt_var.item));
         } break;
 
         case STMT_IF: {
-            return "<if>";
+            Instr **instr = 0;
+            for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
+                buf_push(instr, eval_stmt(stmt->stmt_if.stmts[i]));
+            }
+            return instr_if(instr, buf_len(instr));
         } break;
 
         case STMT_EXTENDS: {
-            return "<extends>";
+            return 0;
         } break;
 
         case STMT_SET: {
-            return "<set>";
+            return instr_set();
         } break;
 
         case STMT_BLOCK: {
-            return "<block>";
+            return 0;
         } break;
 
         case STMT_FILTER: {
-            return "<filter>";
+            return 0;
         } break;
 
         case STMT_FOR: {
-            return "<for>";
+            Instr **instr = 0;
+            for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
+                buf_push(instr, eval_stmt(stmt->stmt_for.stmts[i]));
+            }
+            return instr_for(instr, buf_len(instr));
         } break;
 
         default: {
             assert(0);
-            return "";
+            return 0;
         } break;
     }
 }
@@ -55,15 +63,15 @@ eval_var(Item *item) {
     return "";
 }
 
-internal_proc char *
+internal_proc Instr *
 eval_item(Item *item) {
     switch ( item->kind ) {
         case ITEM_LIT: {
-            return item->item_lit.lit;
+            return instr_print(item->item_lit.lit);
         } break;
 
         case ITEM_VAR: {
-            return eval_var(item);
+            return instr_print(eval_var(item));
         } break;
 
         case ITEM_CODE: {
@@ -72,15 +80,14 @@ eval_item(Item *item) {
 
         default: {
             assert(0);
-            return "";
+            return 0;
         } break;
     }
 }
 
 internal_proc void
 eval(Doc *doc) {
-    char *result = "";
     for ( int i = 0; i < doc->num_items; ++i ) {
-        result = strf("%s%s", result, eval_item(doc->items[i]));
+        eval_item(doc->items[i]);
     }
 }
