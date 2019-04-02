@@ -1,5 +1,16 @@
 internal_proc Instr * eval_item(Item *item);
-internal_proc char  * eval_var(Item *item);
+
+internal_proc char *
+eval_var(Item *item) {
+    assert(item->kind == ITEM_VAR);
+
+    // Val val = extract_val(item->item_var.expr);
+    for ( int i = 0; i < item->item_var.num_filter; ++i ) {
+        Var_Filter filter = item->item_var.filter[i];
+    }
+
+    return "";
+}
 
 internal_proc Instr *
 eval_stmt(Stmt *stmt) {
@@ -50,18 +61,6 @@ eval_stmt(Stmt *stmt) {
             return 0;
         } break;
     }
-}
-
-internal_proc char *
-eval_var(Item *item) {
-    assert(item->kind == ITEM_VAR);
-
-    // Val val = extract_val(item->item_var.expr);
-    for ( int i = 0; i < item->item_var.num_filter; ++i ) {
-        Var_Filter filter = item->item_var.filter[i];
-    }
-
-    return "";
 }
 
 internal_proc Instr *
