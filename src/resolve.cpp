@@ -674,7 +674,10 @@ resolve_stmt(Stmt *stmt) {
         case STMT_FOR: {
             scope_enter();
             Operand *operand = resolve_expr(stmt->stmt_for.cond);
-            sym_push_var(stmt->stmt_for.it, operand->type, operand->val);
+
+            size_t offset = frame_set(current_scope->frame, 0, operand->type->size);
+            sym_push_var(stmt->stmt_for.it, operand->type, val_new(VAL_NONE, offset));
+
             resolve_stmts(stmt->stmt_for.stmts, stmt->stmt_for.num_stmts);
             scope_leave();
         } break;

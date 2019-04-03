@@ -7,6 +7,7 @@ enum Instr_Kind {
     INSTR_ADD,
     INSTR_SET,
     INSTR_LOOP,
+    INSTR_LABEL,
     INSTR_IF,
 };
 
@@ -30,6 +31,12 @@ struct Instr {
             Instr **instr;
             size_t num_instr;
         } instr_for;
+
+        struct {
+            char *name;
+            Instr **instr;
+            size_t num_instr;
+        } instr_label;
     };
 };
 
@@ -84,6 +91,17 @@ instr_for(int min, int max, Instr **instr, size_t num_instr) {
     result->instr_for.max = max;
     result->instr_for.instr = instr;
     result->instr_for.num_instr = num_instr;
+
+    return result;
+}
+
+internal_proc Instr *
+instr_label(char *name, Instr **instr, size_t num_instr) {
+    Instr *result = instr_new(INSTR_LABEL);
+
+    result->instr_label.name = name;
+    result->instr_label.instr = instr;
+    result->instr_label.num_instr = num_instr;
 
     return result;
 }

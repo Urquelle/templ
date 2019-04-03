@@ -43,7 +43,12 @@ eval_stmt(Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
-            return &instr_nop;
+            Instr **instr = 0;
+            for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
+                buf_push(instr, eval_stmt(stmt->stmt_block.stmts[i]));
+            }
+
+            return instr_label(stmt->stmt_block.name, instr, buf_len(instr));
         } break;
 
         case STMT_FILTER: {
