@@ -25,6 +25,8 @@ struct Instr {
         } instr_if;
 
         struct {
+            int min;
+            int max;
             Instr **instr;
             size_t num_instr;
         } instr_for;
@@ -75,8 +77,13 @@ instr_if(Instr **instr, size_t num_instr) {
 }
 
 internal_proc Instr *
-instr_for(Instr **instr, size_t num_instr) {
+instr_for(int min, int max, Instr **instr, size_t num_instr) {
     Instr *result = instr_new(INSTR_LOOP);
+
+    result->instr_for.min = min;
+    result->instr_for.max = max;
+    result->instr_for.instr = instr;
+    result->instr_for.num_instr = num_instr;
 
     return result;
 }

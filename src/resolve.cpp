@@ -4,6 +4,17 @@ struct Operand;
 
 global_var Arena resolve_arena;
 
+global_var Map resolved_expr;
+internal_proc void
+push_resolved_expr(Expr *expr, Operand *operand) {
+    map_put(&resolved_expr, expr, operand);
+}
+
+internal_proc Operand *
+fetch_resolved_expr(Expr *expr) {
+    return (Operand *)map_get(&resolved_expr, expr);
+}
+
 Doc *current_doc;
 internal_proc Doc *
 doc_enter(Doc *d) {
@@ -894,6 +905,8 @@ resolve_expr(Expr *expr) {
             assert(0);
         } break;
     }
+
+    push_resolved_expr(expr, result);
 
     return result;
 }
