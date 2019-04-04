@@ -28,6 +28,7 @@ enum Token_Kind {
     T_ASSIGN,
     T_COLON,
     T_MUL,
+    T_DIV,
 
     T_BANG,
     T_UNARY_FIRST = T_BANG,
@@ -323,6 +324,11 @@ next_raw_token(Lexer *lex) {
 
         case '*': {
             lex->token.kind = T_MUL;
+            next(lex);
+        } break;
+
+        case '/': {
+            lex->token.kind = T_DIV;
             next(lex);
         } break;
 

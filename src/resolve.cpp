@@ -98,6 +98,15 @@ enum Val_Kind {
 
 struct Val {
     Val_Kind kind;
+
+    union {
+        int int_val;
+        float float_val;
+        char *str_val;
+        int range_val[2];
+        bool bool_val;
+    };
+
     size_t offset;
     Frame *frame;
 };
@@ -127,6 +136,8 @@ val_bool(b32 val) {
     size_t offset = frame_set(current_scope->frame, &val, size);
     Val result = val_new(VAL_BOOL, offset);
 
+    result.bool_val = val;
+
     return result;
 }
 
@@ -147,6 +158,8 @@ val_int(int val) {
     size_t offset = frame_set(current_scope->frame, &val, size);
     Val result = val_new(VAL_INT, offset);
 
+    result.int_val = val;
+
     return result;
 }
 
@@ -156,6 +169,8 @@ val_float(float val) {
 
     size_t offset = frame_set(current_scope->frame, &val, size);
     Val result = val_new(VAL_FLOAT, offset);
+
+    result.float_val = val;
 
     return result;
 }
@@ -167,6 +182,8 @@ val_str(char *val) {
     size_t offset = frame_set(current_scope->frame, val, strlen(val));
     Val result = val_new(VAL_STR, offset);
 
+    result.str_val = val;
+
     return result;
 }
 
@@ -177,6 +194,9 @@ val_range(int min, int max) {
 
     size_t offset = frame_set(current_scope->frame, t, size);
     Val result = val_new(VAL_RANGE, offset);
+
+    result.range_val[0] = min;
+    result.range_val[1] = max;
 
     return result;
 }
@@ -731,7 +751,7 @@ resolve_stmt(Stmt *stmt) {
             Operand *operand = resolve_expr(stmt->stmt_set.expr);
 
             if ( !sym ) {
-                sym_push_var(sym->name, operand->type, operand->val);
+                sym_push_var(stmt->stmt_set.name, operand->type, operand->val);
             } else {
                 if ( !convert_operand(operand, operand->sym->type) ) {
                     assert(!"datentyp des operanden passt nicht");
@@ -762,6 +782,85 @@ resolve_expr_cond(Expr *expr) {
     }
 
     return operand;
+}
+
+internal_proc Operand *
+eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
+    switch (op) {
+        case T_PLUS: {
+            switch ( left->val.kind ) {
+                case VAL_INT: {
+                    left->val = val_int(left->val.int_val + right->val.int_val);
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(left->val.float_val + right->val.float_val);
+                    return left;
+                } break;
+
+                default: {
+                    assert(!"nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+
+        case T_MINUS: {
+            switch ( left->val.kind ) {
+                case VAL_INT: {
+                    left->val = val_int(left->val.int_val - right->val.int_val);
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(left->val.float_val - right->val.float_val);
+                    return left;
+                } break;
+
+                default: {
+                    assert(!"nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+
+        case T_MUL: {
+            switch ( left->val.kind ) {
+                case VAL_INT: {
+                    left->val = val_int(left->val.int_val * right->val.int_val);
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(left->val.float_val * right->val.float_val);
+                    return left;
+                } break;
+
+                default: {
+                    assert(!"nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+
+        case T_DIV: {
+            switch ( left->val.kind ) {
+                case VAL_INT: {
+                    left->val = val_int(left->val.int_val / right->val.int_val);
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(left->val.float_val / right->val.float_val);
+                    return left;
+                } break;
+
+                default: {
+                    assert(!"nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+    }
+
+    return left;
 }
 
 internal_proc Operand *
@@ -814,6 +913,8 @@ resolve_expr(Expr *expr) {
 
             if ( is_cmp(expr->expr_binary.op) ) {
                 result = operand_rvalue(type_bool);
+            } else if ( left->is_const && right->is_const ) {
+                result = eval_binary_op(expr->expr_binary.op, left, right);
             } else {
                 result = operand_rvalue(left->type);
             }

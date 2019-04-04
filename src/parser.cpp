@@ -197,8 +197,9 @@ internal_proc Expr *
 parse_expr_mul(Parser *p) {
     Expr *left = parse_expr_unary(p);
 
-    while ( match_token(p, T_MUL) ) {
-        left = expr_binary(T_MUL, left, parse_expr_unary(p));
+    while ( is_token(p, T_MUL) || is_token(p, T_DIV) ) {
+        Token op = eat_token(&p->lex);
+        left = expr_binary(op.kind, left, parse_expr_unary(p));
     }
 
     return left;
@@ -208,8 +209,9 @@ internal_proc Expr *
 parse_expr_add(Parser *p) {
     Expr *left = parse_expr_mul(p);
 
-    while ( match_token(p, T_PLUS) ) {
-        left = expr_binary(T_PLUS, left, parse_expr_mul(p));
+    while ( is_token(p, T_PLUS) || is_token(p, T_MINUS) ) {
+        Token op = eat_token(&p->lex);
+        left = expr_binary(op.kind, left, parse_expr_mul(p));
     }
 
     return left;
