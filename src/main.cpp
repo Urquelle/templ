@@ -19,24 +19,11 @@
 #include "resolve.cpp"
 #include "eval.cpp"
 #include "gen.cpp"
-
-internal_proc void
-init() {
-    init_resolver();
-}
+#include "templ.cpp"
 
 int
 main(int argc, char **argv) {
-    if ( argc < 2 ) {
-        printf("templ.exe <filename>\n");
-    }
-
-    init();
-    Doc *doc = parse_file(argv[1]);
-    resolve(doc);
-    eval(doc);
-    gen();
-    file_write("test.html", gen_result, strlen(gen_result));
+    templ_main(argc, argv);
 
     return 0;
 }

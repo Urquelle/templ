@@ -20,17 +20,18 @@ struct Instr {
         } instr_print;
 
         struct {
-            /* @TODO: bedingung */
+            /* @TODO: bedingung speichern */
             Instr **instr;
             size_t num_instr;
         } instr_if;
 
         struct {
+            int *it;
             int min;
             int max;
             Instr **instr;
             size_t num_instr;
-        } instr_for;
+        } instr_loop;
 
         struct {
             char *name;
@@ -84,13 +85,14 @@ instr_if(Instr **instr, size_t num_instr) {
 }
 
 internal_proc Instr *
-instr_for(int min, int max, Instr **instr, size_t num_instr) {
+instr_loop(int *it, int min, int max, Instr **instr, size_t num_instr) {
     Instr *result = instr_new(INSTR_LOOP);
 
-    result->instr_for.min = min;
-    result->instr_for.max = max;
-    result->instr_for.instr = instr;
-    result->instr_for.num_instr = num_instr;
+    result->instr_loop.it  = it;
+    result->instr_loop.min = min;
+    result->instr_loop.max = max;
+    result->instr_loop.instr = instr;
+    result->instr_loop.num_instr = num_instr;
 
     return result;
 }

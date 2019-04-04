@@ -22,7 +22,19 @@ gen_instr(Instr *instr) {
         } break;
 
         case INSTR_LOOP: {
-            //
+            for ( int i = instr->instr_loop.min; i < instr->instr_loop.max; ++i ) {
+                *instr->instr_loop.it = i;
+                for ( int j = 0; j < instr->instr_loop.num_instr; ++j ) {
+                    gen_instr(instr->instr_loop.instr[j]);
+                }
+            }
+        } break;
+
+        case INSTR_IF: {
+            /* @TODO: bedingung auswerten */
+            for ( int i = 0; i < instr->instr_if.num_instr; ++i ) {
+                gen_instr(instr->instr_if.instr[i]);
+            }
         } break;
 
         case INSTR_SET: {

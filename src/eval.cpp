@@ -69,7 +69,7 @@ eval_stmt(Stmt *stmt) {
                 buf_push(instr, eval_stmt(stmt->stmt_for.stmts[i]));
             }
 
-            return instr_for(min, max, instr, buf_len(instr));
+            return instr_loop((int *)mem, min, max, instr, buf_len(instr));
         } break;
 
         default: {

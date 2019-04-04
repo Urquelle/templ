@@ -190,6 +190,7 @@ val_struct(void *ptr, size_t size) {
     return result;
 }
 
+/* @TODO: ins frame verfrachten */
 internal_proc void *
 val_get(Val val) {
     void *result = (void *)(val.frame->mem + val.offset);
@@ -197,6 +198,7 @@ val_get(Val val) {
     return result;
 }
 
+/* @TODO: ins frame verfrachten */
 internal_proc int
 val_get_int(Val val) {
     int result = *(int *)val_get(val);
@@ -204,6 +206,7 @@ val_get_int(Val val) {
     return result;
 }
 
+/* @TODO: ins frame verfrachten */
 internal_proc char *
 val_get_str(Val val) {
     char *result = (char *)val_get(val);
@@ -724,11 +727,11 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_SET: {
+            Sym *sym = resolve_name(stmt->stmt_set.name);
             Operand *operand = resolve_expr(stmt->stmt_set.expr);
-            operand->sym = resolve_name(stmt->stmt_set.name);
 
-            if ( !operand->sym ) {
-                sym_push_var(stmt->stmt_set.name, operand->type, operand->val);
+            if ( !sym ) {
+                sym_push_var(sym->name, operand->type, operand->val);
             } else {
                 if ( !convert_operand(operand, operand->sym->type) ) {
                     assert(!"datentyp des operanden passt nicht");
