@@ -39,6 +39,7 @@ eval_stmt(Stmt *stmt) {
         } break;
 
         case STMT_SET: {
+            Sym *sym = sym_get(stmt->stmt_set.name);
             return instr_set();
         } break;
 

@@ -125,6 +125,13 @@ val_new(Val_Kind kind, size_t offset) {
 }
 
 internal_proc Val
+val_copy(Val val) {
+    Val result = val_new(val.kind, val.offset);
+
+    return result;
+}
+
+internal_proc Val
 val_field(size_t offset) {
     return val_new(VAL_FIELD, offset);
 }
@@ -751,7 +758,7 @@ resolve_stmt(Stmt *stmt) {
             Operand *operand = resolve_expr(stmt->stmt_set.expr);
 
             if ( !sym ) {
-                sym_push_var(stmt->stmt_set.name, operand->type, operand->val);
+                sym_push_var(stmt->stmt_set.name, operand->type, val_copy(operand->val));
             } else {
                 if ( !convert_operand(operand, operand->sym->type) ) {
                     assert(!"datentyp des operanden passt nicht");

@@ -22,7 +22,12 @@ frame_set(Frame *frame, void *val, size_t size) {
     }
 
     size_t result = frame->used;
-    memcpy((char *)frame->mem + frame->used, val, size);
+    if ( val ) {
+        memcpy((char *)frame->mem + frame->used, val, size);
+    } else {
+        memset((char *)frame->mem, 0, size);
+    }
+
     frame->used += size;
 
     return result;
