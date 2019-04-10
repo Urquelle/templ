@@ -3,6 +3,7 @@ struct Parser {
 };
 
 internal_proc Expr * parse_expr(Parser *p);
+internal_proc char * parse_name(Parser *p);
 internal_proc Stmt * parse_stmt(Parser *p);
 internal_proc Item * parse_var(Parser *p);
 internal_proc Item * parse_lit(Parser *p);
@@ -145,39 +146,34 @@ parse_expr_base(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_call_or_index(Parser *p) {
+parse_expr_field_or_call_or_index(Parser *p) {
     Expr *left = parse_expr_base(p);
 
-    if ( match_token(p, T_LPAREN) ) {
-        Expr **exprs = 0;
-        if ( !is_token(p, T_RPAREN) ) {
-            buf_push(exprs, parse_expr(p));
-            while ( match_token(p, T_COMMA) ) {
+    while ( is_token(p, T_LPAREN) || is_token(p, T_LBRACKET) || is_token(p, T_DOT) ) {
+        if ( match_token(p, T_LPAREN) ) {
+            Expr **exprs = 0;
+            if ( !is_token(p, T_RPAREN) ) {
                 buf_push(exprs, parse_expr(p));
+                while ( match_token(p, T_COMMA) ) {
+                    buf_push(exprs, parse_expr(p));
+                }
             }
+            expect_token(p, T_RPAREN);
+            left = expr_call(left, exprs, buf_len(exprs));
+        } else if ( match_token(p, T_LBRACKET) ) {
+            Expr *index = parse_expr(p);
+
+            if ( !index ) {
+                assert(!"index darf nicht leer sein");
+            }
+
+            left = expr_index(left, index);
+            expect_token(p, T_RBRACKET);
+        } else if ( match_token(p, T_DOT) ) {
+            char *field = p->lex.token.name;
+            expect_token(p, T_NAME);
+            left = expr_field(left, field);
         }
-        expect_token(p, T_RPAREN);
-        left = expr_call(left, exprs, buf_len(exprs));
-    } else if ( match_token(p, T_LBRACKET) ) {
-        Expr *index = parse_expr(p);
-
-        if ( !index ) {
-            assert(!"index darf nicht leer sein");
-        }
-
-        left = expr_index(left, index);
-        expect_token(p, T_RBRACKET);
-    }
-
-    return left;
-}
-
-internal_proc Expr *
-parse_expr_field(Parser *p) {
-    Expr *left = parse_expr_call_or_index(p);
-
-    while ( match_token(p, T_DOT) ) {
-        left = expr_field(left, parse_expr_call_or_index(p));
     }
 
     return left;
@@ -189,7 +185,7 @@ parse_expr_unary(Parser *p) {
         Token op = eat_token(&p->lex);
         return expr_unary(op.kind, parse_expr_unary(p));
     } else {
-        return parse_expr_field(p);
+        return parse_expr_field_or_call_or_index(p);
     }
 }
 

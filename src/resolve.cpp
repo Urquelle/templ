@@ -947,10 +947,11 @@ resolve_expr(Expr *expr) {
             assert(type->kind == TYPE_STRUCT);
 
             scope_set(type->type_aggr.scope);
-            Operand *operand = resolve_expr(expr->expr_field.field);
+            Sym *sym = resolve_name(expr->expr_field.field);
             scope_set(type->type_aggr.scope->parent);
 
-            result = operand;
+            assert(sym);
+            result = operand_lvalue(sym->type, sym, sym->val);
         } break;
 
         case EXPR_RANGE: {

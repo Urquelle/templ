@@ -79,7 +79,7 @@ struct Expr {
 
         struct {
             Expr *expr;
-            Expr *field;
+            char *field;
         } expr_field;
 
         struct {
@@ -196,7 +196,7 @@ expr_ternary(Expr *left, Expr *middle, Expr *right) {
 }
 
 internal_proc Expr *
-expr_field(Expr *expr, Expr *field) {
+expr_field(Expr *expr, char *field) {
     Expr *result = expr_new(EXPR_FIELD);
 
     result->expr_field.expr = expr;
