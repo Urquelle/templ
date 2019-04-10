@@ -44,7 +44,6 @@ internal_proc void      resolve(Doc *d);
 struct Scope {
     char*  name;
     Scope* parent;
-    Frame* frame;
     Map    syms;
 };
 
@@ -57,7 +56,6 @@ scope_new(Scope *parent, char *name = NULL) {
 
     result->name   = name;
     result->parent = parent;
-    result->frame  = frame_new(KB(1));
     result->syms   = {};
 
     return result;
@@ -100,143 +98,97 @@ struct Val {
     Val_Kind kind;
 
     union {
-        int int_val;
-        float float_val;
-        char *str_val;
-        int range_val[2];
-        bool bool_val;
+        char  _char;
+        int   _s32;
+        float _f32;
+        char* _str;
+        int   _range[2];
+        bool  _bool;
+        void* _ptr;
     };
-
-    size_t offset;
-    Frame *frame;
 };
 
 global_var Val val_none;
 
 internal_proc Val
-val_new(Val_Kind kind, size_t offset) {
+val_new(Val_Kind kind) {
     Val result = {};
 
     result.kind   = kind;
-    result.offset = offset;
-    result.frame  = current_scope->frame;
 
     return result;
 }
 
 internal_proc Val
 val_copy(Val val) {
-    Val result = val_new(val.kind, val.offset);
+    Val result = val_new(val.kind);
+
+    result._range[0] = val._range[0];
+    result._range[1] = val._range[1];
 
     return result;
 }
 
 internal_proc Val
-val_field(size_t offset) {
-    return val_new(VAL_FIELD, offset);
-}
-
-internal_proc Val
 val_bool(b32 val) {
-    size_t size = 1;
+    Val result = val_new(VAL_BOOL);
 
-    size_t offset = frame_set(current_scope->frame, &val, size);
-    Val result = val_new(VAL_BOOL, offset);
-
-    result.bool_val = val;
+    result._bool = val;
 
     return result;
 }
 
 internal_proc Val
 val_char(char val) {
-    size_t size = 1;
+    Val result = val_new(VAL_CHAR);
 
-    size_t offset = frame_set(current_scope->frame, &val, size);
-    Val result = val_new(VAL_CHAR, offset);
+    result._char = val;
 
     return result;
 }
 
 internal_proc Val
 val_int(int val) {
-    size_t size = 8;
+    Val result = val_new(VAL_INT);
 
-    size_t offset = frame_set(current_scope->frame, &val, size);
-    Val result = val_new(VAL_INT, offset);
-
-    result.int_val = val;
+    result._s32 = val;
 
     return result;
 }
 
 internal_proc Val
 val_float(float val) {
-    size_t size = 8;
+    Val result = val_new(VAL_FLOAT);
 
-    size_t offset = frame_set(current_scope->frame, &val, size);
-    Val result = val_new(VAL_FLOAT, offset);
-
-    result.float_val = val;
+    result._f32 = val;
 
     return result;
 }
 
 internal_proc Val
 val_str(char *val) {
-    size_t size = 8;
+    Val result = val_new(VAL_STR);
 
-    size_t offset = frame_set(current_scope->frame, val, strlen(val));
-    Val result = val_new(VAL_STR, offset);
-
-    result.str_val = val;
+    result._str = val;
 
     return result;
 }
 
 internal_proc Val
 val_range(int min, int max) {
-    size_t size = 2*8;
-    int t[] = {min, max};
+    Val result = val_new(VAL_RANGE);
 
-    size_t offset = frame_set(current_scope->frame, t, size);
-    Val result = val_new(VAL_RANGE, offset);
-
-    result.range_val[0] = min;
-    result.range_val[1] = max;
+    result._range[0] = min;
+    result._range[1] = max;
 
     return result;
 }
 
 internal_proc Val
 val_struct(void *ptr, size_t size) {
+    Val result = val_new(VAL_STRUCT);
 
-    size_t offset = frame_set(current_scope->frame, ptr, size);
-    Val result = val_new(VAL_STRUCT, offset);
-
-    return result;
-}
-
-/* @TODO: ins frame verfrachten */
-internal_proc void *
-val_get(Val val) {
-    void *result = (void *)(val.frame->mem + val.offset);
-
-    return result;
-}
-
-/* @TODO: ins frame verfrachten */
-internal_proc int
-val_get_int(Val val) {
-    int result = *(int *)val_get(val);
-
-    return result;
-}
-
-/* @TODO: ins frame verfrachten */
-internal_proc char *
-val_get_str(Val val) {
-    char *result = (char *)val_get(val);
+    result._ptr = ptr;
 
     return result;
 }
@@ -703,12 +655,11 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_FOR: {
             scope_enter();
+
             Operand *operand = resolve_expr(stmt->stmt_for.cond);
-
-            size_t offset = frame_set(current_scope->frame, 0, operand->type->size);
-            sym_push_var(stmt->stmt_for.it, operand->type, val_new(VAL_NONE, offset));
-
+            sym_push_var(stmt->stmt_for.it, operand->type, val_new(VAL_NONE));
             resolve_stmts(stmt->stmt_for.stmts, stmt->stmt_for.num_stmts);
+
             scope_leave();
         } break;
 
@@ -797,12 +748,12 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
         case T_PLUS: {
             switch ( left->val.kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val.int_val + right->val.int_val);
+                    left->val = val_int(left->val._s32 + right->val._s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val.float_val + right->val.float_val);
+                    left->val = val_float(left->val._f32 + right->val._f32);
                     return left;
                 } break;
 
@@ -815,12 +766,12 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
         case T_MINUS: {
             switch ( left->val.kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val.int_val - right->val.int_val);
+                    left->val = val_int(left->val._s32 - right->val._s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val.float_val - right->val.float_val);
+                    left->val = val_float(left->val._f32 - right->val._f32);
                     return left;
                 } break;
 
@@ -833,12 +784,12 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
         case T_MUL: {
             switch ( left->val.kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val.int_val * right->val.int_val);
+                    left->val = val_int(left->val._s32 * right->val._s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val.float_val * right->val.float_val);
+                    left->val = val_float(left->val._f32 * right->val._f32);
                     return left;
                 } break;
 
@@ -851,12 +802,12 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
         case T_DIV: {
             switch ( left->val.kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val.int_val / right->val.int_val);
+                    left->val = val_int(left->val._s32 / right->val._s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val.float_val / right->val.float_val);
+                    left->val = val_float(left->val._f32 / right->val._f32);
                     return left;
                 } break;
 
@@ -967,8 +918,8 @@ resolve_expr(Expr *expr) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            int min = val_get_int(left->val);
-            int max = val_get_int(right->val);
+            int min = left->val._s32;
+            int max = right->val._s32;
 
             result = operand_rvalue(type_int, val_range(min, max));
         } break;
@@ -1119,14 +1070,8 @@ init_arenas() {
 }
 
 internal_proc void
-init_global_scope() {
-    global_scope.frame = frame_new(KB(1));
-}
-
-internal_proc void
 init_resolver() {
     init_arenas();
-    init_global_scope();
     init_builtin_types();
     init_builtin_filter();
     init_test_datatype();

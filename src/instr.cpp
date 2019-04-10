@@ -1,5 +1,12 @@
 global_var Arena instr_arena;
 
+enum Reg_Kind {
+    RAX,
+    RBX,
+};
+
+global_var int64_t regs[64];
+
 enum Instr_Kind {
     INSTR_NONE,
     INSTR_NOP,
@@ -14,6 +21,10 @@ enum Instr_Kind {
 struct Instr {
     Instr_Kind kind;
 
+    int64_t reg1;
+    int64_t reg2;
+    int64_t reg3;
+
     union {
         struct {
             char *val;
@@ -26,7 +37,6 @@ struct Instr {
         } instr_if;
 
         struct {
-            int *it;
             int min;
             int max;
             Instr **instr;
@@ -85,10 +95,10 @@ instr_if(Instr **instr, size_t num_instr) {
 }
 
 internal_proc Instr *
-instr_loop(int *it, int min, int max, Instr **instr, size_t num_instr) {
+instr_loop(int min, int max, Instr **instr, size_t num_instr) {
     Instr *result = instr_new(INSTR_LOOP);
 
-    result->instr_loop.it  = it;
+    result->reg1           = RBX;
     result->instr_loop.min = min;
     result->instr_loop.max = max;
     result->instr_loop.instr = instr;

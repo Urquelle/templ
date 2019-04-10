@@ -58,19 +58,17 @@ eval_stmt(Stmt *stmt) {
 
         case STMT_FOR: {
             Operand *op = fetch_resolved_expr(stmt->stmt_for.cond);
-
             assert(op->val.kind == VAL_RANGE);
-            void *mem = op->val.frame->mem + op->val.offset;
 
-            int min = *((int *)mem + 0);
-            int max = *((int *)mem + 1);
+            int min = op->val._range[0];
+            int max = op->val._range[1];
 
             Instr **instr = 0;
             for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
                 buf_push(instr, eval_stmt(stmt->stmt_for.stmts[i]));
             }
 
-            return instr_loop((int *)mem, min, max, instr, buf_len(instr));
+            return instr_loop(min, max, instr, buf_len(instr));
         } break;
 
         default: {

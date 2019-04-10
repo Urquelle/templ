@@ -23,7 +23,7 @@ gen_instr(Instr *instr) {
 
         case INSTR_LOOP: {
             for ( int i = instr->instr_loop.min; i < instr->instr_loop.max; ++i ) {
-                *instr->instr_loop.it = i;
+                instr->reg1 = i;
                 for ( int j = 0; j < instr->instr_loop.num_instr; ++j ) {
                     gen_instr(instr->instr_loop.instr[j]);
                 }
