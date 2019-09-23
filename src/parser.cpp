@@ -526,8 +526,8 @@ parse_file(char *filename) {
         init_parser(p, content, filename);
 
         while (p->lex.token.kind != T_EOF) {
-            if ( match_token(p, T_VAR_BEGIN) ) {
-                buf_push(doc->items, parse_var(p));
+            if ( is_token(p, T_VAR_BEGIN) ) {
+                buf_push(doc->items, parse_code(p));
             } else if ( is_token(p, T_CODE_BEGIN) ) {
                 buf_push(doc->items, parse_code(p));
             } else {

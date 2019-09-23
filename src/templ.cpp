@@ -12,7 +12,7 @@ templ_main(int argc, char **argv) {
     init();
     Doc *doc = parse_file(argv[1]);
     resolve(doc);
-    eval(doc);
+    eval();
     gen();
     file_write("test.html", gen_result, strlen(gen_result));
 }

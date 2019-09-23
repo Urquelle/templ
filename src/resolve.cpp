@@ -4,17 +4,6 @@ struct Operand;
 
 global_var Arena resolve_arena;
 
-global_var Map resolved_expr;
-internal_proc void
-push_resolved_expr(Expr *expr, Operand *operand) {
-    map_put(&resolved_expr, expr, operand);
-}
-
-internal_proc Operand *
-fetch_resolved_expr(Expr *expr) {
-    return (Operand *)map_get(&resolved_expr, expr);
-}
-
 Doc *current_doc;
 internal_proc Doc *
 doc_enter(Doc *d) {
@@ -34,13 +23,14 @@ set_this_doc_to_be_parent_of_current_scope(Doc *d) {
     current_doc->parent = d;
 }
 
-internal_proc void      resolve_item(Item *item);
+internal_proc Operand * resolve_item(Item *item);
 internal_proc Operand * resolve_expr(Expr *expr);
 internal_proc Operand * resolve_expr_cond(Expr *expr);
 internal_proc void      resolve_filter(Var_Filter *filter);
 internal_proc void      resolve_stmt(Stmt *stmt);
 internal_proc void      resolve(Doc *d);
 
+/* scope {{{ */
 struct Scope {
     char*  name;
     Scope* parent;
@@ -81,7 +71,8 @@ scope_set(Scope *scope) {
         current_scope = scope;
     }
 }
-
+/* }}} */
+/* val {{{ */
 enum Val_Kind {
     VAL_NONE,
     VAL_BOOL,
@@ -193,11 +184,27 @@ val_struct(void *ptr, size_t size) {
     return result;
 }
 
+internal_proc char *
+to_char(Val val) {
+    switch ( val.kind ) {
+        case VAL_STR: {
+            return val._str;
+        } break;
+
+        default: {
+            assert(0);
+            return "";
+        } break;
+    }
+}
+/* }}} */
+
 internal_proc Sym * sym_push_var(char *name, Type *type, Val val = val_none);
 
 #define FILTER_CALLBACK(name) char * name(void *val, Expr **params, size_t num_params)
 typedef FILTER_CALLBACK(Callback);
 
+/* type {{{ */
 struct Type_Field {
     char *name;
     Type *type;
@@ -228,6 +235,8 @@ enum Type_Kind {
     TYPE_STRUCT,
     TYPE_PROC,
     TYPE_FILTER,
+
+    TYPE_COUNT,
 };
 
 struct Type {
@@ -264,8 +273,8 @@ global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
 
-global_var Type *arithmetic_result_type_table[3][3];
-global_var Type *scalar_result_type_table[4][4];
+global_var Type *arithmetic_result_type_table[TYPE_COUNT][TYPE_COUNT];
+global_var Type *scalar_result_type_table[TYPE_COUNT][TYPE_COUNT];
 
 internal_proc Type *
 type_new(Type_Kind kind) {
@@ -415,7 +424,8 @@ is_callable(Type *type) {
 
     return result;
 }
-
+/* }}} */
+/* operand {{{ */
 struct Operand {
     Type* type;
     Val   val;
@@ -524,7 +534,8 @@ convert_operand(Operand *op, Type *dest_type) {
 
     return result;
 }
-
+/* }}} */
+/* sym {{{ */
 enum Sym_Kind {
     SYM_NONE,
     SYM_VAR,
@@ -592,6 +603,76 @@ internal_proc Sym *
 sym_push_var(char *name, Type *type, Val val) {
     return sym_push(SYM_VAR, name, type, val);
 }
+/* }}} */
+enum Resolved_Item_Kind {
+    RESOLVED_NONE,
+    RESOLVED_VAR,
+    RESOLVED_SET,
+    RESOLVED_LIT,
+};
+struct Resolved_Item {
+    Resolved_Item_Kind kind;
+
+    Operand *op;
+    /* @TODO: speicherplatz für den wert reservieren */
+
+    union {
+        struct {
+            Expr *expr;
+        } var;
+
+        struct {
+            char *str;
+        } lit;
+
+        struct {
+            Stmt *stmt;
+            Sym *sym;
+        } set;
+    };
+};
+
+global_var Resolved_Item ** resolved_items;
+
+internal_proc Resolved_Item *
+resolved_item_new(Resolved_Item_Kind kind, Operand *op) {
+    Resolved_Item *result = ALLOC_STRUCT(&resolve_arena, Resolved_Item);
+
+    result->kind = kind;
+    result->op = op;
+
+    buf_push(resolved_items, result);
+
+    return result;
+}
+
+internal_proc Resolved_Item *
+resolved_item_var(Operand *op, Expr *expr) {
+    Resolved_Item *result = resolved_item_new(RESOLVED_VAR, op);
+
+    result->var.expr = expr;
+
+    return result;
+}
+
+internal_proc Resolved_Item *
+resolved_item_set(Sym *sym, Operand *op, Stmt *stmt) {
+    Resolved_Item *result = resolved_item_new(RESOLVED_SET, op);
+
+    result->set.stmt = stmt;
+    result->set.sym = sym;
+
+    return result;
+}
+
+internal_proc Resolved_Item *
+resolved_item_lit(char *str) {
+    Resolved_Item *result = resolved_item_new(RESOLVED_LIT, 0);
+
+    result->lit.str = str;
+
+    return result;
+}
 
 internal_proc FILTER_CALLBACK(upper) {
     char *str = *(char **)val;
@@ -639,6 +720,20 @@ resolve_name(char *name) {
     return result;
 }
 
+internal_proc Operand *
+resolve_var(Item *item) {
+    assert(item->kind == ITEM_VAR);
+
+    Operand *operand = resolve_expr(item->item_var.expr);
+    for ( int i = 0; i < item->item_var.num_filter; ++i ) {
+        resolve_filter(&item->item_var.filter[i]);
+    }
+
+    resolved_item_var(operand, item->item_var.expr);
+
+    return operand;
+}
+
 internal_proc void
 resolve_stmts(Stmt **stmts, size_t num_stmts) {
     for ( int i = 0; i < num_stmts; ++i ) {
@@ -650,7 +745,7 @@ internal_proc void
 resolve_stmt(Stmt *stmt) {
     switch (stmt->kind) {
         case STMT_VAR: {
-            resolve_item(stmt->stmt_var.item);
+            resolve_var(stmt->stmt_var.item);
         } break;
 
         case STMT_FOR: {
@@ -693,9 +788,11 @@ resolve_stmt(Stmt *stmt) {
             scope_leave();
         } break;
 
-        case STMT_END:
+        case STMT_END: {
+        } break;
+
         case STMT_LIT: {
-            /* nichts zu tun */
+            resolved_item_lit(stmt->stmt_lit.item->item_lit.lit);
         } break;
 
         case STMT_EXTENDS: {
@@ -715,6 +812,8 @@ resolve_stmt(Stmt *stmt) {
                     assert(!"datentyp des operanden passt nicht");
                 }
             }
+
+            resolved_item_set(sym, operand, stmt);
         } break;
 
         case STMT_FILTER: {
@@ -972,8 +1071,6 @@ resolve_expr(Expr *expr) {
         } break;
     }
 
-    push_resolved_expr(expr, result);
-
     return result;
 }
 
@@ -1010,16 +1107,6 @@ resolve_filter(Var_Filter *filter) {
 }
 
 internal_proc void
-resolve_var(Item *item) {
-    assert(item->kind == ITEM_VAR);
-
-    Operand *operand = resolve_expr(item->item_var.expr);
-    for ( int i = 0; i < item->item_var.num_filter; ++i ) {
-        resolve_filter(&item->item_var.filter[i]);
-    }
-}
-
-internal_proc void
 resolve_code(Item *item) {
     assert(item->kind == ITEM_CODE);
 
@@ -1027,14 +1114,21 @@ resolve_code(Item *item) {
 }
 
 internal_proc void
+resolve_lit(Item *item) {
+    resolved_item_lit(item->item_lit.lit);
+}
+
+internal_proc Operand *
 resolve_item(Item *item) {
+    Operand *result = 0;
+
     switch (item->kind) {
         case ITEM_LIT: {
-            // nichts tun
+            resolve_lit(item);
         } break;
 
         case ITEM_VAR: {
-            resolve_var(item);
+            result = resolve_var(item);
         } break;
 
         case ITEM_CODE: {
@@ -1045,6 +1139,8 @@ resolve_item(Item *item) {
             assert(0);
         } break;
     }
+
+    return result;
 }
 
 struct User {

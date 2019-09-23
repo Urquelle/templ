@@ -49,7 +49,7 @@ gen_instr(Instr *instr) {
 
 internal_proc void
 gen() {
-    for ( int i = 0; i < buf_len(instructions); ++i ) {
-        gen_instr(instructions[i]);
+    for ( int i = 0; i < buf_len(global_instr); ++i ) {
+        gen_instr(global_instr[i]);
     }
 }

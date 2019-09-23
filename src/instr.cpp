@@ -53,7 +53,7 @@ struct Instr {
 
 global_var Instr instr_nop = { INSTR_NOP };
 
-global_var Instr **instructions;
+global_var Instr ** global_instr;
 
 internal_proc Instr *
 instr_new(Instr_Kind kind) {
@@ -64,11 +64,21 @@ instr_new(Instr_Kind kind) {
     return result;
 }
 
+internal_proc char *
+copy_str(char *val) {
+    size_t size = strlen(val);
+    char *ptr = (char *)xmalloc(size+1);
+    memcpy(ptr, val, size);
+    ptr[size] = 0;
+
+    return ptr;
+}
+
 internal_proc Instr *
 instr_print(char *val) {
     Instr *result = instr_new(INSTR_PRINT);
 
-    result->instr_print.val = val;
+    result->instr_print.val = copy_str(val);
 
     return result;
 }
@@ -120,6 +130,6 @@ instr_label(char *name, Instr **instr, size_t num_instr) {
 
 internal_proc void
 push_instr(Instr *instr) {
-    buf_push(instructions, instr);
+    buf_push(global_instr, instr);
 }
 
