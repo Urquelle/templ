@@ -678,6 +678,11 @@ struct Resolved_Expr {
         } expr_range;
 
         struct {
+            Resolved_Expr *base;
+            s64 offset;
+        } expr_field;
+
+        struct {
             Token_Kind op;
             Resolved_Expr *expr;
         } expr_unary;
@@ -744,6 +749,18 @@ resolved_expr_name(Sym *sym, Type *type, Val *val) {
 
     result->sym = sym;
     result->val = val;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_field(Resolved_Expr *base, Sym *sym, s64 offset, Type *type) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_FIELD, type);
+
+    result->is_lvalue = true;
+    result->sym = sym;
+    result->expr_field.base = base;
+    result->expr_field.offset = offset;
 
     return result;
 }
@@ -1255,6 +1272,21 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
     return left;
 }
 
+
+internal_proc s64
+offset_from_base(Type *type, char *name) {
+    s64 result = 0;
+    for ( int i = 0; i < type->type_aggr.num_fields; ++i ) {
+        Type_Field *field = type->type_aggr.fields[i];
+        if ( field->name == name ) {
+            return result;
+        }
+        result += field->type->size;
+    }
+
+    return result;
+}
+
 internal_proc Resolved_Expr *
 resolve_expr(Expr *expr) {
     Resolved_Expr *result = 0;
@@ -1336,10 +1368,11 @@ resolve_expr(Expr *expr) {
 
             scope_set(type->type_aggr.scope);
             Sym *sym = resolve_name(expr->expr_field.field);
+            s64 offset = offset_from_base(type, sym->name);
             scope_set(type->type_aggr.scope->parent);
 
             assert(sym);
-            result = operand_lvalue(sym->type, sym, sym->val);
+            result = resolved_expr_field(base, sym, offset, sym->type);
         } break;
 
         case EXPR_RANGE: {

@@ -11,6 +11,28 @@ gen_indentation() {
 }
 
 internal_proc Val *
+val_from_field(Resolved_Expr *expr) {
+    Val *result = 0;
+    u8 *raw = (u8 *)expr->expr_field.base->val->_ptr + expr->expr_field.offset;
+
+    switch ( expr->type->kind ) {
+        case TYPE_STR: {
+            result = val_str(*(char **)raw);
+        } break;
+
+        case TYPE_FLOAT: {
+            result = val_float(*(float *)raw);
+        } break;
+
+        case TYPE_INT: {
+            result = val_int(*(int *)raw);
+        } break;
+    }
+
+    return result;
+}
+
+internal_proc Val *
 exec_expr(Resolved_Expr *expr) {
     Val *result = 0;
 
@@ -37,6 +59,10 @@ exec_expr(Resolved_Expr *expr) {
 
         case EXPR_UNARY: {
             assert(0);
+        } break;
+
+        case EXPR_FIELD: {
+            result = val_from_field(expr);
         } break;
 
         case EXPR_BINARY: {
