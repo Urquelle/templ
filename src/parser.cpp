@@ -515,10 +515,10 @@ parse_lit(Parser *p) {
     return result;
 }
 
-internal_proc Doc *
+internal_proc Parsed_Doc *
 parse_file(char *filename) {
     char *content = 0;
-    Doc *doc = (Doc *)xcalloc(1, sizeof(Doc));
+    Parsed_Doc *doc = (Parsed_Doc *)xcalloc(1, sizeof(Parsed_Doc));
 
     if ( file_read(filename, &content) ) {
         Parser parser = {};

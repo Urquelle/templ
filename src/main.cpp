@@ -15,10 +15,10 @@
 #include "doc.cpp"
 #include "parser.cpp"
 #include "resolve.cpp"
-#include "instr.cpp"
-#include "env.cpp"
-#include "eval.cpp"
-#include "gen.cpp"
+//#include "instr.cpp"
+//#include "env.cpp"
+#include "exec.cpp"
+//#include "gen.cpp"
 #include "templ.cpp"
 
 int

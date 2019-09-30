@@ -25,8 +25,8 @@ struct Item {
     };
 };
 
-struct Doc {
-    Doc *parent;
+struct Parsed_Doc {
+    Parsed_Doc *parent;
     Item **items;
     size_t num_items;
 };

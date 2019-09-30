@@ -1,34 +1,35 @@
 struct Type;
 struct Sym;
 struct Operand;
+struct Resolved_Stmt;
+struct Resolved_Expr;
 
 global_var Arena resolve_arena;
 
-Doc *current_doc;
-internal_proc Doc *
-doc_enter(Doc *d) {
-    Doc *result = current_doc;
+Parsed_Doc *current_doc;
+internal_proc Parsed_Doc *
+doc_enter(Parsed_Doc *d) {
+    Parsed_Doc *result = current_doc;
     current_doc = d;
 
     return result;
 }
 
 internal_proc void
-doc_leave(Doc *d) {
+doc_leave(Parsed_Doc *d) {
     current_doc = d;
 }
 
 internal_proc void
-set_this_doc_to_be_parent_of_current_scope(Doc *d) {
+set_this_doc_to_be_parent_of_current_scope(Parsed_Doc *d) {
     current_doc->parent = d;
 }
 
-internal_proc Operand * resolve_item(Item *item);
-internal_proc Operand * resolve_expr(Expr *expr);
-internal_proc Operand * resolve_expr_cond(Expr *expr);
-internal_proc void      resolve_filter(Var_Filter *filter);
-internal_proc void      resolve_stmt(Stmt *stmt);
-internal_proc void      resolve(Doc *d);
+internal_proc Resolved_Expr *  resolve_expr(Expr *expr);
+internal_proc Resolved_Expr *  resolve_expr_cond(Expr *expr);
+internal_proc void             resolve_filter(Var_Filter *filter);
+internal_proc Resolved_Stmt *  resolve_stmt(Stmt *stmt);
+internal_proc void             resolve(Parsed_Doc *d);
 
 /* scope {{{ */
 struct Scope {
@@ -101,94 +102,105 @@ struct Val {
 
 global_var Val val_none;
 
-internal_proc Val
+internal_proc Val *
 val_new(Val_Kind kind) {
-    Val result = {};
+    Val *result = ALLOC_STRUCT(&resolve_arena, Val);
 
-    result.kind   = kind;
-
-    return result;
-}
-
-internal_proc Val
-val_copy(Val val) {
-    Val result = val_new(val.kind);
-
-    result._range[0] = val._range[0];
-    result._range[1] = val._range[1];
+    result->kind   = kind;
 
     return result;
 }
 
-internal_proc Val
+internal_proc Val *
+val_copy(Val *val) {
+    Val *result = val_new(val->kind);
+
+    result->_range[0] = val->_range[0];
+    result->_range[1] = val->_range[1];
+
+    return result;
+}
+
+internal_proc Val *
 val_bool(b32 val) {
-    Val result = val_new(VAL_BOOL);
+    Val *result = val_new(VAL_BOOL);
 
-    result._bool = val;
+    result->_bool = val;
 
     return result;
 }
 
-internal_proc Val
+internal_proc Val *
 val_char(char val) {
-    Val result = val_new(VAL_CHAR);
+    Val *result = val_new(VAL_CHAR);
 
-    result._char = val;
+    result->_char = val;
 
     return result;
 }
 
-internal_proc Val
+internal_proc Val *
 val_int(int val) {
-    Val result = val_new(VAL_INT);
+    Val *result = val_new(VAL_INT);
 
-    result._s32 = val;
+    result->_s32 = val;
 
     return result;
 }
 
-internal_proc Val
+internal_proc Val *
 val_float(float val) {
-    Val result = val_new(VAL_FLOAT);
+    Val *result = val_new(VAL_FLOAT);
 
-    result._f32 = val;
+    result->_f32 = val;
 
     return result;
 }
 
-internal_proc Val
+internal_proc Val *
 val_str(char *val) {
-    Val result = val_new(VAL_STR);
+    Val *result = val_new(VAL_STR);
 
-    result._str = val;
+    result->_str = val;
 
     return result;
 }
 
-internal_proc Val
+internal_proc Val *
 val_range(int min, int max) {
-    Val result = val_new(VAL_RANGE);
+    Val *result = val_new(VAL_RANGE);
 
-    result._range[0] = min;
-    result._range[1] = max;
+    result->_range[0] = min;
+    result->_range[1] = max;
 
     return result;
 }
 
-internal_proc Val
+internal_proc Val *
 val_struct(void *ptr, size_t size) {
-    Val result = val_new(VAL_STRUCT);
+    Val *result = val_new(VAL_STRUCT);
 
-    result._ptr = ptr;
+    result->_ptr = ptr;
 
     return result;
 }
 
+global_var char to_char_buf[1000];
 internal_proc char *
-to_char(Val val) {
-    switch ( val.kind ) {
+to_char(Val *val) {
+    switch ( val->kind ) {
         case VAL_STR: {
-            return val._str;
+            return val->_str;
+        } break;
+
+        case VAL_INT: {
+            sprintf(to_char_buf, "%d", val->_s32);
+            return to_char_buf;
+        } break;
+
+        case VAL_FLOAT: {
+            sprintf(to_char_buf, "%f", val->_f32);
+            return to_char_buf;
         } break;
 
         default: {
@@ -197,9 +209,146 @@ to_char(Val val) {
         } break;
     }
 }
+
+internal_proc Val
+operator*(Val left, Val right) {
+    Val result = {};
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        result.kind = VAL_INT;
+        result._s32 = left._s32 * right._s32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._s32 * right._f32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        result._range[0] = left._s32 * right._range[0];
+        result._range[1] = left._s32 * right._range[1];
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._f32 * right._f32;
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        result._range[0] = left._range[0] * right._range[0];
+        result._range[1] = left._range[1] * right._range[1];
+    } else {
+        assert(0);
+    }
+
+    return result;
+}
+
+internal_proc Val
+operator/(Val left, Val right) {
+    Val result = {};
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        result.kind = VAL_INT;
+        assert(right._s32 != 0);
+        result._s32 = left._s32 / right._s32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._s32 / right._f32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        assert(right._range[0] != 0 && right._range[1] != 0);
+        result._range[0] = left._s32 / right._range[0];
+        result._range[1] = left._s32 / right._range[1];
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._f32 / right._f32;
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        assert(right._range[0] != 0 && right._range[1] != 0);
+        result._range[0] = left._range[0] * right._range[0];
+        result._range[1] = left._range[1] * right._range[1];
+    } else {
+        assert(0);
+    }
+
+    return result;
+}
+
+internal_proc Val
+operator+(Val left, Val right) {
+    Val result = {};
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        result.kind = VAL_INT;
+        result._s32 = left._s32 + right._s32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._s32 + right._f32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        result._range[0] = left._s32 + right._range[0];
+        result._range[1] = left._s32 + right._range[1];
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._f32 + right._f32;
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        result._range[0] = left._range[0] + right._range[0];
+        result._range[1] = left._range[1] + right._range[1];
+    } else {
+        assert(0);
+    }
+
+    return result;
+}
+
+internal_proc Val
+operator-(Val left, Val right) {
+    Val result = {};
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        result.kind = VAL_INT;
+        result._s32 = left._s32 - right._s32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._s32 - right._f32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        result._range[0] = left._s32 - right._range[0];
+        result._range[1] = left._s32 - right._range[1];
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        result.kind = VAL_FLOAT;
+        result._f32 = left._f32 - right._f32;
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        result.kind = VAL_RANGE;
+        result._range[0] = left._range[0] - right._range[0];
+        result._range[1] = left._range[1] - right._range[1];
+    } else {
+        assert(0);
+    }
+
+    return result;
+}
+
+internal_proc Val
+operator<(Val left, Val right) {
+    Val result = {};
+    result.kind = VAL_BOOL;
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        result._bool = left._s32 < right._s32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        result._bool = left._s32 < right._f32;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        result._bool = left._s32 < right._range[0] && left._s32 < right._range[1];
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        result._bool = left._f32 < right._f32;
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        result._bool = left._range[0] < right._range[0] && left._range[1] < right._range[1];
+    } else {
+        assert(0);
+    }
+
+    return result;
+}
 /* }}} */
 
-internal_proc Sym * sym_push_var(char *name, Type *type, Val val = val_none);
+internal_proc Sym * sym_push_var(char *name, Type *type, Val *val = 0);
 
 #define FILTER_CALLBACK(name) char * name(void *val, Expr **params, size_t num_params)
 typedef FILTER_CALLBACK(Callback);
@@ -209,11 +358,11 @@ struct Type_Field {
     char *name;
     Type *type;
     s64   offset;
-    Val   default_val;
+    Val  *default_val;
 };
 
 internal_proc Type_Field *
-type_field(char *name, Type *type, Val default_val = val_none) {
+type_field(char *name, Type *type, Val *default_val = 0) {
     Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
 
     result->name = intern_str(name);
@@ -425,19 +574,223 @@ is_callable(Type *type) {
     return result;
 }
 /* }}} */
-/* operand {{{ */
-struct Operand {
-    Type* type;
-    Val   val;
-    Sym*  sym;
+/* sym {{{ */
+enum Sym_Kind {
+    SYM_NONE,
+    SYM_VAR,
+    SYM_PROC,
+    SYM_STRUCT,
+};
+
+struct Sym {
+    Sym_Kind kind;
+    Scope *scope;
+    char *name;
+    Type *type;
+    Val  *val;
+};
+
+internal_proc Sym *
+sym_new(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
+    Sym *result = ALLOC_STRUCT(&resolve_arena, Sym);
+
+    result->kind  = kind;
+    result->scope = current_scope;
+    result->name  = name;
+    result->type  = type;
+    result->val   = val;
+
+    return result;
+}
+
+internal_proc Sym *
+sym_get(char *name) {
+    /* @INFO: symbole werden in einer map ohne external chaining gespeichert! */
+    for ( Scope *it = current_scope; it; it = it->parent ) {
+        Sym *sym = (Sym *)map_get(&it->syms, name);
+        if ( sym ) {
+            return sym;
+        }
+    }
+
+    return 0;
+}
+
+internal_proc Sym *
+sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
+    name = intern_str(name);
+
+    Sym *sym = (Sym *)map_get(&current_scope->syms, name);
+    if ( sym && sym->scope == current_scope ) {
+        assert(!"symbol existiert bereits");
+    } else if ( sym ) {
+        assert(!"warnung: symbol wird überschattet");
+    }
+
+    Sym *result = sym_new(kind, name, type, val);
+    map_put(&current_scope->syms, name, result);
+
+    return result;
+}
+
+internal_proc Sym *
+sym_push_filter(char *name, Type *type) {
+    return sym_push(SYM_PROC, name, type);
+}
+
+internal_proc Sym *
+sym_push_var(char *name, Type *type, Val *val) {
+    return sym_push(SYM_VAR, name, type, val);
+}
+/* }}} */
+struct Resolved_Expr {
+    Expr_Kind kind;
+    Type *type;
+    Sym *sym;
+    Val *val;
 
     b32 is_const;
     b32 is_lvalue;
+
+    union {
+        struct {
+        } expr_bool;
+
+        struct {
+        } expr_int;
+
+        struct {
+        } expr_float;
+
+        struct {
+        } expr_str;
+
+        struct {
+        } expr_name;
+
+        struct {
+            Resolved_Expr *expr;
+        } expr_paren;
+
+        struct {
+            int min;
+            int max;
+        } expr_range;
+
+        struct {
+            Token_Kind op;
+            Resolved_Expr *expr;
+        } expr_unary;
+
+        struct {
+            Token_Kind op;
+            Resolved_Expr *left;
+            Resolved_Expr *right;
+        } expr_binary;
+    };
 };
 
-internal_proc Operand *
-operand_new(Type *type, Val val) {
-    Operand *result = ALLOC_STRUCT(&resolve_arena, Operand);
+internal_proc Resolved_Expr *
+resolved_expr_new(Expr_Kind kind, Type *type = 0) {
+    Resolved_Expr *result = ALLOC_STRUCT(&resolve_arena, Resolved_Expr);
+
+    result->is_lvalue = false;
+    result->is_const = false;
+    result->type = type;
+    result->kind = kind;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_bool(Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_BOOL, type);
+
+    result->val = val;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_int(Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_INT, type);
+
+    result->val = val;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_float(Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_FLOAT, type);
+
+    result->val = val;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_str(Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_STR, type);
+
+    result->val = val;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_name(Sym *sym, Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_NAME, type);
+
+    result->sym = sym;
+    result->val = val;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_paren(Resolved_Expr *expr) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_PAREN);
+
+    result->expr_paren.expr = expr;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_range(int min, int max) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_RANGE, type_int);
+
+    result->expr_range.min = min;
+    result->expr_range.max = max;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_unary(Token_Kind op, Resolved_Expr *expr) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_UNARY);
+
+    result->expr_unary.op = op;
+    result->expr_unary.expr = expr;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_binary(Token_Kind op, Type *type, Resolved_Expr *left, Resolved_Expr *right) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_BINARY, type);
+
+    result->expr_binary.op = op;
+    result->expr_binary.left = left;
+    result->expr_binary.right = right;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+operand_new(Type *type, Val *val) {
+    Resolved_Expr *result = ALLOC_STRUCT(&resolve_arena, Resolved_Expr);
 
     result->type      = type;
     result->val       = val;
@@ -447,9 +800,9 @@ operand_new(Type *type, Val val) {
     return result;
 }
 
-internal_proc Operand *
-operand_lvalue(Type *type, Sym *sym = NULL, Val val = val_none) {
-    Operand *result = operand_new(type, val);
+internal_proc Resolved_Expr *
+operand_lvalue(Type *type, Sym *sym = NULL, Val *val = 0) {
+    Resolved_Expr *result = operand_new(type, val);
 
     result->is_lvalue = true;
     result->sym = sym;
@@ -457,24 +810,116 @@ operand_lvalue(Type *type, Sym *sym = NULL, Val val = val_none) {
     return result;
 }
 
-internal_proc Operand *
-operand_rvalue(Type *type, Val val = val_none) {
-    Operand *result = operand_new(type, val);
+internal_proc Resolved_Expr *
+operand_rvalue(Type *type, Val *val = 0) {
+    Resolved_Expr *result = operand_new(type, val);
 
     return result;
 }
 
-internal_proc Operand *
-operand_const(Type *type, Val val) {
-    Operand *result = operand_new(type, val);
+internal_proc Resolved_Expr *
+operand_const(Type *type, Val *val) {
+    Resolved_Expr *result = operand_new(type, val);
 
     result->is_const = true;
 
     return result;
 }
 
+struct Resolved_Stmt {
+    Stmt_Kind kind;
+
+    union {
+        struct {
+            Resolved_Expr *expr;
+        } stmt_var;
+
+        struct {
+            Sym *it;
+            Resolved_Expr *expr;
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+        } stmt_for;
+
+        struct {
+            char *lit;
+        } stmt_lit;
+
+        struct {
+            Sym *sym;
+            Resolved_Expr *expr;
+        } stmt_set;
+
+        struct {
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+        } stmt_filter;
+    };
+};
+
+global_var Resolved_Stmt **resolved_stmts;
+
+internal_proc Resolved_Stmt *
+resolved_stmt_new(Stmt_Kind kind) {
+    Resolved_Stmt *result = ALLOC_STRUCT(&resolve_arena, Resolved_Stmt);
+
+    result->kind = kind;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_var(Resolved_Expr *expr) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_VAR);
+
+    result->stmt_var.expr = expr;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
+
+    result->stmt_for.it = it;
+    result->stmt_for.expr = expr;
+    result->stmt_for.stmts = stmts;
+    result->stmt_for.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_lit(char *val) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_LIT);
+
+    result->stmt_lit.lit = val;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_set(Sym *sym, Resolved_Expr *expr) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_SET);
+
+    result->stmt_set.sym = sym;
+    result->stmt_set.expr = expr;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_FILTER);
+
+    result->stmt_filter.stmts = stmts;
+    result->stmt_filter.num_stmts = num_stmts;
+
+    return result;
+}
+
 internal_proc b32
-unify_arithmetic_operands(Operand *left, Operand *right) {
+unify_arithmetic_operands(Resolved_Expr *left, Resolved_Expr *right) {
     if ( is_arithmetic(left->type) && is_arithmetic(right->type) ) {
         Type *type  = arithmetic_result_type_table[left->type->kind][right->type->kind];
         left->type  = type;
@@ -487,25 +932,7 @@ unify_arithmetic_operands(Operand *left, Operand *right) {
 }
 
 internal_proc b32
-unify_scalar_operands(Operand *left, Operand *right) {
-    if ( is_scalar(left->type) && is_scalar(right->type) ) {
-        Type *type  = scalar_result_type_table[left->type->kind][right->type->kind];
-
-        if ( type == type_void ) {
-            return false;
-        }
-
-        left->type  = type;
-        right->type = type;
-
-        return true;
-    }
-
-    return false;
-}
-
-internal_proc b32
-convert_operand(Operand *op, Type *dest_type) {
+convert_operand(Resolved_Expr *op, Type *dest_type) {
     b32 result = false;
 
     if ( op->type == dest_type ) {
@@ -534,144 +961,23 @@ convert_operand(Operand *op, Type *dest_type) {
 
     return result;
 }
-/* }}} */
-/* sym {{{ */
-enum Sym_Kind {
-    SYM_NONE,
-    SYM_VAR,
-    SYM_PROC,
-    SYM_STRUCT,
-};
 
-struct Sym {
-    Sym_Kind kind;
-    Scope *scope;
-    char *name;
-    Type *type;
-    Val   val;
-};
+internal_proc b32
+unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
+    if ( is_scalar(left->type) && is_scalar(right->type) ) {
+        Type *type  = scalar_result_type_table[left->type->kind][right->type->kind];
 
-internal_proc Sym *
-sym_new(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
-    Sym *result = ALLOC_STRUCT(&resolve_arena, Sym);
-
-    result->kind  = kind;
-    result->scope = current_scope;
-    result->name  = name;
-    result->type  = type;
-    result->val   = val;
-
-    return result;
-}
-
-internal_proc Sym *
-sym_get(char *name) {
-    /* @INFO: symbole werden in einer map ohne external chaining gespeichert! */
-    for ( Scope *it = current_scope; it; it = it->parent ) {
-        Sym *sym = (Sym *)map_get(&it->syms, name);
-        if ( sym ) {
-            return sym;
+        if ( type == type_void ) {
+            return false;
         }
+
+        left->type  = type;
+        right->type = type;
+
+        return true;
     }
 
-    return 0;
-}
-
-internal_proc Sym *
-sym_push(Sym_Kind kind, char *name, Type *type, Val val = val_none) {
-    name = intern_str(name);
-
-    Sym *sym = (Sym *)map_get(&current_scope->syms, name);
-    if ( sym && sym->scope == current_scope ) {
-        assert(!"symbol existiert bereits");
-    } else if ( sym ) {
-        assert(!"warnung: symbol wird überschattet");
-    }
-
-    Sym *result = sym_new(kind, name, type, val);
-    map_put(&current_scope->syms, name, result);
-
-    return result;
-}
-
-internal_proc Sym *
-sym_push_filter(char *name, Type *type) {
-    return sym_push(SYM_PROC, name, type);
-}
-
-internal_proc Sym *
-sym_push_var(char *name, Type *type, Val val) {
-    return sym_push(SYM_VAR, name, type, val);
-}
-/* }}} */
-enum Resolved_Item_Kind {
-    RESOLVED_NONE,
-    RESOLVED_VAR,
-    RESOLVED_SET,
-    RESOLVED_LIT,
-};
-struct Resolved_Item {
-    Resolved_Item_Kind kind;
-
-    Operand *op;
-    /* @TODO: speicherplatz für den wert reservieren */
-
-    union {
-        struct {
-            Expr *expr;
-        } var;
-
-        struct {
-            char *str;
-        } lit;
-
-        struct {
-            Stmt *stmt;
-            Sym *sym;
-        } set;
-    };
-};
-
-global_var Resolved_Item ** resolved_items;
-
-internal_proc Resolved_Item *
-resolved_item_new(Resolved_Item_Kind kind, Operand *op) {
-    Resolved_Item *result = ALLOC_STRUCT(&resolve_arena, Resolved_Item);
-
-    result->kind = kind;
-    result->op = op;
-
-    buf_push(resolved_items, result);
-
-    return result;
-}
-
-internal_proc Resolved_Item *
-resolved_item_var(Operand *op, Expr *expr) {
-    Resolved_Item *result = resolved_item_new(RESOLVED_VAR, op);
-
-    result->var.expr = expr;
-
-    return result;
-}
-
-internal_proc Resolved_Item *
-resolved_item_set(Sym *sym, Operand *op, Stmt *stmt) {
-    Resolved_Item *result = resolved_item_new(RESOLVED_SET, op);
-
-    result->set.stmt = stmt;
-    result->set.sym = sym;
-
-    return result;
-}
-
-internal_proc Resolved_Item *
-resolved_item_lit(char *str) {
-    Resolved_Item *result = resolved_item_new(RESOLVED_LIT, 0);
-
-    result->lit.str = str;
-
-    return result;
+    return false;
 }
 
 internal_proc FILTER_CALLBACK(upper) {
@@ -720,18 +1026,17 @@ resolve_name(char *name) {
     return result;
 }
 
-internal_proc Operand *
+internal_proc Resolved_Stmt *
 resolve_var(Item *item) {
     assert(item->kind == ITEM_VAR);
 
-    Operand *operand = resolve_expr(item->item_var.expr);
     for ( int i = 0; i < item->item_var.num_filter; ++i ) {
         resolve_filter(&item->item_var.filter[i]);
     }
 
-    resolved_item_var(operand, item->item_var.expr);
+    Resolved_Stmt *result = resolved_stmt_var(resolve_expr(item->item_var.expr));
 
-    return operand;
+    return result;
 }
 
 internal_proc void
@@ -741,26 +1046,36 @@ resolve_stmts(Stmt **stmts, size_t num_stmts) {
     }
 }
 
-internal_proc void
+internal_proc Resolved_Stmt *
 resolve_stmt(Stmt *stmt) {
+    Resolved_Stmt *result = 0;
+
     switch (stmt->kind) {
         case STMT_VAR: {
-            resolve_var(stmt->stmt_var.item);
+            result = resolved_stmt_var(resolve_expr(stmt->stmt_var.item->item_var.expr));
         } break;
 
         case STMT_FOR: {
             scope_enter();
 
-            Operand *operand = resolve_expr(stmt->stmt_for.cond);
-            sym_push_var(stmt->stmt_for.it, operand->type, val_new(VAL_NONE));
-            resolve_stmts(stmt->stmt_for.stmts, stmt->stmt_for.num_stmts);
+            Resolved_Expr *expr = resolve_expr(stmt->stmt_for.cond);
+            Sym *it = sym_push_var(stmt->stmt_for.it, expr->type, val_int(0));
+
+            Resolved_Stmt **stmts = 0;
+            for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
+                buf_push(stmts, resolve_stmt(stmt->stmt_for.stmts[i]));
+            }
 
             scope_leave();
+
+            result = resolved_stmt_for(it, expr, stmts, buf_len(stmts));
         } break;
 
         case STMT_IF: {
+            assert(0);
+
             scope_enter();
-            Operand *operand = resolve_expr_cond(stmt->stmt_if.cond);
+            Resolved_Expr *expr = resolve_expr_cond(stmt->stmt_if.cond);
             resolve_stmts(stmt->stmt_if.stmts, stmt->stmt_if.num_stmts);
             scope_leave();
 
@@ -768,7 +1083,7 @@ resolve_stmt(Stmt *stmt) {
                 for ( int i = 0; i < stmt->stmt_if.num_elseifs; ++i ) {
                     scope_enter();
                     Stmt *elseif = stmt->stmt_if.elseifs[i];
-                    Operand *elseif_operand = resolve_expr_cond(elseif->stmt_if.cond);
+                    Resolved_Expr *elseif_expr = resolve_expr_cond(elseif->stmt_if.cond);
                     resolve_stmts(elseif->stmt_if.stmts, elseif->stmt_if.num_stmts);
                     scope_leave();
                 }
@@ -784,7 +1099,14 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_BLOCK: {
             scope_enter(stmt->stmt_block.name);
-            resolve_stmts(stmt->stmt_block.stmts, stmt->stmt_block.num_stmts);
+
+            for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
+                Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_block.stmts[i]);
+                if ( resolved_stmt ) {
+                    buf_push(resolved_stmts, resolved_stmt);
+                }
+            }
+
             scope_leave();
         } break;
 
@@ -792,67 +1114,80 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_LIT: {
-            resolved_item_lit(stmt->stmt_lit.item->item_lit.lit);
+            result = resolved_stmt_lit(stmt->stmt_lit.item->item_lit.lit);
         } break;
 
         case STMT_EXTENDS: {
-            Doc *doc = parse_file(stmt->stmt_extends.name);
+            assert(0);
+
+            Parsed_Doc *doc = parse_file(stmt->stmt_extends.name);
             resolve(doc);
             set_this_doc_to_be_parent_of_current_scope(doc);
         } break;
 
         case STMT_SET: {
             Sym *sym = resolve_name(stmt->stmt_set.name);
-            Operand *operand = resolve_expr(stmt->stmt_set.expr);
+            Resolved_Expr *expr = resolve_expr(stmt->stmt_set.expr);
 
             if ( !sym ) {
-                sym_push_var(stmt->stmt_set.name, operand->type, val_copy(operand->val));
+                sym = sym_push_var(stmt->stmt_set.name, expr->type, val_copy(expr->val));
             } else {
-                if ( !convert_operand(operand, operand->sym->type) ) {
+                if ( !convert_operand(expr, sym->type) ) {
                     assert(!"datentyp des operanden passt nicht");
                 }
             }
 
-            resolved_item_set(sym, operand, stmt);
+            result = resolved_stmt_set(sym, expr);
         } break;
 
         case STMT_FILTER: {
+            assert(0);
+
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
                 resolve_filter(&stmt->stmt_filter.filter[i]);
             }
-            resolve_stmts(stmt->stmt_filter.stmts, stmt->stmt_filter.num_stmts);
+
+            Resolved_Stmt **stmts = 0;
+            for ( int i = 0; i < stmt->stmt_filter.num_stmts; ++i ) {
+                buf_push(stmts, resolve_stmt(stmt->stmt_filter.stmts[i]));
+            }
+
+            result = resolved_stmt_filter(stmts, buf_len(stmts));
         } break;
 
         default: {
             assert(0);
+            return result;
         } break;
     }
+
+    return result;
 }
 
-internal_proc Operand *
+internal_proc Resolved_Expr *
 resolve_expr_cond(Expr *expr) {
-    Operand *operand = resolve_expr(expr);
+    Resolved_Expr *result = resolve_expr(expr);
 
     /* @TODO: char, int, str akzeptieren */
-    if ( operand->type != type_bool ) {
+    if ( result->type != type_bool ) {
         assert(!"boolischen ausdruck erwartet");
     }
 
-    return operand;
+    return result;
 }
 
-internal_proc Operand *
-eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
+internal_proc Resolved_Expr *
+eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
     switch (op) {
         case T_PLUS: {
-            switch ( left->val.kind ) {
+            switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val._s32 + right->val._s32);
+                    left->val = val_int(left->val->_s32 + right->val->_s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val._f32 + right->val._f32);
+                    left->val = val_float(left->val->_f32 + right->val->_f32);
                     return left;
                 } break;
 
@@ -863,14 +1198,14 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
         } break;
 
         case T_MINUS: {
-            switch ( left->val.kind ) {
+            switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val._s32 - right->val._s32);
+                    left->val = val_int(left->val->_s32 - right->val->_s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val._f32 - right->val._f32);
+                    left->val = val_float(left->val->_f32 - right->val->_f32);
                     return left;
                 } break;
 
@@ -881,14 +1216,14 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
         } break;
 
         case T_MUL: {
-            switch ( left->val.kind ) {
+            switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val._s32 * right->val._s32);
+                    left->val = val_int(left->val->_s32 * right->val->_s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val._f32 * right->val._f32);
+                    left->val = val_float(left->val->_f32 * right->val->_f32);
                     return left;
                 } break;
 
@@ -899,14 +1234,14 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
         } break;
 
         case T_DIV: {
-            switch ( left->val.kind ) {
+            switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val._s32 / right->val._s32);
+                    left->val = val_int(left->val->_s32 / right->val->_s32);
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val._f32 / right->val._f32);
+                    left->val = val_float(left->val->_f32 / right->val->_f32);
                     return left;
                 } break;
 
@@ -920,9 +1255,9 @@ eval_binary_op(Token_Kind op, Operand *left, Operand *right) {
     return left;
 }
 
-internal_proc Operand *
+internal_proc Resolved_Expr *
 resolve_expr(Expr *expr) {
-    Operand *result = 0;
+    Resolved_Expr *result = 0;
 
     switch (expr->kind) {
         case EXPR_NAME: {
@@ -931,36 +1266,37 @@ resolve_expr(Expr *expr) {
                 assert(!"konnte symbol nicht auflösen");
             }
 
-            result = operand_lvalue(sym->type, sym, sym->val);
+            result = resolved_expr_name(sym, sym->type, sym->val);
         } break;
 
         case EXPR_STR: {
-            result = operand_const(type_str, val_str(expr->expr_str.value));
+            result = resolved_expr_str(type_str, val_str(expr->expr_str.value));
         } break;
 
         case EXPR_INT: {
-            result = operand_const(type_int, val_int(expr->expr_int.value));
+            result = resolved_expr_int(type_int, val_int(expr->expr_int.value));
         } break;
 
         case EXPR_FLOAT: {
-            result = operand_const(type_float, val_float(expr->expr_float.value));
+            result = resolved_expr_float(type_float, val_float(expr->expr_float.value));
         } break;
 
         case EXPR_BOOL: {
-            result = operand_const(type_bool, val_bool(expr->expr_bool.value));
+            result = resolved_expr_bool(type_bool, val_bool(expr->expr_bool.value));
         } break;
 
         case EXPR_PAREN: {
-            result = resolve_expr(expr->expr_paren.expr);
+            result = resolved_expr_paren(resolve_expr(expr->expr_paren.expr));
         } break;
 
         case EXPR_UNARY: {
-            result = resolve_expr(expr->expr_unary.expr);
+            result = resolved_expr_unary(expr->expr_unary.op, resolve_expr(expr->expr_unary.expr));
         } break;
 
         case EXPR_BINARY: {
-            Operand *left  = resolve_expr(expr->expr_binary.left);
-            Operand *right = resolve_expr(expr->expr_binary.right);
+            Resolved_Expr *left  = resolve_expr(expr->expr_binary.left);
+            Resolved_Expr *right = resolve_expr(expr->expr_binary.right);
+            Resolved_Expr *type = 0;
 
             if ( is_eql(expr->expr_binary.op) ) {
                 unify_scalar_operands(left, right);
@@ -969,18 +1305,20 @@ resolve_expr(Expr *expr) {
             }
 
             if ( is_cmp(expr->expr_binary.op) ) {
-                result = operand_rvalue(type_bool);
+                type = operand_rvalue(type_bool);
             } else if ( left->is_const && right->is_const ) {
-                result = eval_binary_op(expr->expr_binary.op, left, right);
+                type = eval_binary_op(expr->expr_binary.op, left, right);
             } else {
-                result = operand_rvalue(left->type);
+                type = operand_rvalue(left->type);
             }
+
+            result = resolved_expr_binary(expr->expr_binary.op, type->type, left, right);
         } break;
 
         case EXPR_TERNARY: {
-            Operand *left   = resolve_expr_cond(expr->expr_ternary.left);
-            Operand *middle = resolve_expr(expr->expr_ternary.middle);
-            Operand *right  = resolve_expr(expr->expr_ternary.right);
+            Resolved_Expr *left   = resolve_expr_cond(expr->expr_ternary.left);
+            Resolved_Expr *middle = resolve_expr(expr->expr_ternary.middle);
+            Resolved_Expr *right  = resolve_expr(expr->expr_ternary.right);
 
             if ( middle->type != right->type ) {
                 assert(!"beide datentypen der zuweisung müssen gleich sein");
@@ -990,7 +1328,7 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_FIELD: {
-            Operand *base = resolve_expr(expr->expr_field.expr);
+            Resolved_Expr *base = resolve_expr(expr->expr_field.expr);
 
             assert(base->type);
             Type *type = base->type;
@@ -1005,8 +1343,8 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_RANGE: {
-            Operand *left  = resolve_expr(expr->expr_range.left);
-            Operand *right = resolve_expr(expr->expr_range.right);
+            Resolved_Expr *left  = resolve_expr(expr->expr_range.left);
+            Resolved_Expr *right = resolve_expr(expr->expr_range.right);
             unify_arithmetic_operands(left, right);
 
             if ( !is_int(left->type) ) {
@@ -1017,14 +1355,14 @@ resolve_expr(Expr *expr) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            int min = left->val._s32;
-            int max = right->val._s32;
+            int min = left->val->_s32;
+            int max = right->val->_s32;
 
-            result = operand_rvalue(type_int, val_range(min, max));
+            result = resolved_expr_range(min, max);
         } break;
 
         case EXPR_CALL: {
-            Operand *operand = resolve_expr(expr->expr_call.expr);
+            Resolved_Expr *operand = resolve_expr(expr->expr_call.expr);
             Type *type = operand->type;
             if ( !is_callable(type) ) {
                 assert(!"aufruf einer nicht-prozedur");
@@ -1037,12 +1375,12 @@ resolve_expr(Expr *expr) {
             for ( int i = 0; i < type->type_proc.num_params; ++i ) {
                 Type_Field *param = type->type_proc.params[i];
 
-                if ( param->default_val.kind == VAL_NONE && (i >= expr->expr_call.num_params) ) {
+                if ( param->default_val->kind == VAL_NONE && (i >= expr->expr_call.num_params) ) {
                     assert(!"zu wenige parameter übergeben");
                 }
 
                 if ( i < expr->expr_call.num_params ) {
-                    Operand *arg = resolve_expr(expr->expr_call.params[i]);
+                    Resolved_Expr *arg = resolve_expr(expr->expr_call.params[i]);
                     if (arg->type != param->type) {
                         assert(!"datentyp des arguments stimmt nicht");
                     }
@@ -1053,12 +1391,12 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_INDEX: {
-            Operand *operand = resolve_expr(expr->expr_index.expr);
+            Resolved_Expr *operand = resolve_expr(expr->expr_index.expr);
             if (operand->type->kind != TYPE_ARRAY) {
                 assert(!"indizierung auf einem nicht-array");
             }
 
-            Operand *index = resolve_expr(expr->expr_index.index);
+            Resolved_Expr *index = resolve_expr(expr->expr_index.index);
             if ( !is_int(index->type) ) {
                 assert(!"index muss vom typ int sein");
             }
@@ -1093,12 +1431,12 @@ resolve_filter(Var_Filter *filter) {
     for ( int i = 1; i < type->type_proc.num_params-1; ++i ) {
         Type_Field *param = type->type_proc.params[i];
 
-        if ( param->default_val.kind == VAL_NONE && (i-1 >= filter->num_params) ) {
+        if ( param->default_val->kind == VAL_NONE && (i-1 >= filter->num_params) ) {
             assert(!"zu wenige parameter übergeben");
         }
 
         if ( i-1 < filter->num_params ) {
-            Operand *arg = resolve_expr(filter->params[i-1]);
+            Resolved_Expr *arg = resolve_expr(filter->params[i-1]);
             if (arg->type != param->type) {
                 assert(!"datentyp des arguments stimmt nicht");
             }
@@ -1106,33 +1444,21 @@ resolve_filter(Var_Filter *filter) {
     }
 }
 
-internal_proc void
-resolve_code(Item *item) {
-    assert(item->kind == ITEM_CODE);
-
-    resolve_stmt(item->item_code.stmt);
-}
-
-internal_proc void
-resolve_lit(Item *item) {
-    resolved_item_lit(item->item_lit.lit);
-}
-
-internal_proc Operand *
+internal_proc Resolved_Stmt *
 resolve_item(Item *item) {
-    Operand *result = 0;
+    Resolved_Stmt *result = 0;
 
     switch (item->kind) {
         case ITEM_LIT: {
-            resolve_lit(item);
+            result = resolved_stmt_lit(item->item_lit.lit);
         } break;
 
         case ITEM_VAR: {
-            result = resolve_var(item);
+            result = resolved_stmt_var(resolve_expr(item->item_var.expr));
         } break;
 
         case ITEM_CODE: {
-            resolve_code(item);
+            result = resolve_stmt(item->item_code.stmt);
         } break;
 
         default: {
@@ -1174,11 +1500,16 @@ init_resolver() {
 }
 
 internal_proc void
-resolve(Doc *d) {
-    Doc *prev_doc = doc_enter(d);
+resolve(Parsed_Doc *d) {
+    Parsed_Doc *prev_doc = doc_enter(d);
+
     for ( int i = 0; i < d->num_items; ++i ) {
-        resolve_item(d->items[i]);
+        Resolved_Stmt *stmt = resolve_item(d->items[i]);
+        if ( stmt ) {
+            buf_push(resolved_stmts, stmt);
+        }
     }
+
     doc_leave(prev_doc);
 }
 

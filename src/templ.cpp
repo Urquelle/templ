@@ -10,10 +10,9 @@ templ_main(int argc, char **argv) {
     }
 
     init();
-    Doc *doc = parse_file(argv[1]);
+    Parsed_Doc *doc = parse_file(argv[1]);
     resolve(doc);
-    eval();
-    gen();
+    exec();
     file_write("test.html", gen_result, strlen(gen_result));
 }
 
