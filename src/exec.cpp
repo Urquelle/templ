@@ -110,7 +110,14 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_VAR: {
-            genf("%s", to_char(exec_expr(stmt->stmt_var.expr)));
+            char *value = to_char(exec_expr(stmt->stmt_var.expr));
+
+            for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
+                Resolved_Filter *filter = stmt->stmt_var.filter[i];
+                value = filter->proc(value, filter->args, filter->num_args);
+            }
+
+            genf("%s", value);
         } break;
 
         case STMT_SET: {

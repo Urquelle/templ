@@ -87,6 +87,17 @@ strf(char *fmt, ...) {
     return str;
 }
 
+internal_proc void
+fatal(char *msg, ...) {
+    va_list args = NULL;
+    va_start(args, msg);
+    fprintf(stderr, msg, args);
+    va_end(args);
+
+    assert(0);
+    exit(EXIT_FAILURE);
+}
+
 typedef struct BufHdr {
     size_t len;
     size_t cap;

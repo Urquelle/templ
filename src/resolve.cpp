@@ -3,6 +3,7 @@ struct Sym;
 struct Operand;
 struct Resolved_Stmt;
 struct Resolved_Expr;
+struct Resolved_Filter;
 
 global_var Arena resolve_arena;
 
@@ -25,11 +26,11 @@ set_this_doc_to_be_parent_of_current_scope(Parsed_Doc *d) {
     current_doc->parent = d;
 }
 
-internal_proc Resolved_Expr *  resolve_expr(Expr *expr);
-internal_proc Resolved_Expr *  resolve_expr_cond(Expr *expr);
-internal_proc void             resolve_filter(Var_Filter *filter);
-internal_proc Resolved_Stmt *  resolve_stmt(Stmt *stmt);
-internal_proc void             resolve(Parsed_Doc *d);
+internal_proc Resolved_Expr *   resolve_expr(Expr *expr);
+internal_proc Resolved_Expr *   resolve_expr_cond(Expr *expr);
+internal_proc Resolved_Filter * resolve_filter(Var_Filter *filter);
+internal_proc Resolved_Stmt *   resolve_stmt(Stmt *stmt);
+internal_proc void              resolve(Parsed_Doc *d);
 
 /* scope {{{ */
 struct Scope {
@@ -350,7 +351,7 @@ operator<(Val left, Val right) {
 
 internal_proc Sym * sym_push_var(char *name, Type *type, Val *val = 0);
 
-#define FILTER_CALLBACK(name) char * name(void *val, Expr **params, size_t num_params)
+#define FILTER_CALLBACK(name) char * name(void *val, Resolved_Expr **params, size_t num_params)
 typedef FILTER_CALLBACK(Callback);
 
 /* type {{{ */
@@ -849,6 +850,8 @@ struct Resolved_Stmt {
     union {
         struct {
             Resolved_Expr *expr;
+            Resolved_Filter **filter;
+            size_t num_filter;
         } stmt_var;
 
         struct {
@@ -886,10 +889,12 @@ resolved_stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_var(Resolved_Expr *expr) {
+resolved_stmt_var(Resolved_Expr *expr, Resolved_Filter **filter, size_t num_filter) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_VAR);
 
     result->stmt_var.expr = expr;
+    result->stmt_var.filter = filter;
+    result->stmt_var.num_filter = num_filter;
 
     return result;
 }
@@ -931,6 +936,34 @@ resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
 
     result->stmt_filter.stmts = stmts;
     result->stmt_filter.num_stmts = num_stmts;
+
+    return result;
+}
+
+struct Resolved_Filter {
+    Sym *sym;
+    Type *type;
+    Resolved_Expr **args;
+    size_t num_args;
+    Callback *proc;
+};
+
+internal_proc Resolved_Filter *
+resolved_filter_new() {
+    Resolved_Filter *result = ALLOC_STRUCT(&resolve_arena, Resolved_Filter);
+
+    return result;
+}
+
+internal_proc Resolved_Filter *
+resolved_filter(Sym *sym, Type *type, Resolved_Expr **args, size_t num_args, Callback *proc) {
+    Resolved_Filter *result = resolved_filter_new();
+
+    result->sym = sym;
+    result->type = type;
+    result->args = args;
+    result->num_args = num_args;
+    result->proc = proc;
 
     return result;
 }
@@ -998,7 +1031,7 @@ unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
 }
 
 internal_proc FILTER_CALLBACK(upper) {
-    char *str = *(char **)val;
+    char *str = (char *)val;
     char *result = "";
 
     for ( int i = 0; i < strlen(str); ++i ) {
@@ -1043,19 +1076,6 @@ resolve_name(char *name) {
     return result;
 }
 
-internal_proc Resolved_Stmt *
-resolve_var(Item *item) {
-    assert(item->kind == ITEM_VAR);
-
-    for ( int i = 0; i < item->item_var.num_filter; ++i ) {
-        resolve_filter(&item->item_var.filter[i]);
-    }
-
-    Resolved_Stmt *result = resolved_stmt_var(resolve_expr(item->item_var.expr));
-
-    return result;
-}
-
 internal_proc void
 resolve_stmts(Stmt **stmts, size_t num_stmts) {
     for ( int i = 0; i < num_stmts; ++i ) {
@@ -1069,7 +1089,13 @@ resolve_stmt(Stmt *stmt) {
 
     switch (stmt->kind) {
         case STMT_VAR: {
-            result = resolved_stmt_var(resolve_expr(stmt->stmt_var.item->item_var.expr));
+            Resolved_Filter **res_filter = 0;
+            for ( int i = 0; i < stmt->stmt_var.item->item_var.num_filter; ++i ) {
+                Var_Filter filter = stmt->stmt_var.item->item_var.filter[i];
+                buf_push(res_filter, resolve_filter(&filter));
+            }
+
+            result = resolved_stmt_var(resolve_expr(stmt->stmt_var.item->item_var.expr), res_filter, buf_len(res_filter));
         } break;
 
         case STMT_FOR: {
@@ -1135,8 +1161,6 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_EXTENDS: {
-            assert(0);
-
             Parsed_Doc *doc = parse_file(stmt->stmt_extends.name);
             resolve(doc);
             set_this_doc_to_be_parent_of_current_scope(doc);
@@ -1445,7 +1469,7 @@ resolve_expr(Expr *expr) {
     return result;
 }
 
-internal_proc void
+internal_proc Resolved_Filter *
 resolve_filter(Var_Filter *filter) {
     Sym *sym = resolve_name(filter->name);
 
@@ -1461,6 +1485,7 @@ resolve_filter(Var_Filter *filter) {
         assert(!"zu viele argumente");
     }
 
+    Resolved_Expr **args = 0;
     for ( int i = 1; i < type->type_proc.num_params-1; ++i ) {
         Type_Field *param = type->type_proc.params[i];
 
@@ -1473,8 +1498,11 @@ resolve_filter(Var_Filter *filter) {
             if (arg->type != param->type) {
                 assert(!"datentyp des arguments stimmt nicht");
             }
+            buf_push(args, arg);
         }
     }
+
+    return resolved_filter(sym, type, args, buf_len(args), type->type_proc.callback);
 }
 
 internal_proc Resolved_Stmt *
@@ -1484,10 +1512,6 @@ resolve_item(Item *item) {
     switch (item->kind) {
         case ITEM_LIT: {
             result = resolved_stmt_lit(item->item_lit.lit);
-        } break;
-
-        case ITEM_VAR: {
-            result = resolved_stmt_var(resolve_expr(item->item_var.expr));
         } break;
 
         case ITEM_CODE: {
@@ -1535,10 +1559,30 @@ init_resolver() {
 internal_proc void
 resolve(Parsed_Doc *d) {
     Parsed_Doc *prev_doc = doc_enter(d);
+    b32 in_template = false;
 
     for ( int i = 0; i < d->num_items; ++i ) {
         Resolved_Stmt *stmt = resolve_item(d->items[i]);
+        int stmt_kind = STMT_NONE;
+
+        if ( d->items[i]->kind == ITEM_CODE ) {
+            if ( d->items[i]->item_code.stmt->kind == STMT_EXTENDS ) {
+                stmt_kind = d->items[i]->item_code.stmt->kind;
+                in_template = true;
+            }
+        }
+
         if ( stmt ) {
+            if ( in_template && stmt->kind == STMT_LIT ) {
+                fatal("bei verwendung eines templates dürfen keine literale ausserhalb eines blocks stehen.");
+            }
+
+            if ( stmt_kind == STMT_EXTENDS ) {
+                if (i > 0 ) {
+                    fatal("extends anweisung muss die erste anweisung im template sein");
+                }
+            }
+
             buf_push(resolved_stmts, stmt);
         }
     }
