@@ -2,10 +2,10 @@
 
 {% block title %}
     test - {{ default_title }}
-{% end %}
 
-{% set a = "test" %}
-<div class="bla">{{ a }}</div>
+    {% set a = "test" %}
+    <div class="bla">{{ a }}</div>
+{% end %}
 
 {{ user.name | upper }} - {{ user.age }}
 

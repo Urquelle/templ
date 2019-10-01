@@ -12,13 +12,9 @@
 #include "os.cpp"
 #include "lex.cpp"
 #include "ast.cpp"
-#include "doc.cpp"
 #include "parser.cpp"
 #include "resolve.cpp"
-//#include "instr.cpp"
-//#include "env.cpp"
 #include "exec.cpp"
-//#include "gen.cpp"
 #include "templ.cpp"
 
 int

@@ -2,11 +2,13 @@ struct Parser {
     Lexer lex;
 };
 
+global_var Stmt **parsed_stmts;
+
 internal_proc Expr * parse_expr(Parser *p);
 internal_proc char * parse_name(Parser *p);
 internal_proc Stmt * parse_stmt(Parser *p);
-internal_proc Item * parse_var(Parser *p);
-internal_proc Item * parse_lit(Parser *p);
+internal_proc Stmt * parse_var(Parser *p);
+internal_proc Stmt * parse_lit(Parser *p);
 internal_proc Var_Filter parse_filter(Parser *p);
 
 global_var char ** keywords;
@@ -462,9 +464,9 @@ parse_stmt(Parser *p) {
             assert(0);
         }
     } else if ( match_token(p, T_VAR_BEGIN) ) {
-        result = stmt_var(parse_var(p));
+        result = parse_var(p);
     } else {
-        result = stmt_lit(parse_lit(p));
+        result = parse_lit(p);
     }
 
     return result;
@@ -481,7 +483,7 @@ parse_filter(Parser *p) {
     return var_filter(name, params, buf_len(params));
 }
 
-internal_proc Item *
+internal_proc Stmt *
 parse_var(Parser *p) {
     Expr *expr = parse_expr(p);
 
@@ -491,15 +493,15 @@ parse_var(Parser *p) {
     }
     expect_token(p, T_VAR_END);
 
-    return item_var(expr, filter, buf_len(filter));
+    return stmt_var(expr, filter, buf_len(filter));
 }
 
-internal_proc Item *
+internal_proc Stmt *
 parse_code(Parser *p) {
-    return item_code(parse_stmt(p));
+    return parse_stmt(p);
 }
 
-internal_proc Item *
+internal_proc Stmt *
 parse_lit(Parser *p) {
     char *lit = 0;
 
@@ -509,7 +511,7 @@ parse_lit(Parser *p) {
         next(&p->lex);
     }
 
-    Item *result = item_lit(lit, strlen(lit));
+    Stmt *result = stmt_lit(lit, strlen(lit));
     next_token(&p->lex);
 
     return result;
@@ -526,19 +528,17 @@ parse_file(char *filename) {
         init_parser(p, content, filename);
 
         while (p->lex.token.kind != T_EOF) {
-            if ( is_token(p, T_VAR_BEGIN) ) {
-                buf_push(doc->items, parse_code(p));
-            } else if ( is_token(p, T_CODE_BEGIN) ) {
-                buf_push(doc->items, parse_code(p));
+            if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
+                buf_push(doc->stmts, parse_code(p));
             } else {
-                buf_push(doc->items, parse_lit(p));
+                buf_push(doc->stmts, parse_lit(p));
             }
         }
     } else {
         assert(!"konnte datei nicht lesen");
     }
 
-    doc->num_items = buf_len(doc->items);
+    doc->num_stmts = buf_len(doc->stmts);
     return doc;
 }
 

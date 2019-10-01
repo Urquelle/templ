@@ -1,5 +1,3 @@
-struct Item;
-
 internal_proc void *
 ast_dup(void *src, size_t size) {
     if (size == 0) {
@@ -284,11 +282,13 @@ struct Stmt {
         } stmt_block;
 
         struct {
-            Item *item;
+            Expr *expr;
+            Var_Filter *filter;
+            size_t num_filter;
         } stmt_var;
 
         struct {
-            Item *item;
+            char *value;
         } stmt_lit;
 
         struct {
@@ -382,19 +382,22 @@ stmt_end() {
 }
 
 internal_proc Stmt *
-stmt_var(Item *item) {
+stmt_var(Expr *expr, Var_Filter *filter, size_t num_filter) {
     Stmt *result = stmt_new(STMT_VAR);
 
-    result->stmt_var.item = item;
+    result->stmt_var.expr = expr;
+    result->stmt_var.filter = filter;
+    result->stmt_var.num_filter = num_filter;
 
     return result;
 }
 
 internal_proc Stmt *
-stmt_lit(Item *item) {
+stmt_lit(char *value, size_t len) {
     Stmt *result = stmt_new(STMT_LIT);
 
-    result->stmt_lit.item = item;
+    result->stmt_lit.value = value;
+    result->stmt_lit.value[len] = 0;
 
     return result;
 }
@@ -426,6 +429,23 @@ stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmt
     result->stmt_filter.num_filter = num_filter;
     result->stmt_filter.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_filter.num_stmts = num_stmts;
+
+    return result;
+}
+
+struct Parsed_Doc {
+    Parsed_Doc *parent;
+    Stmt **stmts;
+    size_t num_stmts;
+};
+
+internal_proc Var_Filter
+var_filter(char *name, Expr **params, size_t num_params) {
+    Var_Filter result = {};
+
+    result.name = name;
+    result.params = params;
+    result.num_params = num_params;
 
     return result;
 }

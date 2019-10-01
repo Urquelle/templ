@@ -1090,12 +1090,12 @@ resolve_stmt(Stmt *stmt) {
     switch (stmt->kind) {
         case STMT_VAR: {
             Resolved_Filter **res_filter = 0;
-            for ( int i = 0; i < stmt->stmt_var.item->item_var.num_filter; ++i ) {
-                Var_Filter filter = stmt->stmt_var.item->item_var.filter[i];
+            for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
+                Var_Filter filter = stmt->stmt_var.filter[i];
                 buf_push(res_filter, resolve_filter(&filter));
             }
 
-            result = resolved_stmt_var(resolve_expr(stmt->stmt_var.item->item_var.expr), res_filter, buf_len(res_filter));
+            result = resolved_stmt_var(resolve_expr(stmt->stmt_var.expr), res_filter, buf_len(res_filter));
         } break;
 
         case STMT_FOR: {
@@ -1157,7 +1157,7 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_LIT: {
-            result = resolved_stmt_lit(stmt->stmt_lit.item->item_lit.lit);
+            result = resolved_stmt_lit(stmt->stmt_lit.value);
         } break;
 
         case STMT_EXTENDS: {
@@ -1505,27 +1505,6 @@ resolve_filter(Var_Filter *filter) {
     return resolved_filter(sym, type, args, buf_len(args), type->type_proc.callback);
 }
 
-internal_proc Resolved_Stmt *
-resolve_item(Item *item) {
-    Resolved_Stmt *result = 0;
-
-    switch (item->kind) {
-        case ITEM_LIT: {
-            result = resolved_stmt_lit(item->item_lit.lit);
-        } break;
-
-        case ITEM_CODE: {
-            result = resolve_stmt(item->item_code.stmt);
-        } break;
-
-        default: {
-            assert(0);
-        } break;
-    }
-
-    return result;
-}
-
 struct User {
     char *name;
     int age;
@@ -1561,22 +1540,15 @@ resolve(Parsed_Doc *d) {
     Parsed_Doc *prev_doc = doc_enter(d);
     b32 in_template = false;
 
-    for ( int i = 0; i < d->num_items; ++i ) {
-        Resolved_Stmt *stmt = resolve_item(d->items[i]);
-        int stmt_kind = STMT_NONE;
+    for ( int i = 0; i < d->num_stmts; ++i ) {
+        Resolved_Stmt *stmt = resolve_stmt(d->stmts[i]);
+        int stmt_kind = d->stmts[i]->kind;
 
-        if ( d->items[i]->kind == ITEM_CODE ) {
-            if ( d->items[i]->item_code.stmt->kind == STMT_EXTENDS ) {
-                stmt_kind = d->items[i]->item_code.stmt->kind;
-                in_template = true;
-            }
+        if ( stmt_kind == STMT_EXTENDS ) {
+            in_template = true;
         }
 
         if ( stmt ) {
-            if ( in_template && stmt->kind == STMT_LIT ) {
-                fatal("bei verwendung eines templates dürfen keine literale ausserhalb eines blocks stehen.");
-            }
-
             if ( stmt_kind == STMT_EXTENDS ) {
                 if (i > 0 ) {
                     fatal("extends anweisung muss die erste anweisung im template sein");
