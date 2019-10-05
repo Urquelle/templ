@@ -1012,6 +1012,8 @@ resolved_stmt_if(Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts,
     Resolved_Stmt *result = resolved_stmt_new(STMT_IF);
 
     result->stmt_if.expr = expr;
+    result->stmt_if.stmts = (Resolved_Stmt **)AST_DUP(stmts);
+    result->stmt_if.num_stmts = num_stmts;
     result->stmt_if.elseifs = elseifs;
     result->stmt_if.num_elseifs = num_elseifs;
     result->stmt_if.else_stmt = else_stmt;

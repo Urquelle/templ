@@ -9,7 +9,7 @@
 
 {% set b = 2 %}
 {% if b is eq 2 %}
-    {{ user.address.street }}
+    {{ user.name }}
 {% end %}
 
 {% for it in 0..5 %}
