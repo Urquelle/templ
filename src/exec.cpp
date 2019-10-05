@@ -58,10 +58,12 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_UNARY: {
-            assert(0);
+            /* @TODO: vorzeichen */
+            result = exec_expr(expr->expr_unary.expr);
         } break;
 
         case EXPR_FIELD: {
+            /* @TODO: mehr als nur eine ebene unterstützen? */
             result = val_from_field(expr);
         } break;
 
@@ -94,6 +96,14 @@ exec_expr(Resolved_Expr *expr) {
             }
         } break;
 
+        case EXPR_IS: {
+            Val *var_val = exec_expr(expr->expr_is.expr);
+            Type *type = expr->expr_is.test->type;
+            assert(type->kind == TYPE_TEST);
+
+            result = type->type_test.callback(var_val, expr->expr_is.args, expr->expr_is.num_args);
+        } break;
+
         default: {
             assert(0);
         } break;
@@ -120,6 +130,14 @@ exec_stmt(Resolved_Stmt *stmt) {
             genf("%s", value);
         } break;
 
+        case STMT_BLOCK: {
+            genlnf("<!-- %s -->", stmt->stmt_block.name);
+            genln();
+            for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
+                exec_stmt(stmt->stmt_block.stmts[i]);
+            }
+        } break;
+
         case STMT_SET: {
             stmt->stmt_set.sym->val = exec_expr(stmt->stmt_set.expr);
         } break;
@@ -132,6 +150,37 @@ exec_stmt(Resolved_Stmt *stmt) {
                 stmt->stmt_for.it->val->_s32 = i;
                 for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                     exec_stmt(stmt->stmt_for.stmts[j]);
+                }
+            }
+        } break;
+
+        case STMT_IF: {
+            Val *val = exec_expr(stmt->stmt_if.expr);
+
+            if ( val->_bool ) {
+                for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
+                    exec_stmt(stmt->stmt_if.stmts[i]);
+                }
+            } else {
+                b32 elseif_matched = false;
+                for ( int i = 0; i < stmt->stmt_if.num_elseifs; ++i ) {
+                    Resolved_Stmt *elseif = stmt->stmt_if.elseifs[i];
+                    val = exec_expr(elseif->stmt_if.expr);
+
+                    if ( val->_bool ) {
+                        for ( int j = 0; j < elseif->stmt_if.num_stmts; ++j ) {
+                            exec_stmt(elseif->stmt_if.stmts[j]);
+                        }
+                        elseif_matched = true;
+                        break;
+                    }
+                }
+
+                if ( !elseif_matched && stmt->stmt_if.else_stmt ) {
+                    Resolved_Stmt *else_stmt = stmt->stmt_if.else_stmt;
+                    for ( int i = 0; i < else_stmt->stmt_if.num_stmts; ++i ) {
+                        exec_stmt(else_stmt->stmt_if.stmts[i]);
+                    }
                 }
             }
         } break;

@@ -18,6 +18,7 @@ global_var char *keyword_if;
 global_var char *keyword_else;
 global_var char *keyword_for;
 global_var char *keyword_in;
+global_var char *keyword_is;
 global_var char *keyword_end;
 global_var char *keyword_extends;
 global_var char *keyword_block;
@@ -35,6 +36,7 @@ init_keywords() {
     ADD_KEYWORD(else);
     ADD_KEYWORD(for);
     ADD_KEYWORD(in);
+    ADD_KEYWORD(is);
     ADD_KEYWORD(end);
     ADD_KEYWORD(extends);
     ADD_KEYWORD(block);
@@ -306,6 +308,20 @@ parse_stmt_for(Parser *p) {
 internal_proc Stmt *
 parse_stmt_if(Parser *p) {
     Expr *cond = parse_expr(p);
+
+    if ( match_keyword(p, keyword_is) ) {
+        Expr *test = parse_expr(p);
+        assert(test->kind == EXPR_NAME);
+
+        Expr **args = 0;
+        while ( !is_token(p, T_CODE_END ) ) {
+            buf_push(args, parse_expr(p));
+            match_token(p, T_COMMA);
+        }
+
+        cond = expr_is(cond, test, args, buf_len(args));
+    }
+
     expect_token(p, T_CODE_END);
 
     Stmt *if_stmt = stmt_if(cond, 0, 0);

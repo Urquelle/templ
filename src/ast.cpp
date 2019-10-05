@@ -27,6 +27,7 @@ enum Expr_Kind {
     EXPR_INDEX,
     EXPR_RANGE,
     EXPR_CALL,
+    EXPR_IS,
 };
 
 struct Expr {
@@ -95,6 +96,13 @@ struct Expr {
             Expr **params;
             size_t num_params;
         } expr_call;
+
+        struct {
+            Expr *var;
+            Expr *test;
+            Expr **args;
+            size_t num_args;
+        } expr_is;
     };
 };
 
@@ -234,6 +242,18 @@ expr_call(Expr *expr, Expr **params, size_t num_params) {
     return result;
 }
 
+internal_proc Expr *
+expr_is(Expr *var, Expr *test, Expr **args, size_t num_args) {
+    Expr *result = expr_new(EXPR_IS);
+
+    result->expr_is.var = var;
+    result->expr_is.test = test;
+    result->expr_is.args = args;
+    result->expr_is.num_args = num_args;
+
+    return result;
+}
+
 struct Var_Filter {
     char*  name;
     Expr** params;
@@ -268,6 +288,7 @@ struct Stmt {
 
         struct {
             Expr *cond;
+            Expr *test;
             Stmt **stmts;
             size_t num_stmts;
             Stmt **elseifs;

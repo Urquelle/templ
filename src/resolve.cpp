@@ -1,11 +1,18 @@
 struct Type;
 struct Sym;
+struct Val;
 struct Operand;
 struct Resolved_Stmt;
 struct Resolved_Expr;
 struct Resolved_Filter;
 
 global_var Arena resolve_arena;
+
+#define FILTER_CALLBACK(name) char * name(void *val, Resolved_Expr **params, size_t num_params)
+typedef FILTER_CALLBACK(Filter_Callback);
+
+#define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
+typedef TEST_CALLBACK(Test_Callback);
 
 Parsed_Doc *current_doc;
 internal_proc Parsed_Doc *
@@ -67,11 +74,15 @@ scope_leave() {
     current_scope = current_scope->parent;
 }
 
-internal_proc void
+internal_proc Scope *
 scope_set(Scope *scope) {
+    Scope *result = current_scope;
+
     if ( scope ) {
         current_scope = scope;
     }
+
+    return result;
 }
 /* }}} */
 /* val {{{ */
@@ -347,12 +358,44 @@ operator<(Val left, Val right) {
 
     return result;
 }
+
+internal_proc b32
+operator==(Val left, Val right) {
+    if ( left.kind != right.kind ) {
+        return false;
+    }
+
+    if ( left.kind == VAL_INT ) {
+        return left._s32 == right._s32;
+    }
+
+    if ( left.kind == VAL_FLOAT ) {
+        f32 eps = 0.00001f;
+
+        if ( (left._f32 - right._f32) < eps || (left._f32 - right._f32) > eps ) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    if ( left.kind == VAL_RANGE ) {
+        return left._range[0] == right._range[0] && left._range[1] == right._range[1];
+    }
+
+    if ( left.kind == VAL_STR ) {
+        return left._str == right._str;
+    }
+
+    if ( left.kind == VAL_BOOL ) {
+        return left._bool == right._bool;
+    }
+
+    return false;
+}
 /* }}} */
 
 internal_proc Sym * sym_push_var(char *name, Type *type, Val *val = 0);
-
-#define FILTER_CALLBACK(name) char * name(void *val, Resolved_Expr **params, size_t num_params)
-typedef FILTER_CALLBACK(Callback);
 
 /* type {{{ */
 struct Type_Field {
@@ -385,6 +428,7 @@ enum Type_Kind {
     TYPE_STRUCT,
     TYPE_PROC,
     TYPE_FILTER,
+    TYPE_TEST,
 
     TYPE_COUNT,
 };
@@ -404,8 +448,15 @@ struct Type {
             Type_Field **params;
             size_t num_params;
             Type *ret;
-            Callback *callback;
+            Filter_Callback *callback;
         } type_proc;
+
+        struct {
+            Type_Field **params;
+            size_t num_params;
+            Type *ret;
+            Test_Callback *callback;
+        } type_test;
 
         struct {
             Type *base;
@@ -471,7 +522,7 @@ type_proc(Type_Field **params, size_t num_params, Type *ret) {
 }
 
 internal_proc Type *
-type_filter(Type_Field **params, size_t num_params, Type *ret, Callback *callback) {
+type_filter(Type_Field **params, size_t num_params, Type *ret, Filter_Callback *callback) {
     Type *result = type_new(TYPE_FILTER);
 
     result->size = PTR_SIZE;
@@ -479,6 +530,19 @@ type_filter(Type_Field **params, size_t num_params, Type *ret, Callback *callbac
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
     result->type_proc.callback = callback;
+
+    return result;
+}
+
+internal_proc Type *
+type_test(Type_Field **params, size_t num_params, Test_Callback *callback) {
+    Type *result = type_new(TYPE_TEST);
+
+    result->size = PTR_SIZE;
+    result->type_test.params = (Type_Field **)AST_DUP(params);
+    result->type_test.num_params = num_params;
+    result->type_test.ret = type_bool;
+    result->type_test.callback = callback;
 
     return result;
 }
@@ -640,10 +704,16 @@ sym_push_filter(char *name, Type *type) {
 }
 
 internal_proc Sym *
+sym_push_test(char *name, Type *type) {
+    return sym_push(SYM_PROC, name, type);
+}
+
+internal_proc Sym *
 sym_push_var(char *name, Type *type, Val *val) {
     return sym_push(SYM_VAR, name, type, val);
 }
 /* }}} */
+/* resolved_expr {{{ */
 struct Resolved_Expr {
     Expr_Kind kind;
     Type *type;
@@ -693,6 +763,13 @@ struct Resolved_Expr {
             Resolved_Expr *left;
             Resolved_Expr *right;
         } expr_binary;
+
+        struct {
+            Resolved_Expr *expr;
+            Resolved_Expr *test;
+            Resolved_Expr **args;
+            size_t num_args;
+        } expr_is;
     };
 };
 
@@ -807,6 +884,19 @@ resolved_expr_binary(Token_Kind op, Type *type, Resolved_Expr *left, Resolved_Ex
 }
 
 internal_proc Resolved_Expr *
+resolved_expr_is(Resolved_Expr *expr, Resolved_Expr *test, Resolved_Expr **args, size_t num_args) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_IS, type_bool);
+
+    result->expr_is.expr = expr;
+    result->expr_is.test = test;
+    result->expr_is.args = args;
+    result->expr_is.num_args = num_args;
+
+    return result;
+}
+/* }}} */
+
+internal_proc Resolved_Expr *
 operand_new(Type *type, Val *val) {
     Resolved_Expr *result = ALLOC_STRUCT(&resolve_arena, Resolved_Expr);
 
@@ -844,6 +934,7 @@ operand_const(Type *type, Val *val) {
     return result;
 }
 
+/* resolved_stmt {{{ */
 struct Resolved_Stmt {
     Stmt_Kind kind;
 
@@ -860,6 +951,21 @@ struct Resolved_Stmt {
             Resolved_Stmt **stmts;
             size_t num_stmts;
         } stmt_for;
+
+        struct {
+            Resolved_Expr *expr;
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+            Resolved_Stmt **elseifs;
+            size_t num_elseifs;
+            Resolved_Stmt *else_stmt;
+        } stmt_if;
+
+        struct {
+            char *name;
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+        } stmt_block;
 
         struct {
             char *lit;
@@ -900,6 +1006,42 @@ resolved_stmt_var(Resolved_Expr *expr, Resolved_Filter **filter, size_t num_filt
 }
 
 internal_proc Resolved_Stmt *
+resolved_stmt_if(Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts,
+        Resolved_Stmt **elseifs, size_t num_elseifs, Resolved_Stmt *else_stmt)
+{
+    Resolved_Stmt *result = resolved_stmt_new(STMT_IF);
+
+    result->stmt_if.expr = expr;
+    result->stmt_if.elseifs = elseifs;
+    result->stmt_if.num_elseifs = num_elseifs;
+    result->stmt_if.else_stmt = else_stmt;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_elseif(Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_ELSEIF);
+
+    result->stmt_if.expr = expr;
+    result->stmt_if.stmts = (Resolved_Stmt **)AST_DUP(stmts);
+    result->stmt_if.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_ELSE);
+
+    result->stmt_if.expr = 0;
+    result->stmt_if.stmts = (Resolved_Stmt **)AST_DUP(stmts);
+    result->stmt_if.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
 resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
 
@@ -931,6 +1073,17 @@ resolved_stmt_set(Sym *sym, Resolved_Expr *expr) {
 }
 
 internal_proc Resolved_Stmt *
+resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_BLOCK);
+
+    result->stmt_block.name = name;
+    result->stmt_block.stmts = stmts;
+    result->stmt_block.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
 resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FILTER);
 
@@ -939,13 +1092,14 @@ resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
 
     return result;
 }
+/* }}} */
 
 struct Resolved_Filter {
     Sym *sym;
     Type *type;
     Resolved_Expr **args;
     size_t num_args;
-    Callback *proc;
+    Filter_Callback *proc;
 };
 
 internal_proc Resolved_Filter *
@@ -956,7 +1110,7 @@ resolved_filter_new() {
 }
 
 internal_proc Resolved_Filter *
-resolved_filter(Sym *sym, Type *type, Resolved_Expr **args, size_t num_args, Callback *proc) {
+resolved_filter(Sym *sym, Type *type, Resolved_Expr **args, size_t num_args, Filter_Callback *proc) {
     Resolved_Filter *result = resolved_filter_new();
 
     result->sym = sym;
@@ -1030,6 +1184,7 @@ unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
     return false;
 }
 
+/* filter {{{ */
 internal_proc FILTER_CALLBACK(upper) {
     char *str = (char *)val;
     char *result = "";
@@ -1068,6 +1223,70 @@ init_builtin_filter() {
     };
     sym_push_filter("truncate", type_filter(trunc_type, 5, type_str, truncate));
 }
+/* }}} */
+/* tests {{{ */
+internal_proc b32
+test_callable(Resolved_Expr *expr) {
+    return false;
+}
+
+internal_proc b32
+test_defined(Resolved_Expr *expr) {
+    return false;
+}
+
+TEST_CALLBACK(test_divisibleby) {
+    return false;
+}
+
+TEST_CALLBACK(test_eq) {
+    assert(val);
+    assert(num_args == 1);
+
+    Val *result = val_bool(*val == *args[0]->val);
+
+    return result;
+}
+
+internal_proc b32
+test_escaped(Val *value) {
+    return false;
+}
+
+internal_proc b32
+test_even(Val *val) {
+    return false;
+}
+
+internal_proc b32
+test_ge(Val *a, Val *b) {
+    return false;
+}
+
+internal_proc b32
+test_gt(Val *a, Val *b) {
+    return false;
+}
+
+internal_proc b32
+test_in(Val *value, Val *min, Val *max) {
+    return false;
+}
+
+internal_proc void
+init_builtin_tests() {
+    Type_Field *str_type[]  = { type_field("s", type_str) };
+    Type_Field *int_type[]  = { type_field("s", type_int) };
+    Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
+
+    /*
+    sym_push_test("callable", type_test());
+    sym_push_test("defined", type_test());
+    */
+    sym_push_test("divisibleby", type_test(int2_type, 2, test_divisibleby));
+    sym_push_test("eq", type_test(int2_type, 2, test_eq));
+}
+/* }}} */
 
 internal_proc Sym *
 resolve_name(char *name) {
@@ -1115,42 +1334,63 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_IF: {
-            assert(0);
-
             scope_enter();
             Resolved_Expr *expr = resolve_expr_cond(stmt->stmt_if.cond);
-            resolve_stmts(stmt->stmt_if.stmts, stmt->stmt_if.num_stmts);
+
+            Resolved_Stmt **stmts = 0;
+            for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
+                buf_push(stmts, resolve_stmt(stmt->stmt_if.stmts[i]));
+            }
             scope_leave();
 
+            Resolved_Stmt **elseifs = 0;
             if ( stmt->stmt_if.num_elseifs ) {
                 for ( int i = 0; i < stmt->stmt_if.num_elseifs; ++i ) {
                     scope_enter();
                     Stmt *elseif = stmt->stmt_if.elseifs[i];
                     Resolved_Expr *elseif_expr = resolve_expr_cond(elseif->stmt_if.cond);
-                    resolve_stmts(elseif->stmt_if.stmts, elseif->stmt_if.num_stmts);
+
+                    Resolved_Stmt **elseif_stmts = 0;
+                    for ( int j = 0; i < elseif->stmt_if.num_stmts; ++j ) {
+                        buf_push(elseif_stmts, resolve_stmt(elseif->stmt_if.stmts[j]));
+                    }
                     scope_leave();
+
+                    buf_push(elseifs, resolved_stmt_elseif(elseif_expr, elseif_stmts, buf_len(elseif_stmts)));
                 }
             }
 
+            Resolved_Stmt *else_resolved_stmt = 0;
+            Resolved_Stmt **else_stmts = 0;
             if ( stmt->stmt_if.else_stmt ) {
                 scope_enter();
                 Stmt *else_stmt = stmt->stmt_if.else_stmt;
-                resolve_stmts(else_stmt->stmt_if.stmts, else_stmt->stmt_if.num_stmts);
+
+                for ( int i = 0; i < else_stmt->stmt_if.num_stmts; ++i ) {
+                    buf_push(else_stmts, resolve_stmt(else_stmt->stmt_if.stmts[i]));
+                }
                 scope_leave();
+
+                else_resolved_stmt = resolved_stmt_else(else_stmts, buf_len(else_stmts));
             }
+
+            result = resolved_stmt_if(expr, stmts, buf_len(stmts), elseifs, buf_len(elseifs), else_resolved_stmt);
         } break;
 
         case STMT_BLOCK: {
             scope_enter(stmt->stmt_block.name);
 
+            Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
                 Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_block.stmts[i]);
                 if ( resolved_stmt ) {
-                    buf_push(resolved_stmts, resolved_stmt);
+                    buf_push(stmts, resolved_stmt);
                 }
             }
 
             scope_leave();
+
+            result = resolved_stmt_block(stmt->stmt_block.name, stmts, buf_len(stmts));
         } break;
 
         case STMT_END: {
@@ -1390,10 +1630,13 @@ resolve_expr(Expr *expr) {
             Type *type = base->type;
             assert(type->kind == TYPE_STRUCT);
 
-            scope_set(type->type_aggr.scope);
+            Scope *old_scope = scope_set(type->type_aggr.scope);
             Sym *sym = resolve_name(expr->expr_field.field);
+            assert(sym);
+
             s64 offset = offset_from_base(type, sym->name);
-            scope_set(type->type_aggr.scope->parent);
+            // scope_set(type->type_aggr.scope->parent);
+            scope_set(old_scope);
 
             assert(sym);
             result = resolved_expr_field(base, sym, offset, sym->type);
@@ -1455,10 +1698,42 @@ resolve_expr(Expr *expr) {
 
             Resolved_Expr *index = resolve_expr(expr->expr_index.index);
             if ( !is_int(index->type) ) {
-                assert(!"index muss vom typ int sein");
+                assert(!"index muss von typ int sein");
             }
 
             result = operand_rvalue(operand->type);
+        } break;
+
+        case EXPR_IS: {
+            Resolved_Expr *test_expr = resolve_expr(expr->expr_is.var);
+            Resolved_Expr *test_proc = resolve_expr(expr->expr_is.test);
+
+            assert(test_proc);
+
+            Type *type = test_proc->type;
+            assert(type->kind == TYPE_TEST);
+
+            if ( type->type_test.num_params != expr->expr_is.num_args+1 ) {
+                assert(!"falsche anzahl übergebener parameter");
+            }
+
+            Resolved_Expr **args = 0;
+            Type_Field *param = type->type_test.params[0];
+            if ( test_expr->type != param->type ) {
+                assert(!"datentyp des arguments ist falsch");
+            }
+
+            for ( int i = 1; i < type->type_test.num_params; ++i ) {
+                param = type->type_test.params[i];
+
+                Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
+                if (arg->type != param->type) {
+                    assert(!"datentyp des arguments ist falsch");
+                }
+                buf_push(args, arg);
+            }
+
+            result = resolved_expr_is(test_expr, test_proc, args, buf_len(args));
         } break;
 
         default: {
@@ -1505,19 +1780,30 @@ resolve_filter(Var_Filter *filter) {
     return resolved_filter(sym, type, args, buf_len(args), type->type_proc.callback);
 }
 
+struct Address {
+    char *street;
+    char *city;
+};
+
 struct User {
     char *name;
     int age;
+    Address address;
 };
 
 internal_proc void
 init_test_datatype() {
-    Type_Field *user_fields[] = { type_field("name", type_str), type_field("age", type_int) };
-    Type *user_type = type_struct(user_fields, 2);
+    Type_Field *address_fields[] = { type_field("street", type_str), type_field("city", type_str) };
+    Type *address_type = type_struct(address_fields, 2);
+
+    Type_Field *user_fields[] = { type_field("name", type_str), type_field("age", type_int), type_field("address", address_type) };
+    Type *user_type = type_struct(user_fields, 3);
 
     User *user = (User *)xmalloc(sizeof(User));
     user->name = "Noob";
     user->age  = 40;
+    user->address.street = "Traube";
+    user->address.city = "Mannheim";
 
     Sym *sym = sym_push_var("user", user_type, val_struct(user, sizeof(User)));
 }
@@ -1532,6 +1818,7 @@ init_resolver() {
     init_arenas();
     init_builtin_types();
     init_builtin_filter();
+    init_builtin_tests();
     init_test_datatype();
 }
 

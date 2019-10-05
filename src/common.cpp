@@ -13,6 +13,8 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+typedef float    f32;
+
 #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))

@@ -7,7 +7,10 @@
     <div class="bla">{{ a }}</div>
 {% end %}
 
-{{ user.name | upper }} - {{ user.age }}
+{% set b = 2 %}
+{% if b is eq 2 %}
+    {{ user.address.street }}
+{% end %}
 
 {% for it in 0..5 %}
     <div>{{ it }}</div>
