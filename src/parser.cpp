@@ -552,6 +552,7 @@ parse_file(char *filename) {
 
                 if ( stmt->kind == STMT_EXTENDS ) {
                     doc->parent = stmt->stmt_extends.templ;
+                    continue;
                 }
 
                 buf_push(doc->stmts, stmt);

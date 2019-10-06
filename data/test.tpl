@@ -17,3 +17,7 @@
         <div>{{ it }}</div>
     {% end %}
 {% end %}
+
+{% block foo %}
+    <div>hier kommt foo hin</div>
+{% end %}

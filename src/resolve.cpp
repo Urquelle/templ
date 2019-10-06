@@ -1797,6 +1797,7 @@ init_resolver() {
 internal_proc void
 resolve(Parsed_Templ *d) {
     if ( d->parent ) {
+        /* elterntemplate durchgehen */
         for ( int i = 0; i < d->parent->num_stmts; ++i ) {
             Stmt *stmt = d->parent->stmts[i];
             Resolved_Stmt *resolved_stmt = 0;
@@ -1805,11 +1806,9 @@ resolve(Parsed_Templ *d) {
                 for ( int j = 0; j < d->num_stmts; ++j ) {
                     Stmt *sub_stmt = d->stmts[j];
 
-                    /* @AUFGABE: assert einbauen falls sub_stmt nicht vom typ STMT_BLOCK ist */
-                    if ( sub_stmt->kind == STMT_BLOCK ) {
-                        if ( sub_stmt->stmt_block.name == stmt->stmt_block.name ) {
-                            resolved_stmt = resolve_stmt(sub_stmt);
-                        }
+                    assert(sub_stmt->kind == STMT_BLOCK);
+                    if ( sub_stmt->stmt_block.name == stmt->stmt_block.name ) {
+                        resolved_stmt = resolve_stmt(sub_stmt);
                     }
                 }
             } else {
@@ -1817,6 +1816,30 @@ resolve(Parsed_Templ *d) {
             }
 
             buf_push(resolved_stmts, resolved_stmt);
+        }
+
+        /* kindtemplate durchgehen */
+        for ( int i = 0; i < d->num_stmts; ++i ) {
+            Stmt *stmt = d->stmts[i];
+
+            if ( stmt->kind == STMT_BLOCK ) {
+                b32 block_already_executed = false;
+                for ( int j = 0; j < d->parent->num_stmts; ++j ) {
+                    Stmt *parent_stmt = d->parent->stmts[j];
+
+                    if ( stmt->stmt_block.name == parent_stmt->stmt_block.name ) {
+                        block_already_executed = true;
+                    }
+                }
+
+                if ( !block_already_executed ) {
+                    buf_push(resolved_stmts, resolve_stmt(stmt));
+                }
+            }
+        }
+    } else {
+        for ( int i = 0; i < d->num_stmts; ++i ) {
+            buf_push(resolved_stmts, resolve_stmt(d->stmts[i]));
         }
     }
 }
