@@ -58,12 +58,12 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_UNARY: {
-            /* @TODO: vorzeichen */
+            /* @AUFGABE: vorzeichen */
             result = exec_expr(expr->expr_unary.expr);
         } break;
 
         case EXPR_FIELD: {
-            /* @TODO: mehr als nur eine ebene unterstützen? */
+            /* @AUFGABE: mehr als nur eine ebene unterstützen? */
             result = val_from_field(expr);
         } break;
 
@@ -144,7 +144,7 @@ exec_stmt(Resolved_Stmt *stmt) {
 
         case STMT_FOR: {
             Val *list = exec_expr(stmt->stmt_for.expr);
-            assert(list->kind == VAL_RANGE); /* @TODO: arrays müssen auch funktionieren */
+            assert(list->kind == VAL_RANGE); /* @AUFGABE: arrays müssen auch funktionieren */
 
             for ( int i = list->_range[0]; i < list->_range[1]; ++i ) {
                 stmt->stmt_for.it->val->_s32 = i;
@@ -192,8 +192,8 @@ exec_stmt(Resolved_Stmt *stmt) {
 }
 
 internal_proc void
-exec() {
-    for ( int i = 0; i < buf_len(resolved_stmts); ++i ) {
-        exec_stmt(resolved_stmts[i]);
+exec(Resolved_Templ *templ) {
+    for ( int i = 0; i < templ->num_stmts; ++i ) {
+        exec_stmt(templ->stmts[i]);
     }
 }

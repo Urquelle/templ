@@ -5,6 +5,7 @@ struct Operand;
 struct Resolved_Stmt;
 struct Resolved_Expr;
 struct Resolved_Filter;
+struct Resolved_Templ;
 
 global_var Arena resolve_arena;
 
@@ -18,7 +19,7 @@ internal_proc Resolved_Expr *   resolve_expr(Expr *expr);
 internal_proc Resolved_Expr *   resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Filter * resolve_filter(Var_Filter *filter);
 internal_proc Resolved_Stmt *   resolve_stmt(Stmt *stmt);
-internal_proc void              resolve(Parsed_Templ *d);
+internal_proc Resolved_Templ *  resolve(Parsed_Templ *d);
 
 /* scope {{{ */
 struct Scope {
@@ -964,8 +965,6 @@ struct Resolved_Stmt {
     };
 };
 
-global_var Resolved_Stmt **resolved_stmts;
-
 internal_proc Resolved_Stmt *
 resolved_stmt_new(Stmt_Kind kind) {
     Resolved_Stmt *result = ALLOC_STRUCT(&resolve_arena, Resolved_Stmt);
@@ -1261,6 +1260,23 @@ init_builtin_tests() {
     sym_push_test("eq", type_test(int2_type, 2, test_eq));
 }
 /* }}} */
+
+struct Resolved_Templ {
+    char *name;
+    Resolved_Stmt **stmts;
+    size_t num_stmts;
+};
+
+internal_proc Resolved_Templ *
+resolved_templ_new() {
+    Resolved_Templ *result = ALLOC_STRUCT(&resolve_arena, Resolved_Templ);
+
+    result->name = 0;
+    result->stmts = 0;
+    result->num_stmts = 0;
+
+    return result;
+}
 
 internal_proc Sym *
 resolve_name(char *name) {
@@ -1794,17 +1810,20 @@ init_resolver() {
     init_test_datatype();
 }
 
-internal_proc void
-resolve(Parsed_Templ *d) {
-    if ( d->parent ) {
+internal_proc Resolved_Templ *
+resolve(Parsed_Templ *parsed_templ) {
+    Resolved_Templ *result = resolved_templ_new();
+    result->name = parsed_templ->name;
+
+    if ( parsed_templ->parent ) {
         /* elterntemplate durchgehen */
-        for ( int i = 0; i < d->parent->num_stmts; ++i ) {
-            Stmt *stmt = d->parent->stmts[i];
+        for ( int i = 0; i < parsed_templ->parent->num_stmts; ++i ) {
+            Stmt *stmt = parsed_templ->parent->stmts[i];
             Resolved_Stmt *resolved_stmt = 0;
 
             if ( stmt->kind == STMT_BLOCK ) {
-                for ( int j = 0; j < d->num_stmts; ++j ) {
-                    Stmt *sub_stmt = d->stmts[j];
+                for ( int j = 0; j < parsed_templ->num_stmts; ++j ) {
+                    Stmt *sub_stmt = parsed_templ->stmts[j];
 
                     assert(sub_stmt->kind == STMT_BLOCK);
                     if ( sub_stmt->stmt_block.name == stmt->stmt_block.name ) {
@@ -1815,17 +1834,17 @@ resolve(Parsed_Templ *d) {
                 resolved_stmt = resolve_stmt(stmt);
             }
 
-            buf_push(resolved_stmts, resolved_stmt);
+            buf_push(result->stmts, resolved_stmt);
         }
 
         /* kindtemplate durchgehen */
-        for ( int i = 0; i < d->num_stmts; ++i ) {
-            Stmt *stmt = d->stmts[i];
+        for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
+            Stmt *stmt = parsed_templ->stmts[i];
 
             if ( stmt->kind == STMT_BLOCK ) {
                 b32 block_already_executed = false;
-                for ( int j = 0; j < d->parent->num_stmts; ++j ) {
-                    Stmt *parent_stmt = d->parent->stmts[j];
+                for ( int j = 0; j < parsed_templ->parent->num_stmts; ++j ) {
+                    Stmt *parent_stmt = parsed_templ->parent->stmts[j];
 
                     if ( stmt->stmt_block.name == parent_stmt->stmt_block.name ) {
                         block_already_executed = true;
@@ -1833,14 +1852,18 @@ resolve(Parsed_Templ *d) {
                 }
 
                 if ( !block_already_executed ) {
-                    buf_push(resolved_stmts, resolve_stmt(stmt));
+                    buf_push(result->stmts, resolve_stmt(stmt));
                 }
             }
         }
     } else {
-        for ( int i = 0; i < d->num_stmts; ++i ) {
-            buf_push(resolved_stmts, resolve_stmt(d->stmts[i]));
+        for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
+            buf_push(result->stmts, resolve_stmt(parsed_templ->stmts[i]));
         }
     }
+
+    result->num_stmts = buf_len(result->stmts);
+
+    return result;
 }
 

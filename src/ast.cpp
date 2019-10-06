@@ -459,6 +459,7 @@ stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmt
 }
 
 struct Parsed_Templ {
+    char *name;
     Parsed_Templ *parent;
     Stmt **stmts;
     size_t num_stmts;

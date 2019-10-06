@@ -539,7 +539,10 @@ parse_lit(Parser *p) {
 internal_proc Parsed_Templ *
 parse_file(char *filename) {
     char *content = 0;
-    Parsed_Templ *doc = (Parsed_Templ *)xcalloc(1, sizeof(Parsed_Templ));
+    Parsed_Templ *templ = (Parsed_Templ *)xcalloc(1, sizeof(Parsed_Templ));
+
+    /* @TODO: nur den dateinamen ohne dateierweiterung übernehmen */
+    templ->name = filename;
 
     if ( file_read(filename, &content) ) {
         Parser parser = {};
@@ -551,20 +554,20 @@ parse_file(char *filename) {
                 Stmt *stmt = parse_code(p);
 
                 if ( stmt->kind == STMT_EXTENDS ) {
-                    doc->parent = stmt->stmt_extends.templ;
+                    templ->parent = stmt->stmt_extends.templ;
                     continue;
                 }
 
-                buf_push(doc->stmts, stmt);
+                buf_push(templ->stmts, stmt);
             } else {
-                buf_push(doc->stmts, parse_lit(p));
+                buf_push(templ->stmts, parse_lit(p));
             }
         }
     } else {
         assert(!"konnte datei nicht lesen");
     }
 
-    doc->num_stmts = buf_len(doc->stmts);
-    return doc;
+    templ->num_stmts = buf_len(templ->stmts);
+    return templ;
 }
 
