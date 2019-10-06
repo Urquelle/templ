@@ -14,30 +14,11 @@ typedef FILTER_CALLBACK(Filter_Callback);
 #define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
 typedef TEST_CALLBACK(Test_Callback);
 
-Parsed_Doc *current_doc;
-internal_proc Parsed_Doc *
-doc_enter(Parsed_Doc *d) {
-    Parsed_Doc *result = current_doc;
-    current_doc = d;
-
-    return result;
-}
-
-internal_proc void
-doc_leave(Parsed_Doc *d) {
-    current_doc = d;
-}
-
-internal_proc void
-set_this_doc_to_be_parent_of_current_scope(Parsed_Doc *d) {
-    current_doc->parent = d;
-}
-
 internal_proc Resolved_Expr *   resolve_expr(Expr *expr);
 internal_proc Resolved_Expr *   resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Filter * resolve_filter(Var_Filter *filter);
 internal_proc Resolved_Stmt *   resolve_stmt(Stmt *stmt);
-internal_proc void              resolve(Parsed_Doc *d);
+internal_proc void              resolve(Parsed_Templ *d);
 
 /* scope {{{ */
 struct Scope {
@@ -1227,13 +1208,11 @@ init_builtin_filter() {
 }
 /* }}} */
 /* tests {{{ */
-internal_proc b32
-test_callable(Resolved_Expr *expr) {
+TEST_CALLBACK(test_callable) {
     return false;
 }
 
-internal_proc b32
-test_defined(Resolved_Expr *expr) {
+TEST_CALLBACK(test_defined) {
     return false;
 }
 
@@ -1250,28 +1229,23 @@ TEST_CALLBACK(test_eq) {
     return result;
 }
 
-internal_proc b32
-test_escaped(Val *value) {
+TEST_CALLBACK(test_escaped) {
     return false;
 }
 
-internal_proc b32
-test_even(Val *val) {
+TEST_CALLBACK(test_even) {
     return false;
 }
 
-internal_proc b32
-test_ge(Val *a, Val *b) {
+TEST_CALLBACK(test_ge) {
     return false;
 }
 
-internal_proc b32
-test_gt(Val *a, Val *b) {
+TEST_CALLBACK(test_gt) {
     return false;
 }
 
-internal_proc b32
-test_in(Val *value, Val *min, Val *max) {
+TEST_CALLBACK(test_in) {
     return false;
 }
 
@@ -1281,10 +1255,8 @@ init_builtin_tests() {
     Type_Field *int_type[]  = { type_field("s", type_int) };
     Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
 
-    /*
-    sym_push_test("callable", type_test());
-    sym_push_test("defined", type_test());
-    */
+    sym_push_test("callable", type_test(str_type, 1, test_callable));
+    sym_push_test("defined", type_test(str_type, 1, test_defined));
     sym_push_test("divisibleby", type_test(int2_type, 2, test_divisibleby));
     sym_push_test("eq", type_test(int2_type, 2, test_eq));
 }
@@ -1403,9 +1375,7 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_EXTENDS: {
-            Parsed_Doc *doc = parse_file(stmt->stmt_extends.name);
-            resolve(doc);
-            set_this_doc_to_be_parent_of_current_scope(doc);
+            /* nix tun */
         } break;
 
         case STMT_SET: {
@@ -1825,29 +1795,29 @@ init_resolver() {
 }
 
 internal_proc void
-resolve(Parsed_Doc *d) {
-    Parsed_Doc *prev_doc = doc_enter(d);
-    b32 in_template = false;
+resolve(Parsed_Templ *d) {
+    if ( d->parent ) {
+        for ( int i = 0; i < d->parent->num_stmts; ++i ) {
+            Stmt *stmt = d->parent->stmts[i];
+            Resolved_Stmt *resolved_stmt = 0;
 
-    for ( int i = 0; i < d->num_stmts; ++i ) {
-        Resolved_Stmt *stmt = resolve_stmt(d->stmts[i]);
-        int stmt_kind = d->stmts[i]->kind;
+            if ( stmt->kind == STMT_BLOCK ) {
+                for ( int j = 0; j < d->num_stmts; ++j ) {
+                    Stmt *sub_stmt = d->stmts[j];
 
-        if ( stmt_kind == STMT_EXTENDS ) {
-            in_template = true;
-        }
-
-        if ( stmt ) {
-            if ( stmt_kind == STMT_EXTENDS ) {
-                if (i > 0 ) {
-                    fatal("extends anweisung muss die erste anweisung im template sein");
+                    /* @AUFGABE: assert einbauen falls sub_stmt nicht vom typ STMT_BLOCK ist */
+                    if ( sub_stmt->kind == STMT_BLOCK ) {
+                        if ( sub_stmt->stmt_block.name == stmt->stmt_block.name ) {
+                            resolved_stmt = resolve_stmt(sub_stmt);
+                        }
+                    }
                 }
+            } else {
+                resolved_stmt = resolve_stmt(stmt);
             }
 
-            buf_push(resolved_stmts, stmt);
+            buf_push(resolved_stmts, resolved_stmt);
         }
     }
-
-    doc_leave(prev_doc);
 }
 

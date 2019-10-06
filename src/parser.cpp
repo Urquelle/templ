@@ -10,6 +10,7 @@ internal_proc Stmt * parse_stmt(Parser *p);
 internal_proc Stmt * parse_var(Parser *p);
 internal_proc Stmt * parse_lit(Parser *p);
 internal_proc Var_Filter parse_filter(Parser *p);
+internal_proc Parsed_Templ * parse_file(char *filename);
 
 global_var char ** keywords;
 global_var char *keyword_true;
@@ -408,7 +409,9 @@ parse_stmt_extends(Parser *p) {
     char *name = parse_str(p);
     expect_token(p, T_CODE_END);
 
-    return stmt_extends(name);
+    Parsed_Templ *templ = parse_file(name);
+
+    return stmt_extends(name, templ);
 }
 
 internal_proc Stmt *
@@ -533,10 +536,10 @@ parse_lit(Parser *p) {
     return result;
 }
 
-internal_proc Parsed_Doc *
+internal_proc Parsed_Templ *
 parse_file(char *filename) {
     char *content = 0;
-    Parsed_Doc *doc = (Parsed_Doc *)xcalloc(1, sizeof(Parsed_Doc));
+    Parsed_Templ *doc = (Parsed_Templ *)xcalloc(1, sizeof(Parsed_Templ));
 
     if ( file_read(filename, &content) ) {
         Parser parser = {};
@@ -545,7 +548,13 @@ parse_file(char *filename) {
 
         while (p->lex.token.kind != T_EOF) {
             if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
-                buf_push(doc->stmts, parse_code(p));
+                Stmt *stmt = parse_code(p);
+
+                if ( stmt->kind == STMT_EXTENDS ) {
+                    doc->parent = stmt->stmt_extends.templ;
+                }
+
+                buf_push(doc->stmts, stmt);
             } else {
                 buf_push(doc->stmts, parse_lit(p));
             }

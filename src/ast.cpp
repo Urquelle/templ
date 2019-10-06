@@ -1,3 +1,5 @@
+struct Parsed_Templ;
+
 internal_proc void *
 ast_dup(void *src, size_t size) {
     if (size == 0) {
@@ -314,6 +316,7 @@ struct Stmt {
 
         struct {
             char *name;
+            Parsed_Templ *templ;
         } stmt_extends;
 
         struct {
@@ -424,10 +427,11 @@ stmt_lit(char *value, size_t len) {
 }
 
 internal_proc Stmt *
-stmt_extends(char *name) {
+stmt_extends(char *name, Parsed_Templ *templ) {
     Stmt *result = stmt_new(STMT_EXTENDS);
 
-    result->stmt_extends.name = name;
+    result->stmt_extends.name  = name;
+    result->stmt_extends.templ = templ;
 
     return result;
 }
@@ -454,8 +458,8 @@ stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmt
     return result;
 }
 
-struct Parsed_Doc {
-    Parsed_Doc *parent;
+struct Parsed_Templ {
+    Parsed_Templ *parent;
     Stmt **stmts;
     size_t num_stmts;
 };

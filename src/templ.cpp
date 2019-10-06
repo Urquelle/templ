@@ -10,7 +10,7 @@ templ_main(int argc, char **argv) {
     }
 
     init();
-    Parsed_Doc *doc = parse_file(argv[1]);
+    Parsed_Templ *doc = parse_file(argv[1]);
     resolve(doc);
     exec();
     file_write("test.html", gen_result, strlen(gen_result));
