@@ -269,7 +269,10 @@ enum Stmt_Kind {
     STMT_BLOCK,
     STMT_ELSEIF,
     STMT_ELSE,
-    STMT_END,
+    STMT_ENDFOR,
+    STMT_ENDIF,
+    STMT_ENDBLOCK,
+    STMT_ENDFILTER,
     STMT_VAR,
     STMT_LIT,
     STMT_EXTENDS,
@@ -399,8 +402,29 @@ stmt_block(char *name, Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Stmt *
-stmt_end() {
-    Stmt *result = stmt_new(STMT_END);
+stmt_endfor() {
+    Stmt *result = stmt_new(STMT_ENDFOR);
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_endif() {
+    Stmt *result = stmt_new(STMT_ENDIF);
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_endblock() {
+    Stmt *result = stmt_new(STMT_ENDBLOCK);
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_endfilter() {
+    Stmt *result = stmt_new(STMT_ENDFILTER);
 
     return result;
 }

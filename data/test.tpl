@@ -2,7 +2,7 @@
 
 {% block title %}
     test - {{ default_title }}
-{% end %}
+{% endblock %}
 
 {% block main %}
     {{ super() }}
@@ -13,13 +13,13 @@
     {% set b = 2 %}
     {% if b is eq 2 %}
         {{ user.name }}
-    {% end %}
+    {% endif %}
 
     {% for it in 0..5 %}
         <div>{{ it }}</div>
-    {% end %}
-{% end %}
+    {% endfor %}
+{% endblock %}
 
 {% block foo %}
     <div>hier kommt foo hin</div>
-{% end %}
+{% endblock %}

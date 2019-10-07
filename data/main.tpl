@@ -1,13 +1,13 @@
 <html>
     <head>
         {% set default_title = "tmpl" %}
-        <title>{% block title %}{% end %}</title>
+        <title>{% block title %}{% endblock %}</title>
     </head>
     <body>
         <div class="main">
         {% block main %}
             super-block-dass-du-da-bist
-        {% end %}
+        {% endblock %}
         </div>
     </body>
 </html>

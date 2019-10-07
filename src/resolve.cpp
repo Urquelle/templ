@@ -1439,7 +1439,10 @@ resolve_stmt(Stmt *stmt) {
             result = resolved_stmt_block(stmt->stmt_block.name, stmts, buf_len(stmts));
         } break;
 
-        case STMT_END: {
+        case STMT_ENDIF:
+        case STMT_ENDBLOCK:
+        case STMT_ENDFILTER:
+        case STMT_ENDFOR: {
         } break;
 
         case STMT_LIT: {

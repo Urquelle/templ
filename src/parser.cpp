@@ -20,7 +20,10 @@ global_var char *keyword_else;
 global_var char *keyword_for;
 global_var char *keyword_in;
 global_var char *keyword_is;
-global_var char *keyword_end;
+global_var char *keyword_endfor;
+global_var char *keyword_endif;
+global_var char *keyword_endblock;
+global_var char *keyword_endfilter;
 global_var char *keyword_extends;
 global_var char *keyword_block;
 global_var char *keyword_embed;
@@ -38,7 +41,10 @@ init_keywords() {
     ADD_KEYWORD(for);
     ADD_KEYWORD(in);
     ADD_KEYWORD(is);
-    ADD_KEYWORD(end);
+    ADD_KEYWORD(endfor);
+    ADD_KEYWORD(endif);
+    ADD_KEYWORD(endblock);
+    ADD_KEYWORD(endfilter);
     ADD_KEYWORD(extends);
     ADD_KEYWORD(block);
     ADD_KEYWORD(embed);
@@ -290,7 +296,7 @@ parse_stmt_for(Parser *p) {
     for (;;) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
-            if ( stmt->kind == STMT_END ) {
+            if ( stmt->kind == STMT_ENDFOR ) {
                 break;
             } else {
                 buf_push(stmts, stmt);
@@ -333,7 +339,7 @@ parse_stmt_if(Parser *p) {
     for (;;) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
-            if ( stmt->kind == STMT_END ) {
+            if ( stmt->kind == STMT_ENDIF ) {
                 break;
             } else if ( stmt->kind == STMT_ELSEIF ) {
                 buf_push(stmt_elseifs, stmt);
@@ -356,12 +362,6 @@ parse_stmt_if(Parser *p) {
     if_stmt->stmt_if.else_stmt = stmt_else;
 
     return if_stmt;
-}
-
-internal_proc Stmt *
-parse_stmt_end(Parser *p) {
-    expect_token(p, T_CODE_END);
-    return stmt_end();
 }
 
 internal_proc Stmt *
@@ -388,7 +388,7 @@ parse_stmt_block(Parser *p) {
     for (;;) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
-            if ( stmt->kind == STMT_END ) {
+            if ( stmt->kind == STMT_ENDBLOCK ) {
                 break;
             } else {
                 buf_push(stmts, stmt);
@@ -428,7 +428,7 @@ parse_stmt_filter(Parser *p) {
     for (;;) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
-            if ( stmt->kind == STMT_END ) {
+            if ( stmt->kind == STMT_ENDFILTER ) {
                 break;
             } else {
                 buf_push(stmts, stmt);
@@ -456,6 +456,30 @@ parse_stmt_set(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_endfor(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return stmt_endfor();
+}
+
+internal_proc Stmt *
+parse_stmt_endif(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return stmt_endif();
+}
+
+internal_proc Stmt *
+parse_stmt_endblock(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return stmt_endblock();
+}
+
+internal_proc Stmt *
+parse_stmt_endfilter(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return stmt_endfilter();
+}
+
+internal_proc Stmt *
 parse_stmt(Parser *p) {
     Stmt *result = 0;
     if ( match_token(p, T_CODE_BEGIN) ) {
@@ -463,8 +487,14 @@ parse_stmt(Parser *p) {
             result = parse_stmt_for(p);
         } else if ( match_keyword(p, keyword_if) ) {
             result = parse_stmt_if(p);
-        } else if ( match_keyword(p, keyword_end) ) {
-            result = parse_stmt_end(p);
+        } else if ( match_keyword(p, keyword_endfor) ) {
+            result = parse_stmt_endfor(p);
+        } else if ( match_keyword(p, keyword_endif) ) {
+            result = parse_stmt_endif(p);
+        } else if ( match_keyword(p, keyword_endblock) ) {
+            result = parse_stmt_endblock(p);
+        } else if ( match_keyword(p, keyword_endfilter) ) {
+            result = parse_stmt_endfilter(p);
         } else if ( match_keyword(p, keyword_else) ) {
             if ( match_keyword(p, keyword_if) ) {
                 result = parse_stmt_elseif(p);
