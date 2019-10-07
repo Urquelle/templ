@@ -6,6 +6,7 @@
     <body>
         <div class="main">
         {% block main %}
+            super-block-dass-du-da-bist
         {% end %}
         </div>
     </body>

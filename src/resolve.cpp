@@ -9,6 +9,10 @@ struct Resolved_Templ;
 
 global_var Arena resolve_arena;
 
+#define PROC_CALLBACK(name) Val * name(Resolved_Stmt *stmt)
+typedef PROC_CALLBACK(Proc_Callback);
+PROC_CALLBACK(super_proc);
+
 #define FILTER_CALLBACK(name) char * name(void *val, Resolved_Expr **params, size_t num_params)
 typedef FILTER_CALLBACK(Filter_Callback);
 
@@ -430,8 +434,15 @@ struct Type {
             Type_Field **params;
             size_t num_params;
             Type *ret;
-            Filter_Callback *callback;
+            Proc_Callback *callback;
         } type_proc;
+
+        struct {
+            Type_Field **params;
+            size_t num_params;
+            Type *ret;
+            Filter_Callback *callback;
+        } type_filter;
 
         struct {
             Type_Field **params;
@@ -492,13 +503,14 @@ type_struct(Type_Field **fields, size_t num_fields) {
 }
 
 internal_proc Type *
-type_proc(Type_Field **params, size_t num_params, Type *ret) {
+type_proc(Type_Field **params, size_t num_params, Type *ret, Proc_Callback *callback) {
     Type *result = type_new(TYPE_PROC);
 
     result->size = PTR_SIZE;
     result->type_proc.params = (Type_Field **)AST_DUP(params);
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
+    result->type_proc.callback = callback;
 
     return result;
 }
@@ -508,10 +520,10 @@ type_filter(Type_Field **params, size_t num_params, Type *ret, Filter_Callback *
     Type *result = type_new(TYPE_FILTER);
 
     result->size = PTR_SIZE;
-    result->type_proc.params = (Type_Field **)AST_DUP(params);
-    result->type_proc.num_params = num_params;
-    result->type_proc.ret = ret;
-    result->type_proc.callback = callback;
+    result->type_filter.params = (Type_Field **)AST_DUP(params);
+    result->type_filter.num_params = num_params;
+    result->type_filter.ret = ret;
+    result->type_filter.callback = callback;
 
     return result;
 }
@@ -706,6 +718,7 @@ struct Resolved_Expr {
     Type *type;
     Sym *sym;
     Val *val;
+    Resolved_Stmt *stmt;
 
     b32 is_const;
     b32 is_lvalue;
@@ -1347,7 +1360,7 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Expr *expr = resolve_expr(stmt->stmt_var.expr);
             result = resolved_stmt_var(expr, res_filter, buf_len(res_filter));
-            int x = 5;
+            expr->stmt = result;
         } break;
 
         case STMT_FOR: {
@@ -1810,7 +1823,7 @@ resolve_filter(Var_Filter *filter) {
         }
     }
 
-    return resolved_filter(sym, type, args, buf_len(args), type->type_proc.callback);
+    return resolved_filter(sym, type, args, buf_len(args), type->type_filter.callback);
 }
 
 struct Address {
@@ -1875,7 +1888,7 @@ resolve(Parsed_Templ *parsed_templ) {
                         Resolved_Stmt *super = resolve_stmt(stmt);
 
                         if ( !sym_get(intern_str("super")) ) {
-                            sym_push_proc("super", type_proc(0, 0, type_str));
+                            sym_push_proc("super", type_proc(0, 0, type_str, super_proc));
                         }
 
                         resolved_stmt = resolve_stmt(sub_stmt);

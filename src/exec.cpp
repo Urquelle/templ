@@ -105,7 +105,11 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_CALL: {
-            assert(0);
+            Type *type = expr->type;
+            assert(expr->stmt);
+            assert(expr->stmt->block);
+            assert(expr->stmt->block->super);
+            result = type->type_proc.callback(expr->stmt->block->super);
         } break;
 
         default: {
@@ -193,6 +197,14 @@ exec_stmt(Resolved_Stmt *stmt) {
             assert(0);
         } break;
     }
+}
+
+PROC_CALLBACK(super_proc) {
+    for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
+        exec_stmt(stmt->stmt_block.stmts[i]);
+    }
+
+    return val_str("");
 }
 
 internal_proc void
