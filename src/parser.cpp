@@ -469,6 +469,7 @@ parse_stmt_endif(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_endblock(Parser *p) {
+    match_token(p, T_NAME);
     expect_token(p, T_CODE_END);
     return stmt_endblock();
 }

@@ -18,7 +18,7 @@
     {% for it in 0..5 %}
         <div>{{ it }}</div>
     {% endfor %}
-{% endblock %}
+{% endblock main %}
 
 {% block foo %}
     <div>hier kommt foo hin</div>
