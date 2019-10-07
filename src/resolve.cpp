@@ -1237,14 +1237,17 @@ init_builtin_filter() {
 /* }}} */
 /* tests {{{ */
 TEST_CALLBACK(test_callable) {
+    implement_me();
     return false;
 }
 
 TEST_CALLBACK(test_defined) {
+    implement_me();
     return false;
 }
 
 TEST_CALLBACK(test_divisibleby) {
+    implement_me();
     return false;
 }
 
@@ -1258,22 +1261,27 @@ TEST_CALLBACK(test_eq) {
 }
 
 TEST_CALLBACK(test_escaped) {
+    implement_me();
     return false;
 }
 
 TEST_CALLBACK(test_even) {
+    implement_me();
     return false;
 }
 
 TEST_CALLBACK(test_ge) {
+    implement_me();
     return false;
 }
 
 TEST_CALLBACK(test_gt) {
+    implement_me();
     return false;
 }
 
 TEST_CALLBACK(test_in) {
+    implement_me();
     return false;
 }
 
@@ -1287,6 +1295,10 @@ init_builtin_tests() {
     sym_push_test("defined", type_test(str_type, 1, test_defined));
     sym_push_test("divisibleby", type_test(int2_type, 2, test_divisibleby));
     sym_push_test("eq", type_test(int2_type, 2, test_eq));
+    sym_push_test("escaped", type_test(str_type, 1, test_escaped));
+    sym_push_test("even", type_test(int_type, 1, test_even));
+    sym_push_test("ge", type_test(int2_type, 2, test_ge));
+    sym_push_test("gt", type_test(int2_type, 2, test_gt));
 }
 /* }}} */
 
@@ -1333,7 +1345,9 @@ resolve_stmt(Stmt *stmt) {
                 buf_push(res_filter, resolve_filter(&filter));
             }
 
-            result = resolved_stmt_var(resolve_expr(stmt->stmt_var.expr), res_filter, buf_len(res_filter));
+            Resolved_Expr *expr = resolve_expr(stmt->stmt_var.expr);
+            result = resolved_stmt_var(expr, res_filter, buf_len(res_filter));
+            int x = 5;
         } break;
 
         case STMT_FOR: {
@@ -1652,7 +1666,6 @@ resolve_expr(Expr *expr) {
             assert(sym);
 
             s64 offset = offset_from_base(type, sym->name);
-            // scope_set(type->type_aggr.scope->parent);
             scope_set(old_scope);
 
             assert(sym);
@@ -1681,6 +1694,7 @@ resolve_expr(Expr *expr) {
         case EXPR_CALL: {
             Resolved_Expr *call_expr = resolve_expr(expr->expr_call.expr);
             Type *type = call_expr->type;
+
             if ( !is_callable(type) ) {
                 assert(!"aufruf einer nicht-prozedur");
             }

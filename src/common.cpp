@@ -30,6 +30,8 @@ typedef float    f32;
 #define MB(X) (KB(X)*1024)
 #define GB(X) (MB(X)*1024)
 
+#define implement_me() assert(0)
+
 internal_proc void *
 xmalloc(size_t size) {
     void *mem = malloc(size);
