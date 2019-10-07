@@ -120,6 +120,18 @@ exec_expr(Resolved_Expr *expr) {
     return result;
 }
 
+internal_proc b32
+if_expr_cond(Resolved_Expr *if_expr) {
+    if ( !if_expr ) {
+        return true;
+    }
+
+    Val *if_val = exec_expr(if_expr->expr_if.cond);
+    assert(if_val->kind == VAL_BOOL);
+
+    return if_val->_bool;
+}
+
 internal_proc void
 exec_stmt(Resolved_Stmt *stmt) {
     switch ( stmt->kind ) {
@@ -128,14 +140,24 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_VAR: {
-            char *value = to_char(exec_expr(stmt->stmt_var.expr));
+            Resolved_Expr *if_expr = stmt->stmt_var.if_expr;
 
-            for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
-                Resolved_Filter *filter = stmt->stmt_var.filter[i];
-                value = filter->proc(value, filter->args, filter->num_args);
+            if ( !if_expr || if_expr_cond(if_expr) ) {
+                char *value = to_char(exec_expr(stmt->stmt_var.expr));
+
+                for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
+                    Resolved_Filter *filter = stmt->stmt_var.filter[i];
+                    value = filter->proc(value, filter->args, filter->num_args);
+                }
+
+                genf("%s", value);
+            } else {
+                if ( if_expr->expr_if.else_expr ) {
+                    Val *else_val = exec_expr(if_expr->expr_if.else_expr);
+
+                    genf("%s", to_char(else_val));
+                }
             }
-
-            genf("%s", value);
         } break;
 
         case STMT_BLOCK: {

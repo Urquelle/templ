@@ -776,6 +776,11 @@ struct Resolved_Expr {
             Resolved_Expr **args;
             size_t num_args;
         } expr_call;
+
+        struct {
+            Resolved_Expr *cond;
+            Resolved_Expr *else_expr;
+        } expr_if;
     };
 };
 
@@ -911,6 +916,16 @@ resolved_expr_call(Resolved_Expr *expr, Resolved_Expr **args, size_t num_args, T
 
     return result;
 }
+
+internal_proc Resolved_Expr *
+resolved_expr_if(Resolved_Expr *cond, Resolved_Expr *else_expr) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_IF, type_bool);
+
+    result->expr_if.cond = cond;
+    result->expr_if.else_expr = else_expr;
+
+    return result;
+}
 /* }}} */
 
 internal_proc Resolved_Expr *
@@ -963,6 +978,7 @@ struct Resolved_Stmt {
             Resolved_Expr *expr;
             Resolved_Filter **filter;
             size_t num_filter;
+            Resolved_Expr *if_expr;
         } stmt_var;
 
         struct {
@@ -1013,12 +1029,15 @@ resolved_stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_var(Resolved_Expr *expr, Resolved_Filter **filter, size_t num_filter) {
+resolved_stmt_var(Resolved_Expr *expr, Resolved_Filter **filter,
+        size_t num_filter, Resolved_Expr *if_expr)
+{
     Resolved_Stmt *result = resolved_stmt_new(STMT_VAR);
 
-    result->stmt_var.expr = expr;
-    result->stmt_var.filter = filter;
+    result->stmt_var.expr       = expr;
+    result->stmt_var.filter     = filter;
     result->stmt_var.num_filter = num_filter;
+    result->stmt_var.if_expr    = if_expr;
 
     return result;
 }
@@ -1359,7 +1378,12 @@ resolve_stmt(Stmt *stmt) {
             }
 
             Resolved_Expr *expr = resolve_expr(stmt->stmt_var.expr);
-            result = resolved_stmt_var(expr, res_filter, buf_len(res_filter));
+            Resolved_Expr *if_expr = 0;
+            if ( stmt->stmt_var.if_expr ) {
+                if_expr = resolve_expr(stmt->stmt_var.if_expr);
+            }
+
+            result = resolved_stmt_var(expr, res_filter, buf_len(res_filter), if_expr);
             expr->stmt = result;
         } break;
 
@@ -1783,6 +1807,13 @@ resolve_expr(Expr *expr) {
             }
 
             result = resolved_expr_is(test_expr, test_proc, args, buf_len(args));
+        } break;
+
+        case EXPR_IF: {
+            Resolved_Expr *cond = resolve_expr(expr->expr_if.cond);
+            Resolved_Expr *else_expr = resolve_expr(expr->expr_if.else_expr);
+
+            result = resolved_expr_if(cond, else_expr);
         } break;
 
         default: {

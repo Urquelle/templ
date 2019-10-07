@@ -12,7 +12,7 @@
 
     {% set b = 2 %}
     {% if b is eq 2 %}
-        {{ user.name }}
+        {{ user.name if b is eq 2 else "protogermane" }}
     {% endif %}
 
     {% for it in 0..5 %}

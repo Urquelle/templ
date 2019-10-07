@@ -30,6 +30,7 @@ enum Expr_Kind {
     EXPR_RANGE,
     EXPR_CALL,
     EXPR_IS,
+    EXPR_IF,
 };
 
 struct Expr {
@@ -105,6 +106,11 @@ struct Expr {
             Expr **args;
             size_t num_args;
         } expr_is;
+
+        struct {
+            Expr *cond;
+            Expr *else_expr;
+        } expr_if;
     };
 };
 
@@ -256,6 +262,16 @@ expr_is(Expr *var, Expr *test, Expr **args, size_t num_args) {
     return result;
 }
 
+internal_proc Expr *
+expr_if(Expr *cond, Expr *else_expr) {
+    Expr *result = expr_new(EXPR_IF);
+
+    result->expr_if.cond = cond;
+    result->expr_if.else_expr = else_expr;
+
+    return result;
+}
+
 struct Var_Filter {
     char*  name;
     Expr** params;
@@ -311,6 +327,7 @@ struct Stmt {
             Expr *expr;
             Var_Filter *filter;
             size_t num_filter;
+            Expr *if_expr;
         } stmt_var;
 
         struct {
@@ -320,6 +337,7 @@ struct Stmt {
         struct {
             char *name;
             Parsed_Templ *templ;
+            Expr *if_expr;
         } stmt_extends;
 
         struct {
@@ -430,12 +448,13 @@ stmt_endfilter() {
 }
 
 internal_proc Stmt *
-stmt_var(Expr *expr, Var_Filter *filter, size_t num_filter) {
+stmt_var(Expr *expr, Var_Filter *filter, size_t num_filter, Expr *if_expr) {
     Stmt *result = stmt_new(STMT_VAR);
 
     result->stmt_var.expr = expr;
     result->stmt_var.filter = filter;
     result->stmt_var.num_filter = num_filter;
+    result->stmt_var.if_expr = if_expr;
 
     return result;
 }
@@ -451,11 +470,12 @@ stmt_lit(char *value, size_t len) {
 }
 
 internal_proc Stmt *
-stmt_extends(char *name, Parsed_Templ *templ) {
+stmt_extends(char *name, Parsed_Templ *templ, Expr *if_expr) {
     Stmt *result = stmt_new(STMT_EXTENDS);
 
     result->stmt_extends.name  = name;
     result->stmt_extends.templ = templ;
+    result->stmt_extends.if_expr = if_expr;
 
     return result;
 }

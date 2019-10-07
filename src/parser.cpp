@@ -7,8 +7,8 @@ global_var Stmt **parsed_stmts;
 internal_proc Expr * parse_expr(Parser *p);
 internal_proc char * parse_name(Parser *p);
 internal_proc Stmt * parse_stmt(Parser *p);
-internal_proc Stmt * parse_var(Parser *p);
-internal_proc Stmt * parse_lit(Parser *p);
+internal_proc Stmt * parse_stmt_var(Parser *p);
+internal_proc Stmt * parse_stmt_lit(Parser *p);
 internal_proc Var_Filter parse_filter(Parser *p);
 internal_proc Parsed_Templ * parse_file(char *filename);
 
@@ -269,6 +269,31 @@ parse_expr(Parser *p) {
     return expr;
 }
 
+internal_proc Expr *
+parse_expr_if(Parser *p) {
+    Expr *cond = parse_expr(p);
+
+    if ( match_keyword(p, keyword_is) ) {
+        Expr *test = parse_expr(p);
+        assert(test->kind == EXPR_NAME);
+
+        Expr **args = 0;
+        while ( !is_token(p, T_CODE_END ) && !is_keyword(p, keyword_else) ) {
+            buf_push(args, parse_expr(p));
+            match_token(p, T_COMMA);
+        }
+
+        cond = expr_is(cond, test, args, buf_len(args));
+    }
+
+    Expr *else_expr = 0;
+    if ( match_keyword(p, keyword_else) ) {
+        else_expr = parse_expr(p);
+    }
+
+    return expr_if(cond, else_expr);
+}
+
 internal_proc char *
 parse_name(Parser *p) {
     Expr *expr = parse_expr(p);
@@ -407,11 +432,17 @@ parse_stmt_block(Parser *p) {
 internal_proc Stmt *
 parse_stmt_extends(Parser *p) {
     char *name = parse_str(p);
+
+    Expr *if_expr = 0;
+    if ( match_keyword(p, keyword_if) ) {
+        if_expr = parse_expr_if(p);
+    }
+
     expect_token(p, T_CODE_END);
 
     Parsed_Templ *templ = parse_file(name);
 
-    return stmt_extends(name, templ);
+    return stmt_extends(name, templ, if_expr);
 }
 
 internal_proc Stmt *
@@ -514,9 +545,9 @@ parse_stmt(Parser *p) {
             assert(0);
         }
     } else if ( match_token(p, T_VAR_BEGIN) ) {
-        result = parse_var(p);
+        result = parse_stmt_var(p);
     } else {
-        result = parse_lit(p);
+        result = parse_stmt_lit(p);
     }
 
     return result;
@@ -534,16 +565,22 @@ parse_filter(Parser *p) {
 }
 
 internal_proc Stmt *
-parse_var(Parser *p) {
+parse_stmt_var(Parser *p) {
     Expr *expr = parse_expr(p);
 
     Var_Filter *filter = 0;
     while ( match_token(p, T_BAR) ) {
         buf_push(filter, parse_filter(p));
     }
+
+    Expr *if_expr = 0;
+    if ( match_keyword(p, keyword_if) ) {
+        if_expr = parse_expr_if(p);
+    }
+
     expect_token(p, T_VAR_END);
 
-    return stmt_var(expr, filter, buf_len(filter));
+    return stmt_var(expr, filter, buf_len(filter), if_expr);
 }
 
 internal_proc Stmt *
@@ -552,7 +589,7 @@ parse_code(Parser *p) {
 }
 
 internal_proc Stmt *
-parse_lit(Parser *p) {
+parse_stmt_lit(Parser *p) {
     char *lit = 0;
 
     buf_printf(lit, "%s", p->lex.token.literal);
@@ -572,7 +609,7 @@ parse_file(char *filename) {
     char *content = 0;
     Parsed_Templ *templ = (Parsed_Templ *)xcalloc(1, sizeof(Parsed_Templ));
 
-    /* @TODO: nur den dateinamen ohne dateierweiterung übernehmen */
+    /* @AUFGABE: nur den dateinamen ohne dateierweiterung übernehmen */
     templ->name = filename;
 
     if ( file_read(filename, &content) ) {
@@ -591,7 +628,7 @@ parse_file(char *filename) {
 
                 buf_push(templ->stmts, stmt);
             } else {
-                buf_push(templ->stmts, parse_lit(p));
+                buf_push(templ->stmts, parse_stmt_lit(p));
             }
         }
     } else {
