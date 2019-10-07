@@ -105,6 +105,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_CALL: {
+            //
         } break;
 
         default: {
