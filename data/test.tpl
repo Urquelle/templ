@@ -5,6 +5,8 @@
 {% end %}
 
 {% block main %}
+    {{ super() }}
+
     {% set a = "test" %}
     <div class="bla">{{ a }}</div>
 

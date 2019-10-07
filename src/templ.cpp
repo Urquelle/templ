@@ -4,7 +4,7 @@ init() {
 }
 
 internal_proc Resolved_Templ *
-compile(char *filename) {
+templ_compile(char *filename) {
     Parsed_Templ *parsed_templ = parse_file(filename);
     Resolved_Templ *result = resolve(parsed_templ);
 
@@ -12,7 +12,7 @@ compile(char *filename) {
 }
 
 internal_proc void
-render(Resolved_Templ *templ) {
+templ_render(Resolved_Templ *templ) {
     exec(templ);
 }
 
@@ -23,8 +23,8 @@ templ_main(int argc, char **argv) {
     }
 
     init();
-    Resolved_Templ *resolved_templ = compile(argv[1]);
-    render(resolved_templ);
+    Resolved_Templ *resolved_templ = templ_compile(argv[1]);
+    templ_render(resolved_templ);
     file_write("test.html", gen_result, strlen(gen_result));
 }
 

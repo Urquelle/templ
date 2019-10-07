@@ -694,6 +694,11 @@ internal_proc Sym *
 sym_push_var(char *name, Type *type, Val *val) {
     return sym_push(SYM_VAR, name, type, val);
 }
+
+internal_proc Sym *
+sym_push_proc(char *name, Type *type) {
+    return sym_push(SYM_PROC, name, type);
+}
 /* }}} */
 /* resolved_expr {{{ */
 struct Resolved_Expr {
@@ -752,6 +757,12 @@ struct Resolved_Expr {
             Resolved_Expr **args;
             size_t num_args;
         } expr_is;
+
+        struct {
+            Resolved_Expr *expr;
+            Resolved_Expr **args;
+            size_t num_args;
+        } expr_call;
     };
 };
 
@@ -876,6 +887,17 @@ resolved_expr_is(Resolved_Expr *expr, Resolved_Expr *test, Resolved_Expr **args,
 
     return result;
 }
+
+internal_proc Resolved_Expr *
+resolved_expr_call(Resolved_Expr *expr, Resolved_Expr **args, size_t num_args, Type *type) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_CALL, type);
+
+    result->expr_call.expr = expr;
+    result->expr_call.args = (Resolved_Expr **)AST_DUP(args);
+    result->expr_call.num_args = num_args;
+
+    return result;
+}
 /* }}} */
 
 internal_proc Resolved_Expr *
@@ -919,6 +941,9 @@ operand_const(Type *type, Val *val) {
 /* resolved_stmt {{{ */
 struct Resolved_Stmt {
     Stmt_Kind kind;
+
+    Resolved_Stmt *block;
+    Resolved_Stmt *super;
 
     union {
         struct {
@@ -1061,6 +1086,10 @@ resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
     result->stmt_block.name = name;
     result->stmt_block.stmts = stmts;
     result->stmt_block.num_stmts = num_stmts;
+
+    for ( int i = 0; i < num_stmts; ++i ) {
+        stmts[i]->block = result;
+    }
 
     return result;
 }
@@ -1650,8 +1679,8 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_CALL: {
-            Resolved_Expr *operand = resolve_expr(expr->expr_call.expr);
-            Type *type = operand->type;
+            Resolved_Expr *call_expr = resolve_expr(expr->expr_call.expr);
+            Type *type = call_expr->type;
             if ( !is_callable(type) ) {
                 assert(!"aufruf einer nicht-prozedur");
             }
@@ -1660,6 +1689,7 @@ resolve_expr(Expr *expr) {
                 assert(!"zu viele argumente");
             }
 
+            Resolved_Expr **args = 0;
             for ( int i = 0; i < type->type_proc.num_params; ++i ) {
                 Type_Field *param = type->type_proc.params[i];
 
@@ -1672,10 +1702,11 @@ resolve_expr(Expr *expr) {
                     if (arg->type != param->type) {
                         assert(!"datentyp des arguments stimmt nicht");
                     }
+                    buf_push(args, arg);
                 }
             }
 
-            result = operand_rvalue(type->type_proc.ret);
+            result = resolved_expr_call(call_expr, args, buf_len(args), type);
         } break;
 
         case EXPR_INDEX: {
@@ -1827,7 +1858,14 @@ resolve(Parsed_Templ *parsed_templ) {
 
                     assert(sub_stmt->kind == STMT_BLOCK);
                     if ( sub_stmt->stmt_block.name == stmt->stmt_block.name ) {
+                        Resolved_Stmt *super = resolve_stmt(stmt);
+
+                        if ( !sym_get(intern_str("super")) ) {
+                            sym_push_proc("super", type_proc(0, 0, type_str));
+                        }
+
                         resolved_stmt = resolve_stmt(sub_stmt);
+                        resolved_stmt->super = super;
                     }
                 }
             } else {

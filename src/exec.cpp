@@ -104,6 +104,9 @@ exec_expr(Resolved_Expr *expr) {
             result = type->type_test.callback(var_val, expr->expr_is.args, expr->expr_is.num_args);
         } break;
 
+        case EXPR_CALL: {
+        } break;
+
         default: {
             assert(0);
         } break;
