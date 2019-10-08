@@ -294,6 +294,7 @@ enum Stmt_Kind {
     STMT_EXTENDS,
     STMT_SET,
     STMT_FILTER,
+    STMT_INCLUDE,
 };
 
 struct Stmt {
@@ -351,6 +352,10 @@ struct Stmt {
             Stmt **stmts;
             size_t num_stmts;
         } stmt_filter;
+
+        struct {
+            Expr *expr;
+        } stmt_include;
     };
 };
 
@@ -498,6 +503,15 @@ stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmt
     result->stmt_filter.num_filter = num_filter;
     result->stmt_filter.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_filter.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_include(Expr *expr) {
+    Stmt *result = stmt_new(STMT_INCLUDE);
+
+    result->stmt_include.expr = expr;
 
     return result;
 }

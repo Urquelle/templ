@@ -29,6 +29,7 @@ global_var char *keyword_block;
 global_var char *keyword_embed;
 global_var char *keyword_set;
 global_var char *keyword_filter;
+global_var char *keyword_include;
 
 internal_proc void
 init_keywords() {
@@ -50,6 +51,7 @@ init_keywords() {
     ADD_KEYWORD(embed);
     ADD_KEYWORD(set);
     ADD_KEYWORD(filter);
+    ADD_KEYWORD(include);
 
 #undef ADD_KEYWORD
 }
@@ -487,6 +489,14 @@ parse_stmt_set(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_include(Parser *p) {
+    Expr *expr = parse_expr(p);
+    expect_token(p, T_CODE_END);
+
+    return stmt_include(expr);
+}
+
+internal_proc Stmt *
 parse_stmt_endfor(Parser *p) {
     expect_token(p, T_CODE_END);
     return stmt_endfor();
@@ -541,6 +551,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_filter(p);
         } else if ( match_keyword(p, keyword_set) ) {
             result = parse_stmt_set(p);
+        } else if ( match_keyword(p, keyword_include) ) {
+            result = parse_stmt_include(p);
         } else {
             assert(0);
         }
