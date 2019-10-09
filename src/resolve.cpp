@@ -200,6 +200,11 @@ val_str(char *val) {
     return result;
 }
 
+internal_proc void
+val_str(Val *val, char *value) {
+    *((char **)val->ptr) = value;
+}
+
 internal_proc char *
 val_str(Val *val) {
     return *(char **)val->ptr;
@@ -259,6 +264,36 @@ val_array(Val **vals, size_t num_vals) {
     return result;
 }
 
+internal_proc void
+val_set(Val *val, s32 value) {
+    assert(val->kind == VAL_INT);
+    val_int(val, value);
+}
+
+internal_proc void
+val_set(Val *val, bool value) {
+    assert(val->kind == VAL_BOOL);
+    val_bool(val, value);
+}
+
+internal_proc void
+val_set(Val *val, f32 value) {
+    assert(val->kind == VAL_FLOAT);
+    val_float(val, value);
+}
+
+internal_proc void
+val_set(Val *val, char *value) {
+    assert(val->kind == VAL_STR);
+    val_str(val, value);
+}
+
+internal_proc void
+val_set(Val *val, s32 min, s32 max) {
+    val_range0(val, min);
+    val_range1(val, max);
+}
+
 global_var char to_char_buf[1000];
 internal_proc char *
 to_char(Val *val) {
@@ -291,21 +326,19 @@ operator*(Val left, Val right) {
     /* @AUFGABE: val_set implementieren */
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
-        val_int(&result, val_int(&left) * val_int(&right));
+        val_set(&result, val_int(&left) * val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_float(&left) * val_float(&right));
+        val_set(&result, val_float(&left) * val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        val_range0(&result, val_int(&left) * val_range0(&right));
-        val_range1(&result, val_int(&left) * val_range1(&right));
+        val_set(&result, val_int(&left) * val_range0(&right), val_int(&left) * val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_float(&left) * val_float(&right));
+        val_set(&result, val_float(&left) * val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        val_range0(&result, val_range0(&left) * val_range0(&right));
-        val_range1(&result, val_range1(&left) * val_range1(&right));
+        val_set(&result, val_range0(&left) * val_range0(&right), val_range1(&left) * val_range1(&right));
     } else {
         illegal_path();
     }
@@ -320,23 +353,21 @@ operator/(Val left, Val right) {
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
         assert(val_int(&right) != 0);
-        val_int(&result, val_int(&left) / val_int(&right));
+        val_set(&result, val_int(&left) / val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_int(&left) / val_float(&right));
+        val_set(&result, val_int(&left) / val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
         assert(val_range0(&right) != 0 && val_range1(&right) != 0);
-        val_range0(&result, val_int(&left) / val_range0(&right));
-        val_range1(&result, val_int(&left) / val_range1(&right));
+        val_set(&result, val_int(&left) / val_range0(&right), val_int(&left) / val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_float(&left) / val_float(&right));
+        val_set(&result, val_float(&left) / val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
         assert(val_range0(&right) != 0 && val_range1(&right) != 0);
-        val_range0(&result, val_range0(&left) * val_range0(&right));
-        val_range1(&result, val_range1(&left) * val_range1(&right));
+        val_set(&result, val_range0(&left) * val_range0(&right), val_range1(&left) * val_range1(&right));
     } else {
         illegal_path();
     }
@@ -350,21 +381,19 @@ operator+(Val left, Val right) {
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
-        val_int(&result, val_int(&left) + val_int(&right));
+        val_set(&result, val_int(&left) + val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_int(&left) + val_float(&right));
+        val_set(&result, val_int(&left) + val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        val_range0(&result, val_int(&left) + val_range0(&right));
-        val_range1(&result, val_int(&left) + val_range1(&right));
+        val_set(&result, val_int(&left) + val_range0(&right), val_int(&left) + val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_float(&left) + val_float(&right));
+        val_set(&result, val_float(&left) + val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        val_range0(&result, val_range0(&left) + val_range0(&right));
-        val_range1(&result, val_range1(&left) + val_range1(&right));
+        val_set(&result, val_range0(&left) + val_range0(&right), val_range1(&left) + val_range1(&right));
     } else {
         illegal_path();
     }
@@ -378,21 +407,19 @@ operator-(Val left, Val right) {
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
-        val_int(&result, val_int(&left) - val_int(&right));
+        val_set(&result, val_int(&left) - val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_int(&left) - val_float(&right));
+        val_set(&result, val_int(&left) - val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        val_range0(&result, val_int(&left) - val_range0(&right));
-        val_range1(&result, val_int(&left) - val_range1(&right));
+        val_set(&result, val_int(&left) - val_range0(&right), val_int(&left) - val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        val_float(&result, val_float(&left) - val_float(&right));
+        val_set(&result, val_float(&left) - val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        val_range0(&result, val_range0(&left) - val_range0(&right));
-        val_range1(&result, val_range1(&left) - val_range1(&right));
+        val_set(&result, val_range0(&left) - val_range0(&right), val_range1(&left) - val_range1(&right));
     } else {
         illegal_path();
     }
@@ -406,15 +433,15 @@ operator<(Val left, Val right) {
     result.kind = VAL_BOOL;
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
-        val_bool(&result, val_int(&left) < val_int(&right));
+        val_set(&result, val_int(&left) < val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
-        val_bool(&result, val_int(&left) < val_float(&right));
+        val_set(&result, val_int(&left) < val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
-        val_bool(&result, val_int(&left) < val_range0(&right));
+        val_set(&result, val_int(&left) < val_range0(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
-        val_bool(&result, val_float(&left) < val_float(&right));
+        val_set(&result, val_float(&left) < val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
-        val_bool(&result, val_range0(&left) < val_range0(&right) && val_range1(&left) < val_range1(&right));
+        val_set(&result, val_range0(&left) < val_range0(&right) && val_range1(&left) < val_range1(&right));
     } else {
         illegal_path();
     }
