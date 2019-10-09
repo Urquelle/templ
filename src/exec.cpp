@@ -13,7 +13,7 @@ gen_indentation() {
 internal_proc Val *
 val_from_field(Resolved_Expr *expr) {
     Val *result = 0;
-    u8 *raw = (u8 *)expr->expr_field.base->val->_ptr + expr->expr_field.offset;
+    u8 *raw = (u8 *)expr->expr_field.base->val->ptr + expr->expr_field.offset;
 
     switch ( expr->type->kind ) {
         case TYPE_STR: {
@@ -112,6 +112,10 @@ exec_expr(Resolved_Expr *expr) {
             result = type->type_proc.callback(expr->stmt->block->super);
         } break;
 
+        case EXPR_ARRAY_LIT: {
+            /* @AUFGABE: schauen was wir hier überhaupt machen müssen */
+        } break;
+
         default: {
             illegal_path();
         } break;
@@ -129,7 +133,7 @@ if_expr_cond(Resolved_Expr *if_expr) {
     Val *if_val = exec_expr(if_expr->expr_if.cond);
     assert(if_val->kind == VAL_BOOL);
 
-    return if_val->_bool;
+    return val_bool(if_val);
 }
 
 internal_proc void
@@ -176,8 +180,8 @@ exec_stmt(Resolved_Stmt *stmt) {
             Val *list = exec_expr(stmt->stmt_for.expr);
             assert(list->kind == VAL_RANGE); /* @AUFGABE: arrays müssen auch funktionieren */
 
-            for ( int i = list->_range[0]; i < list->_range[1]; ++i ) {
-                stmt->stmt_for.it->val->_s32 = i;
+            for ( int i = val_range0(list); i < val_range1(list); ++i ) {
+                val_int(stmt->stmt_for.it->val, i);
                 for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                     exec_stmt(stmt->stmt_for.stmts[j]);
                 }
@@ -187,7 +191,7 @@ exec_stmt(Resolved_Stmt *stmt) {
         case STMT_IF: {
             Val *val = exec_expr(stmt->stmt_if.expr);
 
-            if ( val->_bool ) {
+            if ( val_bool(val) ) {
                 for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
                     exec_stmt(stmt->stmt_if.stmts[i]);
                 }
@@ -197,7 +201,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                     Resolved_Stmt *elseif = stmt->stmt_if.elseifs[i];
                     val = exec_expr(elseif->stmt_if.expr);
 
-                    if ( val->_bool ) {
+                    if ( val_bool(val) ) {
                         for ( int j = 0; j < elseif->stmt_if.num_stmts; ++j ) {
                             exec_stmt(elseif->stmt_if.stmts[j]);
                         }
@@ -220,9 +224,9 @@ exec_stmt(Resolved_Stmt *stmt) {
             assert(expr->kind == EXPR_STR);
 
             char *content = 0;
-            file_read(expr->val->_str, &content);
+            file_read(val_str(expr->val), &content);
 
-            genf("<!-- include %s -->\n%s", expr->val->_str, content);
+            genf("<!-- include %s -->\n%s", val_str(expr->val), content);
         } break;
 
         default: {

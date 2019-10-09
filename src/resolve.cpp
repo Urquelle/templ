@@ -82,103 +82,179 @@ enum Val_Kind {
     VAL_RANGE,
     VAL_STRUCT,
     VAL_FIELD,
+    VAL_ARRAY,
 };
 
 struct Val {
     Val_Kind kind;
-
-    union {
-        char  _char;
-        int   _s32;
-        float _f32;
-        char* _str;
-        int   _range[2];
-        bool  _bool;
-        void* _ptr;
-    };
+    size_t size;
+    size_t len;
+    void  *ptr;
 };
 
 global_var Val val_none;
 
 internal_proc Val *
-val_new(Val_Kind kind) {
+val_new(Val_Kind kind, size_t size) {
     Val *result = ALLOC_STRUCT(&resolve_arena, Val);
 
-    result->kind   = kind;
+    result->kind = kind;
+    result->size = size;
+    result->ptr  = (void *)ALLOC_SIZE(&resolve_arena, size);
 
     return result;
 }
 
 internal_proc Val *
 val_copy(Val *val) {
-    Val *result = val_new(val->kind);
+    Val *result = val_new(val->kind, val->size);
 
-    result->_range[0] = val->_range[0];
-    result->_range[1] = val->_range[1];
+    result->len = val->len;
+    memcpy(result->ptr, val->ptr, val->size);
 
     return result;
 }
 
 internal_proc Val *
 val_bool(b32 val) {
-    Val *result = val_new(VAL_BOOL);
+    Val *result = val_new(VAL_BOOL, sizeof(bool));
 
-    result->_bool = val;
+    *((b32 *)result->ptr) = val;
 
     return result;
+}
+
+internal_proc void
+val_bool(Val *val, b32 value) {
+    *((b32 *)val->ptr) = value;
+}
+
+internal_proc b32
+val_bool(Val *val) {
+    return *(b32 *)val->ptr;
 }
 
 internal_proc Val *
 val_char(char val) {
-    Val *result = val_new(VAL_CHAR);
+    Val *result = val_new(VAL_CHAR, sizeof(char));
 
-    result->_char = val;
+    *((char *)result->ptr) = val;
 
     return result;
+}
+
+internal_proc void
+val_char(Val *val, char value) {
+    *((char *)val->ptr) = value;
+}
+
+internal_proc char
+val_char(Val *val) {
+    return *(char *)val->ptr;
 }
 
 internal_proc Val *
 val_int(int val) {
-    Val *result = val_new(VAL_INT);
+    Val *result = val_new(VAL_INT, sizeof(int));
 
-    result->_s32 = val;
+    *((int *)result->ptr) = val;
 
     return result;
+}
+
+internal_proc void
+val_int(Val *val, s32 value) {
+    *((s32 *)val->ptr) = value;
+}
+
+internal_proc int
+val_int(Val *val) {
+    return *(int *)val->ptr;
 }
 
 internal_proc Val *
 val_float(float val) {
-    Val *result = val_new(VAL_FLOAT);
+    Val *result = val_new(VAL_FLOAT, sizeof(float));
 
-    result->_f32 = val;
+    *((float *)result->ptr) = val;
 
     return result;
+}
+
+internal_proc void
+val_float(Val *val, float value) {
+    *((f32 *)val->ptr) = value;
+}
+
+internal_proc float
+val_float(Val *val) {
+    return *(float *)val->ptr;
 }
 
 internal_proc Val *
 val_str(char *val) {
-    Val *result = val_new(VAL_STR);
+    Val *result = val_new(VAL_STR, sizeof(char*));
 
-    result->_str = val;
+    *((char **)result->ptr) = val;
 
     return result;
+}
+
+internal_proc char *
+val_str(Val *val) {
+    return *(char **)val->ptr;
 }
 
 internal_proc Val *
 val_range(int min, int max) {
-    Val *result = val_new(VAL_RANGE);
+    Val *result = val_new(VAL_RANGE, sizeof(int)*2);
 
-    result->_range[0] = min;
-    result->_range[1] = max;
+    *((int *)result->ptr)   = min;
+    *((int *)result->ptr+1) = max;
 
     return result;
 }
 
+internal_proc void
+val_range0(Val *val, s32 value) {
+    *((s32 *)val->ptr) = value;
+}
+
+internal_proc void
+val_range1(Val *val, s32 value) {
+    *((s32 *)val->ptr+1) = value;
+}
+
+internal_proc int
+val_range0(Val *val) {
+    return *((int *)val->ptr+0);
+}
+
+internal_proc int
+val_range1(Val *val) {
+    return *((int *)val->ptr+1);
+}
+
 internal_proc Val *
 val_struct(void *ptr, size_t size) {
-    Val *result = val_new(VAL_STRUCT);
+    Val *result = val_new(VAL_STRUCT, size);
 
-    result->_ptr = ptr;
+    memcpy(result->ptr, ptr, size);
+
+    return result;
+}
+
+internal_proc void *
+val_struct(Val *val) {
+    return val->ptr;
+}
+
+internal_proc Val *
+val_array(Val **vals, size_t num_vals) {
+    Val *result = val_new(VAL_ARRAY, sizeof(Val)*num_vals);
+
+    *((Val ***)result->ptr) = vals;
+    result->len  = num_vals;
 
     return result;
 }
@@ -188,21 +264,21 @@ internal_proc char *
 to_char(Val *val) {
     switch ( val->kind ) {
         case VAL_STR: {
-            return val->_str;
+            return val_str(val);
         } break;
 
         case VAL_INT: {
-            sprintf(to_char_buf, "%d", val->_s32);
+            sprintf(to_char_buf, "%d", val_int(val));
             return to_char_buf;
         } break;
 
         case VAL_FLOAT: {
-            sprintf(to_char_buf, "%f", val->_f32);
+            sprintf(to_char_buf, "%f", val_float(val));
             return to_char_buf;
         } break;
 
         default: {
-            assert(0);
+            illegal_path();
             return "";
         } break;
     }
@@ -212,25 +288,26 @@ internal_proc Val
 operator*(Val left, Val right) {
     Val result = {};
 
+    /* @AUFGABE: val_set implementieren */
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
-        result._s32 = left._s32 * right._s32;
+        val_int(&result, val_int(&left) * val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._s32 * right._f32;
+        val_float(&result, val_float(&left) * val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        result._range[0] = left._s32 * right._range[0];
-        result._range[1] = left._s32 * right._range[1];
+        val_range0(&result, val_int(&left) * val_range0(&right));
+        val_range1(&result, val_int(&left) * val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._f32 * right._f32;
+        val_float(&result, val_float(&left) * val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        result._range[0] = left._range[0] * right._range[0];
-        result._range[1] = left._range[1] * right._range[1];
+        val_range0(&result, val_range0(&left) * val_range0(&right));
+        val_range1(&result, val_range1(&left) * val_range1(&right));
     } else {
-        assert(0);
+        illegal_path();
     }
 
     return result;
@@ -242,26 +319,26 @@ operator/(Val left, Val right) {
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
-        assert(right._s32 != 0);
-        result._s32 = left._s32 / right._s32;
+        assert(val_int(&right) != 0);
+        val_int(&result, val_int(&left) / val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._s32 / right._f32;
+        val_float(&result, val_int(&left) / val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        assert(right._range[0] != 0 && right._range[1] != 0);
-        result._range[0] = left._s32 / right._range[0];
-        result._range[1] = left._s32 / right._range[1];
+        assert(val_range0(&right) != 0 && val_range1(&right) != 0);
+        val_range0(&result, val_int(&left) / val_range0(&right));
+        val_range1(&result, val_int(&left) / val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._f32 / right._f32;
+        val_float(&result, val_float(&left) / val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        assert(right._range[0] != 0 && right._range[1] != 0);
-        result._range[0] = left._range[0] * right._range[0];
-        result._range[1] = left._range[1] * right._range[1];
+        assert(val_range0(&right) != 0 && val_range1(&right) != 0);
+        val_range0(&result, val_range0(&left) * val_range0(&right));
+        val_range1(&result, val_range1(&left) * val_range1(&right));
     } else {
-        assert(0);
+        illegal_path();
     }
 
     return result;
@@ -273,23 +350,23 @@ operator+(Val left, Val right) {
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
-        result._s32 = left._s32 + right._s32;
+        val_int(&result, val_int(&left) + val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._s32 + right._f32;
+        val_float(&result, val_int(&left) + val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        result._range[0] = left._s32 + right._range[0];
-        result._range[1] = left._s32 + right._range[1];
+        val_range0(&result, val_int(&left) + val_range0(&right));
+        val_range1(&result, val_int(&left) + val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._f32 + right._f32;
+        val_float(&result, val_float(&left) + val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        result._range[0] = left._range[0] + right._range[0];
-        result._range[1] = left._range[1] + right._range[1];
+        val_range0(&result, val_range0(&left) + val_range0(&right));
+        val_range1(&result, val_range1(&left) + val_range1(&right));
     } else {
-        assert(0);
+        illegal_path();
     }
 
     return result;
@@ -301,23 +378,23 @@ operator-(Val left, Val right) {
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
-        result._s32 = left._s32 - right._s32;
+        val_int(&result, val_int(&left) - val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._s32 - right._f32;
+        val_float(&result, val_int(&left) - val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        result._range[0] = left._s32 - right._range[0];
-        result._range[1] = left._s32 - right._range[1];
+        val_range0(&result, val_int(&left) - val_range0(&right));
+        val_range1(&result, val_int(&left) - val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
-        result._f32 = left._f32 - right._f32;
+        val_float(&result, val_float(&left) - val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
-        result._range[0] = left._range[0] - right._range[0];
-        result._range[1] = left._range[1] - right._range[1];
+        val_range0(&result, val_range0(&left) - val_range0(&right));
+        val_range1(&result, val_range1(&left) - val_range1(&right));
     } else {
-        assert(0);
+        illegal_path();
     }
 
     return result;
@@ -329,17 +406,17 @@ operator<(Val left, Val right) {
     result.kind = VAL_BOOL;
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
-        result._bool = left._s32 < right._s32;
+        val_bool(&result, val_int(&left) < val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
-        result._bool = left._s32 < right._f32;
+        val_bool(&result, val_int(&left) < val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
-        result._bool = left._s32 < right._range[0] && left._s32 < right._range[1];
+        val_bool(&result, val_int(&left) < val_range0(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
-        result._bool = left._f32 < right._f32;
+        val_bool(&result, val_float(&left) < val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
-        result._bool = left._range[0] < right._range[0] && left._range[1] < right._range[1];
+        val_bool(&result, val_range0(&left) < val_range0(&right) && val_range1(&left) < val_range1(&right));
     } else {
-        assert(0);
+        illegal_path();
     }
 
     return result;
@@ -352,13 +429,13 @@ operator==(Val left, Val right) {
     }
 
     if ( left.kind == VAL_INT ) {
-        return left._s32 == right._s32;
+        return val_int(&left) == val_int(&right);
     }
 
     if ( left.kind == VAL_FLOAT ) {
         f32 eps = 0.00001f;
 
-        if ( (left._f32 - right._f32) < eps || (left._f32 - right._f32) > eps ) {
+        if ( (val_float(&left) - val_float(&right) < eps) || (val_float(&left) - val_float(&right) > eps ) ) {
             return false;
         } else {
             return true;
@@ -366,15 +443,15 @@ operator==(Val left, Val right) {
     }
 
     if ( left.kind == VAL_RANGE ) {
-        return left._range[0] == right._range[0] && left._range[1] == right._range[1];
+        return val_range0(&left) == val_range0(&right) && val_range1(&left) == val_range1(&right);
     }
 
     if ( left.kind == VAL_STR ) {
-        return left._str == right._str;
+        return val_str(&left) == val_str(&right);
     }
 
     if ( left.kind == VAL_BOOL ) {
-        return left._bool == right._bool;
+        return val_bool(&left) == val_bool(&right);
     }
 
     return false;
@@ -950,9 +1027,10 @@ resolved_expr_index(Resolved_Expr *expr, Resolved_Expr **index, size_t num_index
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_array_lit(Resolved_Expr **expr, size_t num_expr) {
+resolved_expr_array_lit(Resolved_Expr **expr, size_t num_expr, Val *val) {
     Resolved_Expr *result = resolved_expr_new(EXPR_ARRAY_LIT);
 
+    result->val = val;
     result->expr_array_lit.expr = expr;
     result->expr_array_lit.num_expr = num_expr;
 
@@ -1584,12 +1662,12 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
         case T_PLUS: {
             switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val->_s32 + right->val->_s32);
+                    left->val = val_int(val_int(left->val) + val_int(right->val));
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val->_f32 + right->val->_f32);
+                    left->val = val_float(val_float(left->val) + val_float(right->val));
                     return left;
                 } break;
 
@@ -1602,12 +1680,12 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
         case T_MINUS: {
             switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val->_s32 - right->val->_s32);
+                    left->val = val_int(val_int(left->val) - val_int(right->val));
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val->_f32 - right->val->_f32);
+                    left->val = val_float(val_float(left->val) - val_float(right->val));
                     return left;
                 } break;
 
@@ -1620,12 +1698,12 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
         case T_MUL: {
             switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val->_s32 * right->val->_s32);
+                    left->val = val_int(val_int(left->val) * val_int(right->val));
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val->_f32 * right->val->_f32);
+                    left->val = val_float(val_float(left->val) * val_float(right->val));
                     return left;
                 } break;
 
@@ -1638,12 +1716,12 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
         case T_DIV: {
             switch ( left->val->kind ) {
                 case VAL_INT: {
-                    left->val = val_int(left->val->_s32 / right->val->_s32);
+                    left->val = val_int(val_int(left->val) / val_int(right->val));
                     return left;
                 } break;
 
                 case VAL_FLOAT: {
-                    left->val = val_float(left->val->_f32 / right->val->_f32);
+                    left->val = val_float(val_float(left->val) / val_float(right->val));
                     return left;
                 } break;
 
@@ -1775,8 +1853,8 @@ resolve_expr(Expr *expr) {
                 assert(!"range typ muss vom typ int sein");
             }
 
-            int min = left->val->_s32;
-            int max = right->val->_s32;
+            int min = val_int(left->val);
+            int max = val_int(right->val);
 
             result = resolved_expr_range(min, max);
         } break;
@@ -1868,11 +1946,14 @@ resolve_expr(Expr *expr) {
 
         case EXPR_ARRAY_LIT: {
             Resolved_Expr **index = 0;
+            Val **vals = 0;
             for ( int i = 0; i < expr->expr_array_lit.num_expr; ++i ) {
-                buf_push(index, resolve_expr(expr->expr_array_lit.expr[i]));
+                Resolved_Expr *resolved_expr = resolve_expr(expr->expr_array_lit.expr[i]);
+                buf_push(index, resolved_expr);
+                buf_push(vals, resolved_expr->val);
             }
 
-            result = resolved_expr_array_lit(index, buf_len(index));
+            result = resolved_expr_array_lit(index, buf_len(index), val_array(vals, buf_len(vals)));
         } break;
 
         default: {
