@@ -174,13 +174,18 @@ parse_expr_field_or_call_or_index(Parser *p) {
             expect_token(p, T_RPAREN);
             left = expr_call(left, exprs, buf_len(exprs));
         } else if ( match_token(p, T_LBRACKET) ) {
-            Expr *index = parse_expr(p);
+            Expr **index = 0;
+
+            buf_push(index, parse_expr(p));
+            while ( match_token(p, T_COMMA) ) {
+                buf_push(index, parse_expr(p));
+            }
 
             if ( !index ) {
                 assert(!"index darf nicht leer sein");
             }
 
-            left = expr_index(left, index);
+            left = expr_index(left, index, buf_len(index));
             expect_token(p, T_RBRACKET);
         } else if ( match_token(p, T_DOT) ) {
             char *field = p->lex.token.name;
@@ -193,12 +198,34 @@ parse_expr_field_or_call_or_index(Parser *p) {
 }
 
 internal_proc Expr *
+parse_expr_array_lit(Parser *p) {
+    if ( match_token(p, T_LBRACKET) ) {
+        Expr **expr = 0;
+
+        if ( match_token(p, T_RBRACKET) ) {
+            return expr_array_lit(expr, buf_len(expr));
+        }
+
+        buf_push(expr, parse_expr(p));
+        while ( match_token(p, T_COMMA) ) {
+            buf_push(expr, parse_expr(p));
+        }
+
+        expect_token(p, T_RBRACKET);
+
+        return expr_array_lit(expr, buf_len(expr));
+    } else {
+        return parse_expr_field_or_call_or_index(p);
+    }
+}
+
+internal_proc Expr *
 parse_expr_unary(Parser *p) {
     if ( is_unary(p->lex.token.kind) ) {
         Token op = eat_token(&p->lex);
         return expr_unary(op.kind, parse_expr_unary(p));
     } else {
-        return parse_expr_field_or_call_or_index(p);
+        return parse_expr_array_lit(p);
     }
 }
 

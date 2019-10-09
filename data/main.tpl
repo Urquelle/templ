@@ -5,6 +5,7 @@
     </head>
     <body>
         {% include "header.html" %}
+        {% set z = ["a", "b", "c"] %}
 
         <div class="main">
         {% block main %}

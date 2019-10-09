@@ -31,6 +31,7 @@ enum Expr_Kind {
     EXPR_CALL,
     EXPR_IS,
     EXPR_IF,
+    EXPR_ARRAY_LIT,
 };
 
 struct Expr {
@@ -86,7 +87,8 @@ struct Expr {
 
         struct {
             Expr *expr;
-            Expr *index;
+            Expr **index;
+            size_t num_index;
         } expr_index;
 
         struct {
@@ -111,6 +113,11 @@ struct Expr {
             Expr *cond;
             Expr *else_expr;
         } expr_if;
+
+        struct {
+            Expr **expr;
+            size_t num_expr;
+        } expr_array_lit;
     };
 };
 
@@ -220,11 +227,12 @@ expr_field(Expr *expr, char *field) {
 }
 
 internal_proc Expr *
-expr_index(Expr *expr, Expr *index) {
+expr_index(Expr *expr, Expr **index, size_t num_index) {
     Expr *result = expr_new(EXPR_INDEX);
 
     result->expr_index.expr = expr;
     result->expr_index.index = index;
+    result->expr_index.num_index = num_index;
 
     return result;
 }
@@ -268,6 +276,16 @@ expr_if(Expr *cond, Expr *else_expr) {
 
     result->expr_if.cond = cond;
     result->expr_if.else_expr = else_expr;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_array_lit(Expr **expr, size_t num_expr) {
+    Expr *result = expr_new(EXPR_ARRAY_LIT);
+
+    result->expr_array_lit.expr = (Expr **)AST_DUP(expr);
+    result->expr_array_lit.num_expr = num_expr;
 
     return result;
 }

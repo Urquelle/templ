@@ -754,6 +754,12 @@ struct Resolved_Expr {
         } expr_field;
 
         struct {
+            Resolved_Expr *expr;
+            Resolved_Expr **index;
+            size_t num_index;
+        } expr_index;
+
+        struct {
             Token_Kind op;
             Resolved_Expr *expr;
         } expr_unary;
@@ -781,6 +787,11 @@ struct Resolved_Expr {
             Resolved_Expr *cond;
             Resolved_Expr *else_expr;
         } expr_if;
+
+        struct {
+            Resolved_Expr **expr;
+            size_t num_expr;
+        } expr_array_lit;
     };
 };
 
@@ -923,6 +934,27 @@ resolved_expr_if(Resolved_Expr *cond, Resolved_Expr *else_expr) {
 
     result->expr_if.cond = cond;
     result->expr_if.else_expr = else_expr;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_index(Resolved_Expr *expr, Resolved_Expr **index, size_t num_index) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_INDEX);
+
+    result->expr_index.expr = expr;
+    result->expr_index.index = index;
+    result->expr_index.num_index = num_index;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_array_lit(Resolved_Expr **expr, size_t num_expr) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_ARRAY_LIT);
+
+    result->expr_array_lit.expr = expr;
+    result->expr_array_lit.num_expr = num_expr;
 
     return result;
 }
@@ -1782,17 +1814,17 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_INDEX: {
-            Resolved_Expr *operand = resolve_expr(expr->expr_index.expr);
-            if (operand->type->kind != TYPE_ARRAY) {
+            Resolved_Expr *resolved_expr = resolve_expr(expr->expr_index.expr);
+            if (resolved_expr->type->kind != TYPE_ARRAY) {
                 assert(!"indizierung auf einem nicht-array");
             }
 
-            Resolved_Expr *index = resolve_expr(expr->expr_index.index);
-            if ( !is_int(index->type) ) {
-                assert(!"index muss von typ int sein");
+            Resolved_Expr **index = 0;
+            for ( int i = 0; i < expr->expr_index.num_index; ++i ) {
+                buf_push(index, resolve_expr(expr->expr_index.index[i]));
             }
 
-            result = operand_rvalue(operand->type);
+            result = resolved_expr_index(resolved_expr, index, buf_len(index));
         } break;
 
         case EXPR_IS: {
@@ -1834,8 +1866,17 @@ resolve_expr(Expr *expr) {
             result = resolved_expr_if(cond, else_expr);
         } break;
 
+        case EXPR_ARRAY_LIT: {
+            Resolved_Expr **index = 0;
+            for ( int i = 0; i < expr->expr_array_lit.num_expr; ++i ) {
+                buf_push(index, resolve_expr(expr->expr_array_lit.expr[i]));
+            }
+
+            result = resolved_expr_array_lit(index, buf_len(index));
+        } break;
+
         default: {
-            assert(0);
+            illegal_path();
         } break;
     }
 
