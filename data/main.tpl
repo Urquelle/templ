@@ -11,5 +11,7 @@
             super-block-dass-du-da-bist
         {% endblock %}
         </div>
+
+        {% include "footer.html" %}
     </body>
 </html>

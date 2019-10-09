@@ -1016,6 +1016,10 @@ struct Resolved_Stmt {
             Resolved_Stmt **stmts;
             size_t num_stmts;
         } stmt_filter;
+
+        struct {
+            Resolved_Expr *expr;
+        } stmt_include;
     };
 };
 
@@ -1132,6 +1136,15 @@ resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
 
     result->stmt_filter.stmts = stmts;
     result->stmt_filter.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_include(Resolved_Expr *expr) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_INCLUDE);
+
+    result->stmt_include.expr = expr;
 
     return result;
 }
@@ -1507,8 +1520,13 @@ resolve_stmt(Stmt *stmt) {
             result = resolved_stmt_filter(stmts, buf_len(stmts));
         } break;
 
+        case STMT_INCLUDE: {
+            Resolved_Expr *expr = resolve_expr(stmt->stmt_include.expr);
+            result = resolved_stmt_include(expr);
+        } break;
+
         default: {
-            assert(0);
+            illegal_path();
             return result;
         } break;
     }
@@ -1520,7 +1538,7 @@ internal_proc Resolved_Expr *
 resolve_expr_cond(Expr *expr) {
     Resolved_Expr *result = resolve_expr(expr);
 
-    /* @TODO: char, int, str akzeptieren */
+    /* @AUFGABE: char, int, str akzeptieren */
     if ( result->type != type_bool ) {
         assert(!"boolischen ausdruck erwartet");
     }

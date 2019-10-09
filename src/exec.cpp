@@ -113,7 +113,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         default: {
-            assert(0);
+            illegal_path();
         } break;
     }
 
@@ -215,8 +215,18 @@ exec_stmt(Resolved_Stmt *stmt) {
             }
         } break;
 
+        case STMT_INCLUDE: {
+            Resolved_Expr *expr = stmt->stmt_include.expr;
+            assert(expr->kind == EXPR_STR);
+
+            char *content = 0;
+            file_read(expr->val->_str, &content);
+
+            genf("<!-- include %s -->\n%s", expr->val->_str, content);
+        } break;
+
         default: {
-            assert(0);
+            illegal_path();
         } break;
     }
 }

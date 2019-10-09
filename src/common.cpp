@@ -31,6 +31,7 @@ typedef float    f32;
 #define GB(X) (MB(X)*1024)
 
 #define implement_me() assert(0)
+#define illegal_path() assert(0)
 
 internal_proc void *
 xmalloc(size_t size) {
