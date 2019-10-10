@@ -124,11 +124,6 @@ val_bool(b32 val) {
     return result;
 }
 
-internal_proc void
-val_bool(Val *val, b32 value) {
-    *((b32 *)val->ptr) = value;
-}
-
 internal_proc b32
 val_bool(Val *val) {
     return *(b32 *)val->ptr;
@@ -141,11 +136,6 @@ val_char(char val) {
     *((char *)result->ptr) = val;
 
     return result;
-}
-
-internal_proc void
-val_char(Val *val, char value) {
-    *((char *)val->ptr) = value;
 }
 
 internal_proc char
@@ -162,11 +152,6 @@ val_int(int val) {
     return result;
 }
 
-internal_proc void
-val_int(Val *val, s32 value) {
-    *((s32 *)val->ptr) = value;
-}
-
 internal_proc int
 val_int(Val *val) {
     return *(int *)val->ptr;
@@ -181,11 +166,6 @@ val_float(float val) {
     return result;
 }
 
-internal_proc void
-val_float(Val *val, float value) {
-    *((f32 *)val->ptr) = value;
-}
-
 internal_proc float
 val_float(Val *val) {
     return *(float *)val->ptr;
@@ -198,11 +178,6 @@ val_str(char *val) {
     *((char **)result->ptr) = val;
 
     return result;
-}
-
-internal_proc void
-val_str(Val *val, char *value) {
-    *((char **)val->ptr) = value;
 }
 
 internal_proc char *
@@ -267,31 +242,31 @@ val_array(Val **vals, size_t num_vals) {
 internal_proc void
 val_set(Val *val, s32 value) {
     assert(val->kind == VAL_INT);
-    val_int(val, value);
+    *((s32 *)val->ptr) = value;
 }
 
 internal_proc void
 val_set(Val *val, bool value) {
     assert(val->kind == VAL_BOOL);
-    val_bool(val, value);
+    *((b32 *)val->ptr) = value;
 }
 
 internal_proc void
 val_set(Val *val, f32 value) {
     assert(val->kind == VAL_FLOAT);
-    val_float(val, value);
+    *((f32 *)val->ptr) = value;
 }
 
 internal_proc void
 val_set(Val *val, char *value) {
     assert(val->kind == VAL_STR);
-    val_str(val, value);
+    *((char **)val->ptr) = value;
 }
 
 internal_proc void
 val_set(Val *val, s32 min, s32 max) {
-    val_range0(val, min);
-    val_range1(val, max);
+    *((s32 *)val->ptr+0) = min;
+    *((s32 *)val->ptr+1) = max;
 }
 
 global_var char to_char_buf[1000];

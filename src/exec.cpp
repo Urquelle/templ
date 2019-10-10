@@ -181,7 +181,7 @@ exec_stmt(Resolved_Stmt *stmt) {
             assert(list->kind == VAL_RANGE); /* @AUFGABE: arrays müssen auch funktionieren */
 
             for ( int i = val_range0(list); i < val_range1(list); ++i ) {
-                val_int(stmt->stmt_for.it->val, i);
+                val_set(stmt->stmt_for.it->val, i);
                 for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                     exec_stmt(stmt->stmt_for.stmts[j]);
                 }
