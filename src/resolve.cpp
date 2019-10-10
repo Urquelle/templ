@@ -11,7 +11,7 @@ global_var Arena resolve_arena;
 
 #define PROC_CALLBACK(name) Val * name(Resolved_Stmt *stmt)
 typedef PROC_CALLBACK(Proc_Callback);
-PROC_CALLBACK(super_proc);
+PROC_CALLBACK(super);
 
 #define FILTER_CALLBACK(name) char * name(void *val, Resolved_Expr **params, size_t num_params)
 typedef FILTER_CALLBACK(Filter_Callback);
@@ -760,9 +760,9 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
 
     Sym *sym = (Sym *)map_get(&current_scope->syms, name);
     if ( sym && sym->scope == current_scope ) {
-        assert(!"symbol existiert bereits");
+        fatal("symbol existiert bereits");
     } else if ( sym ) {
-        assert(!"warnung: symbol wird überschattet");
+        fatal("warnung: symbol wird überschattet");
     }
 
     Sym *result = sym_new(kind, name, type, val);
@@ -1132,6 +1132,12 @@ struct Resolved_Stmt {
         struct {
             Resolved_Expr *expr;
         } stmt_include;
+		
+		struct {
+            char *name;
+            Resolved_Templ *tmpl;
+            Resolved_Expr *if_expr;
+        } stmt_extends;
     };
 };
 
@@ -1257,6 +1263,17 @@ resolved_stmt_include(Resolved_Expr *expr) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_INCLUDE);
 
     result->stmt_include.expr = expr;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_extends(char *name, Resolved_Templ *tmpl, Resolved_Expr *if_expr) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_EXTENDS);
+
+    result->stmt_extends.name = name;
+    result->stmt_extends.tmpl = tmpl;
+    result->stmt_extends.if_expr = if_expr;
 
     return result;
 }
@@ -1599,7 +1616,13 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_EXTENDS: {
-            /* nix tun */
+            Resolved_Expr *if_expr = 0;
+            if ( stmt->stmt_extends.if_expr ) {
+                if_expr = resolve_expr(stmt->stmt_extends.if_expr);
+            }
+
+            Resolved_Templ *templ = resolve(stmt->stmt_extends.templ);
+            result = resolved_stmt_extends(stmt->stmt_extends.name, templ, if_expr);
         } break;
 
         case STMT_SET: {
@@ -1610,7 +1633,7 @@ resolve_stmt(Stmt *stmt) {
                 sym = sym_push_var(stmt->stmt_set.name, expr->type, val_copy(expr->val));
             } else {
                 if ( !convert_operand(expr, sym->type) ) {
-                    assert(!"datentyp des operanden passt nicht");
+                    fatal("datentyp des operanden passt nicht");
                 }
             }
 
@@ -1652,7 +1675,7 @@ resolve_expr_cond(Expr *expr) {
 
     /* @AUFGABE: char, int, str akzeptieren */
     if ( result->type != type_bool ) {
-        assert(!"boolischen ausdruck erwartet");
+        fatal("boolischen ausdruck erwartet");
     }
 
     return result;
@@ -1674,7 +1697,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    assert(!"nicht unterstützer datentyp");
+                    fatal("nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -1692,7 +1715,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    assert(!"nicht unterstützer datentyp");
+                    fatal("nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -1710,7 +1733,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    assert(!"nicht unterstützer datentyp");
+                    fatal("nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -1728,7 +1751,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    assert(!"nicht unterstützer datentyp");
+                    fatal("nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -1760,7 +1783,7 @@ resolve_expr(Expr *expr) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
             if ( !sym ) {
-                assert(!"konnte symbol nicht auflösen");
+                fatal("konnte symbol nicht auflösen");
             }
 
             result = resolved_expr_name(sym, sym->type, sym->val);
@@ -1818,7 +1841,7 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *right  = resolve_expr(expr->expr_ternary.right);
 
             if ( middle->type != right->type ) {
-                assert(!"beide datentypen der zuweisung müssen gleich sein");
+                fatal("beide datentypen der zuweisung müssen gleich sein");
             }
 
             result = operand_rvalue(middle->type);
@@ -1848,11 +1871,11 @@ resolve_expr(Expr *expr) {
             unify_arithmetic_operands(left, right);
 
             if ( !is_int(left->type) ) {
-                assert(!"range typ muss vom typ int sein");
+                fatal("range typ muss vom typ int sein");
             }
 
             if ( !is_int(right->type) ) {
-                assert(!"range typ muss vom typ int sein");
+                fatal("range typ muss vom typ int sein");
             }
 
             int min = val_int(left->val);
@@ -1866,11 +1889,11 @@ resolve_expr(Expr *expr) {
             Type *type = call_expr->type;
 
             if ( !is_callable(type) ) {
-                assert(!"aufruf einer nicht-prozedur");
+                fatal("aufruf einer nicht-prozedur");
             }
 
             if ( type->type_proc.num_params < expr->expr_call.num_params ) {
-                assert(!"zu viele argumente");
+                fatal("zu viele argumente");
             }
 
             Resolved_Expr **args = 0;
@@ -1878,13 +1901,13 @@ resolve_expr(Expr *expr) {
                 Type_Field *param = type->type_proc.params[i];
 
                 if ( param->default_val->kind == VAL_NONE && (i >= expr->expr_call.num_params) ) {
-                    assert(!"zu wenige parameter übergeben");
+                    fatal("zu wenige parameter übergeben");
                 }
 
                 if ( i < expr->expr_call.num_params ) {
                     Resolved_Expr *arg = resolve_expr(expr->expr_call.params[i]);
                     if (arg->type != param->type) {
-                        assert(!"datentyp des arguments stimmt nicht");
+                        fatal("datentyp des arguments stimmt nicht");
                     }
                     buf_push(args, arg);
                 }
@@ -1896,7 +1919,7 @@ resolve_expr(Expr *expr) {
         case EXPR_INDEX: {
             Resolved_Expr *resolved_expr = resolve_expr(expr->expr_index.expr);
             if (resolved_expr->type->kind != TYPE_ARRAY) {
-                assert(!"indizierung auf einem nicht-array");
+                fatal("indizierung auf einem nicht-array");
             }
 
             Resolved_Expr **index = 0;
@@ -1917,13 +1940,13 @@ resolve_expr(Expr *expr) {
             assert(type->kind == TYPE_TEST);
 
             if ( type->type_test.num_params != expr->expr_is.num_args+1 ) {
-                assert(!"falsche anzahl übergebener parameter");
+                fatal("falsche anzahl übergebener parameter");
             }
 
             Resolved_Expr **args = 0;
             Type_Field *param = type->type_test.params[0];
             if ( test_expr->type != param->type ) {
-                assert(!"datentyp des arguments ist falsch");
+                fatal("datentyp des arguments ist falsch");
             }
 
             for ( int i = 1; i < type->type_test.num_params; ++i ) {
@@ -1931,7 +1954,7 @@ resolve_expr(Expr *expr) {
 
                 Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
                 if (arg->type != param->type) {
-                    assert(!"datentyp des arguments ist falsch");
+                    fatal("datentyp des arguments ist falsch");
                 }
                 buf_push(args, arg);
             }
@@ -1941,7 +1964,10 @@ resolve_expr(Expr *expr) {
 
         case EXPR_IF: {
             Resolved_Expr *cond = resolve_expr(expr->expr_if.cond);
-            Resolved_Expr *else_expr = resolve_expr(expr->expr_if.else_expr);
+            Resolved_Expr *else_expr = 0;
+            if ( expr->expr_if.else_expr ) {
+                else_expr = resolve_expr(expr->expr_if.else_expr);
+            }
 
             result = resolved_expr_if(cond, else_expr);
         } break;
@@ -1971,7 +1997,7 @@ resolve_filter(Var_Filter *filter) {
     Sym *sym = resolve_name(filter->name);
 
     if ( !sym ) {
-        assert(!"symbol konnte nicht gefunden werden!");
+        fatal("symbol konnte nicht gefunden werden!");
     }
 
     assert(sym->type);
@@ -1979,7 +2005,7 @@ resolve_filter(Var_Filter *filter) {
     Type *type = sym->type;
 
     if ( type->type_proc.num_params-1 < filter->num_params ) {
-        assert(!"zu viele argumente");
+        fatal("zu viele argumente");
     }
 
     Resolved_Expr **args = 0;
@@ -1987,13 +2013,13 @@ resolve_filter(Var_Filter *filter) {
         Type_Field *param = type->type_proc.params[i];
 
         if ( param->default_val->kind == VAL_NONE && (i-1 >= filter->num_params) ) {
-            assert(!"zu wenige parameter übergeben");
+            fatal("zu wenige parameter übergeben");
         }
 
         if ( i-1 < filter->num_params ) {
             Resolved_Expr *arg = resolve_expr(filter->params[i-1]);
             if (arg->type != param->type) {
-                assert(!"datentyp des arguments stimmt nicht");
+                fatal("datentyp des arguments stimmt nicht");
             }
             buf_push(args, arg);
         }
@@ -2036,8 +2062,14 @@ init_arenas() {
 }
 
 internal_proc void
+init_builtin_procs() {
+    sym_push_proc("super", type_proc(0, 0, 0, super));
+}
+
+internal_proc void
 init_resolver() {
     init_arenas();
+    init_builtin_procs();
     init_builtin_types();
     init_builtin_filter();
     init_builtin_tests();
@@ -2049,58 +2081,9 @@ resolve(Parsed_Templ *parsed_templ) {
     Resolved_Templ *result = resolved_templ_new();
     result->name = parsed_templ->name;
 
-    if ( parsed_templ->parent ) {
-        /* elterntemplate durchgehen */
-        for ( int i = 0; i < parsed_templ->parent->num_stmts; ++i ) {
-            Stmt *stmt = parsed_templ->parent->stmts[i];
-            Resolved_Stmt *resolved_stmt = 0;
-
-            if ( stmt->kind == STMT_BLOCK ) {
-                for ( int j = 0; j < parsed_templ->num_stmts; ++j ) {
-                    Stmt *sub_stmt = parsed_templ->stmts[j];
-
-                    assert(sub_stmt->kind == STMT_BLOCK);
-                    if ( sub_stmt->stmt_block.name == stmt->stmt_block.name ) {
-                        Resolved_Stmt *super = resolve_stmt(stmt);
-
-                        if ( !sym_get(intern_str("super")) ) {
-                            sym_push_proc("super", type_proc(0, 0, type_str, super_proc));
-                        }
-
-                        resolved_stmt = resolve_stmt(sub_stmt);
-                        resolved_stmt->super = super;
-                    }
-                }
-            } else {
-                resolved_stmt = resolve_stmt(stmt);
-            }
-
-            buf_push(result->stmts, resolved_stmt);
-        }
-
-        /* kindtemplate durchgehen */
-        for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
-            Stmt *stmt = parsed_templ->stmts[i];
-
-            if ( stmt->kind == STMT_BLOCK ) {
-                b32 block_already_executed = false;
-                for ( int j = 0; j < parsed_templ->parent->num_stmts; ++j ) {
-                    Stmt *parent_stmt = parsed_templ->parent->stmts[j];
-
-                    if ( stmt->stmt_block.name == parent_stmt->stmt_block.name ) {
-                        block_already_executed = true;
-                    }
-                }
-
-                if ( !block_already_executed ) {
-                    buf_push(result->stmts, resolve_stmt(stmt));
-                }
-            }
-        }
-    } else {
-        for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
-            buf_push(result->stmts, resolve_stmt(parsed_templ->stmts[i]));
-        }
+    for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
+        Resolved_Stmt *stmt = resolve_stmt(parsed_templ->stmts[i]);
+        buf_push(result->stmts, stmt);
     }
 
     result->num_stmts = buf_len(result->stmts);

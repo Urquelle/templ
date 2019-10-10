@@ -2,8 +2,13 @@
 #define genlnf(...) gen_result = strf("%s\n", gen_result); gen_indentation(); genf(__VA_ARGS__)
 #define genln()     gen_result = strf("%s\n", gen_result); gen_indentation()
 
+internal_proc void exec_stmt(Resolved_Stmt *stmt);
+
 global_var char *gen_result = "";
 global_var int gen_indent   = 0;
+
+Resolved_Templ *global_current_tmpl;
+Resolved_Stmt  *global_super_block;
 
 internal_proc void
 gen_indentation() {
@@ -106,9 +111,12 @@ exec_expr(Resolved_Expr *expr) {
 
         case EXPR_CALL: {
             Type *type = expr->type;
+
             assert(expr->stmt);
             assert(expr->stmt->block);
             assert(expr->stmt->block->super);
+
+            /* @AUFGABE: expr->expr_call.args (?) */
             result = type->type_proc.callback(expr->stmt->block->super);
         } break;
 
@@ -134,6 +142,55 @@ if_expr_cond(Resolved_Expr *if_expr) {
     assert(if_val->kind == VAL_BOOL);
 
     return val_bool(if_val);
+}
+
+internal_proc void
+exec_extends(Resolved_Stmt *stmt) {
+    assert(stmt->kind == STMT_EXTENDS);
+
+    Resolved_Templ *templ = stmt->stmt_extends.tmpl;
+
+    for ( int i = 0; i < templ->num_stmts; ++i ) {
+        Resolved_Stmt *parent_stmt = templ->stmts[i];
+
+        if ( parent_stmt->kind == STMT_BLOCK ) {
+            /* @AUFGABE: eine map aller block statements im tmpl */
+            for ( int j = 0; j < global_current_tmpl->num_stmts; ++j ) {
+                Resolved_Stmt *child_stmt = global_current_tmpl->stmts[j];
+                if ( child_stmt->kind == STMT_BLOCK &&
+                     child_stmt->stmt_block.name == parent_stmt->stmt_block.name )
+                {
+                    global_super_block = parent_stmt;
+                    exec_stmt(child_stmt);
+                }
+            }
+        } else {
+            exec_stmt(parent_stmt);
+        }
+    }
+
+    for ( int i = 0; i < global_current_tmpl->num_stmts; ++i ) {
+        Resolved_Stmt *child_stmt = global_current_tmpl->stmts[i];
+
+        if ( child_stmt->kind == STMT_EXTENDS ) {
+            continue;
+        }
+
+        assert(child_stmt->kind == STMT_BLOCK);
+
+        b32 block_already_executed = false;
+        for ( int j = 0; j < templ->num_stmts; ++j ) {
+            Resolved_Stmt *parent_stmt = templ->stmts[j];
+
+            if ( parent_stmt->stmt_block.name == child_stmt->stmt_block.name ) {
+                block_already_executed = true;
+            }
+        }
+
+        if ( !block_already_executed ) {
+            exec_stmt(child_stmt);
+        }
+    }
 }
 
 internal_proc void
@@ -219,6 +276,23 @@ exec_stmt(Resolved_Stmt *stmt) {
             }
         } break;
 
+        case STMT_EXTENDS: {
+            if ( stmt->stmt_extends.if_expr ) {
+                Resolved_Expr *if_expr = stmt->stmt_extends.if_expr;
+                Val *if_cond = exec_expr(if_expr->expr_if.cond);
+                assert(if_cond->kind == VAL_BOOL);
+
+                if ( val_bool(if_cond) ) {
+                    exec_extends(stmt);
+                } else if ( if_expr->expr_if.else_expr ) {
+                    Val *val = exec_expr(if_expr->expr_if.else_expr);
+                    genf("%s", to_char(val));
+                }
+            } else {
+                exec_extends(stmt);
+            }
+        } break;
+
         case STMT_INCLUDE: {
             Resolved_Expr *expr = stmt->stmt_include.expr;
             assert(expr->kind == EXPR_STR);
@@ -230,14 +304,17 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         default: {
-            illegal_path();
+            implement_me();
         } break;
     }
 }
 
-PROC_CALLBACK(super_proc) {
-    for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
-        exec_stmt(stmt->stmt_block.stmts[i]);
+PROC_CALLBACK(super) {
+    assert(global_super_block);
+    assert(global_super_block->kind == STMT_BLOCK);
+
+    for ( int i = 0; i < global_super_block->stmt_block.num_stmts; ++i ) {
+        exec_stmt(global_super_block->stmt_block.stmts[i]);
     }
 
     return val_str("");
@@ -245,7 +322,17 @@ PROC_CALLBACK(super_proc) {
 
 internal_proc void
 exec(Resolved_Templ *templ) {
+    global_current_tmpl = templ;
+
     for ( int i = 0; i < templ->num_stmts; ++i ) {
+
+        if ( templ->stmts[i]->kind == STMT_EXTENDS && i > 0 ) {
+            fatal("extends anweisung muss die erste anweisung des templates sein");
+        }
+
         exec_stmt(templ->stmts[i]);
+        if ( templ->stmts[i]->kind == STMT_EXTENDS ) {
+            break;
+        }
     }
 }

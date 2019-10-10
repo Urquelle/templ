@@ -659,19 +659,15 @@ parse_file(char *filename) {
         while (p->lex.token.kind != T_EOF) {
             if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
                 Stmt *stmt = parse_code(p);
-
-                if ( stmt->kind == STMT_EXTENDS ) {
-                    templ->parent = stmt->stmt_extends.templ;
-                    continue;
-                }
-
                 buf_push(templ->stmts, stmt);
+            } else if ( is_token(p, T_COMMENT) ) {
+                next_token(&p->lex);
             } else {
                 buf_push(templ->stmts, parse_stmt_lit(p));
             }
         }
     } else {
-        assert(!"konnte datei nicht lesen");
+        fatal("konnte datei %s nicht lesen", filename);
     }
 
     templ->num_stmts = buf_len(templ->stmts);

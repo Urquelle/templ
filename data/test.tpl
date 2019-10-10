@@ -1,4 +1,4 @@
-{% extends "main.tpl" %}
+{% extends "main.tpl" if 1 is eq 1 %}
 
 {% block title %}
     test - {{ default_title }}
