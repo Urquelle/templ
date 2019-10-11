@@ -266,10 +266,16 @@ exec_stmt(Resolved_Stmt *stmt) {
         case STMT_FOR: {
             Val *list = exec_expr(stmt->stmt_for.expr);
 
-            for ( Iterator it = init(list); valid(&it); next(&it) ) {
-                stmt->stmt_for.it->val = it.val;
-                for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
-                    exec_stmt(stmt->stmt_for.stmts[j]);
+            if ( list->len ) {
+                for ( Iterator it = init(list); valid(&it); next(&it) ) {
+                    stmt->stmt_for.it->val = it.val;
+                    for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
+                        exec_stmt(stmt->stmt_for.stmts[j]);
+                    }
+                }
+            } else if ( stmt->stmt_for.else_stmts ) {
+                for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
+                    exec_stmt(stmt->stmt_for.else_stmts[i]);
                 }
             }
         } break;
