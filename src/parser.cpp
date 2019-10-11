@@ -470,8 +470,15 @@ parse_stmt_extends(Parser *p) {
     expect_token(p, T_CODE_END);
 
     Parsed_Templ *templ = parse_file(name);
+    Parsed_Templ *else_templ = 0;
+    if ( if_expr && if_expr->expr_if.else_expr ) {
+        Expr *else_expr = if_expr->expr_if.else_expr;
+        assert(else_expr->kind == EXPR_STR);
 
-    return stmt_extends(name, templ, if_expr);
+        else_templ = parse_file(else_expr->expr_str.value);
+    }
+
+    return stmt_extends(name, templ, else_templ, if_expr);
 }
 
 internal_proc Stmt *

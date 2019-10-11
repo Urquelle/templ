@@ -145,10 +145,8 @@ if_expr_cond(Resolved_Expr *if_expr) {
 }
 
 internal_proc void
-exec_extends(Resolved_Stmt *stmt) {
+exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
     assert(stmt->kind == STMT_EXTENDS);
-
-    Resolved_Templ *templ = stmt->stmt_extends.tmpl;
 
     for ( int i = 0; i < templ->num_stmts; ++i ) {
         Resolved_Stmt *parent_stmt = templ->stmts[i];
@@ -283,13 +281,12 @@ exec_stmt(Resolved_Stmt *stmt) {
                 assert(if_cond->kind == VAL_BOOL);
 
                 if ( val_bool(if_cond) ) {
-                    exec_extends(stmt);
+                    exec_extends(stmt, stmt->stmt_extends.tmpl);
                 } else if ( if_expr->expr_if.else_expr ) {
-                    Val *val = exec_expr(if_expr->expr_if.else_expr);
-                    genf("%s", to_char(val));
+                    exec_extends(stmt, stmt->stmt_extends.else_tmpl);
                 }
             } else {
-                exec_extends(stmt);
+                exec_extends(stmt, stmt->stmt_extends.tmpl);
             }
         } break;
 

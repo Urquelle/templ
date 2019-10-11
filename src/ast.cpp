@@ -356,6 +356,7 @@ struct Stmt {
         struct {
             char *name;
             Parsed_Templ *templ;
+            Parsed_Templ *else_templ;
             Expr *if_expr;
         } stmt_extends;
 
@@ -493,12 +494,13 @@ stmt_lit(char *value, size_t len) {
 }
 
 internal_proc Stmt *
-stmt_extends(char *name, Parsed_Templ *templ, Expr *if_expr) {
+stmt_extends(char *name, Parsed_Templ *templ, Parsed_Templ *else_templ, Expr *if_expr) {
     Stmt *result = stmt_new(STMT_EXTENDS);
 
-    result->stmt_extends.name  = name;
-    result->stmt_extends.templ = templ;
-    result->stmt_extends.if_expr = if_expr;
+    result->stmt_extends.name       = name;
+    result->stmt_extends.templ      = templ;
+    result->stmt_extends.else_templ = else_templ;
+    result->stmt_extends.if_expr    = if_expr;
 
     return result;
 }

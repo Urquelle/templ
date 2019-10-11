@@ -1,4 +1,4 @@
-{% extends "main.tpl" if 1 is eq 1 %}
+{% extends "main.tpl" if 1 is eq 1 else "main2.tpl" %}
 
 {% block title %}
     test - {{ default_title }}
@@ -12,7 +12,7 @@
 
     {% set b = 2 %}
     {% if b is eq 2 %}
-        {{ user.name if b is eq 2 else "protogermane" }}
+        {{ user.name if b is eq 2 else "rumpelstilzchen" }}
     {% endif %}
 
     {% for it in 0..5 %}

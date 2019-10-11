@@ -1132,10 +1132,11 @@ struct Resolved_Stmt {
         struct {
             Resolved_Expr *expr;
         } stmt_include;
-		
-		struct {
+
+        struct {
             char *name;
             Resolved_Templ *tmpl;
+            Resolved_Templ *else_tmpl;
             Resolved_Expr *if_expr;
         } stmt_extends;
     };
@@ -1268,11 +1269,14 @@ resolved_stmt_include(Resolved_Expr *expr) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_extends(char *name, Resolved_Templ *tmpl, Resolved_Expr *if_expr) {
+resolved_stmt_extends(char *name, Resolved_Templ *tmpl, Resolved_Templ *else_tmpl,
+        Resolved_Expr *if_expr)
+{
     Resolved_Stmt *result = resolved_stmt_new(STMT_EXTENDS);
 
     result->stmt_extends.name = name;
     result->stmt_extends.tmpl = tmpl;
+    result->stmt_extends.else_tmpl = else_tmpl;
     result->stmt_extends.if_expr = if_expr;
 
     return result;
@@ -1622,7 +1626,12 @@ resolve_stmt(Stmt *stmt) {
             }
 
             Resolved_Templ *templ = resolve(stmt->stmt_extends.templ);
-            result = resolved_stmt_extends(stmt->stmt_extends.name, templ, if_expr);
+            Resolved_Templ *else_templ = 0;
+            if ( stmt->stmt_extends.else_templ ) {
+                else_templ = resolve(stmt->stmt_extends.else_templ);
+            }
+
+            result = resolved_stmt_extends(stmt->stmt_extends.name, templ, else_templ, if_expr);
         } break;
 
         case STMT_SET: {
