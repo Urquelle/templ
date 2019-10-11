@@ -17,6 +17,14 @@
 
     {% for it in 0..5 %}
         <div>{{ it }}</div>
+    {% else %}
+        <div>menge ist leer</div>
+    {% endfor %}
+
+    {% for it in 0..0 %}
+        <div>{{ it }}</div>
+    {% else %}
+        <div>menge ist leer</div>
     {% endfor %}
 {% endblock main %}
 

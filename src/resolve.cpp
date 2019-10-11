@@ -1098,6 +1098,8 @@ struct Resolved_Stmt {
             Resolved_Expr *expr;
             Resolved_Stmt **stmts;
             size_t num_stmts;
+            Resolved_Stmt **else_stmts;
+            size_t num_else_stmts;
         } stmt_for;
 
         struct {
@@ -1204,13 +1206,17 @@ resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts) {
+resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
+        size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts)
+{
     Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
 
     result->stmt_for.it = it;
     result->stmt_for.expr = expr;
     result->stmt_for.stmts = stmts;
     result->stmt_for.num_stmts = num_stmts;
+    result->stmt_for.else_stmts = else_stmts;
+    result->stmt_for.num_else_stmts = num_else_stmts;
 
     return result;
 }
@@ -1544,9 +1550,14 @@ resolve_stmt(Stmt *stmt) {
                 buf_push(stmts, resolve_stmt(stmt->stmt_for.stmts[i]));
             }
 
+            Resolved_Stmt **else_stmts = 0;
+            for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
+                buf_push(else_stmts, resolve_stmt(stmt->stmt_for.else_stmts[i]));
+            }
+
             scope_leave();
 
-            result = resolved_stmt_for(it, expr, stmts, buf_len(stmts));
+            result = resolved_stmt_for(it, expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
         } break;
 
         case STMT_IF: {

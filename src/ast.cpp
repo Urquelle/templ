@@ -324,6 +324,8 @@ struct Stmt {
             Expr *cond;
             Stmt **stmts;
             size_t num_stmts;
+            Stmt **else_stmts;
+            size_t num_else_stmts;
         } stmt_for;
 
         struct {
@@ -388,13 +390,17 @@ stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Stmt *
-stmt_for(char *it, Expr *cond, Stmt **stmts, size_t num_stmts) {
+stmt_for(char *it, Expr *cond, Stmt **stmts, size_t num_stmts,
+        Stmt **else_stmts, size_t num_else_stmts)
+{
     Stmt *result = stmt_new(STMT_FOR);
 
     result->stmt_for.it = it;
     result->stmt_for.cond = cond;
     result->stmt_for.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_for.num_stmts = num_stmts;
+    result->stmt_for.else_stmts = (Stmt **)AST_DUP(else_stmts);
+    result->stmt_for.num_else_stmts = num_else_stmts;
 
     return result;
 }

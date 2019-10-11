@@ -347,20 +347,25 @@ parse_stmt_for(Parser *p) {
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
+    Stmt **else_stmts = 0;
+    Stmt ***stmts_ptr = &stmts;
+
     for (;;) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
             if ( stmt->kind == STMT_ENDFOR ) {
                 break;
+            } else if ( stmt->kind == STMT_ELSE ) {
+                stmts_ptr = &else_stmts;
             } else {
-                buf_push(stmts, stmt);
+                buf_push(*stmts_ptr, stmt);
             }
         } else {
-            buf_push(stmts, parse_stmt(p));
+            buf_push(*stmts_ptr, parse_stmt(p));
         }
     }
 
-    Stmt *result = stmt_for(it, cond, stmts, buf_len(stmts));
+    Stmt *result = stmt_for(it, cond, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
     buf_free(stmts);
 
     return result;
