@@ -13,6 +13,6 @@
         {% endblock %}
         </div>
 
-        {% include "footer.html" %}
+        {% include "footer.html" ignore missing %}
     </body>
 </html>

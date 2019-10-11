@@ -332,9 +332,15 @@ exec_stmt(Resolved_Stmt *stmt) {
             assert(expr->kind == EXPR_STR);
 
             char *content = 0;
-            file_read(val_str(expr->val), &content);
+            b32 file_found = file_read(val_str(expr->val), &content);
 
-            genf("<!-- include %s -->\n%s", val_str(expr->val), content);
+            if ( !file_found && !stmt->stmt_include.ignore_missing ) {
+                fatal("konnte template %s nicht finden", val_str(expr->val));
+            }
+
+            if ( file_found ) {
+                genf("<!-- include %s -->\n%s", val_str(expr->val), content);
+            }
         } break;
 
         default: {

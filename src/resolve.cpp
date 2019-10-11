@@ -1154,6 +1154,7 @@ struct Resolved_Stmt {
 
         struct {
             Resolved_Expr *expr;
+            b32 ignore_missing;
         } stmt_include;
 
         struct {
@@ -1287,10 +1288,11 @@ resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_include(Resolved_Expr *expr) {
+resolved_stmt_include(Resolved_Expr *expr, b32 ignore_missing) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_INCLUDE);
 
     result->stmt_include.expr = expr;
+    result->stmt_include.ignore_missing = ignore_missing;
 
     return result;
 }
@@ -1698,7 +1700,7 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_INCLUDE: {
             Resolved_Expr *expr = resolve_expr(stmt->stmt_include.expr);
-            result = resolved_stmt_include(expr);
+            result = resolved_stmt_include(expr, stmt->stmt_include.ignore_missing);
         } break;
 
         default: {

@@ -119,6 +119,17 @@ match_keyword(Parser *p, char *expected_keyword) {
     return false;
 }
 
+internal_proc b32
+match_str(Parser *p, char *str) {
+    if ( is_token(p, T_NAME) && p->lex.token.literal == intern_str(str) ) {
+        next_token(&p->lex);
+
+        return true;
+    }
+
+    return false;
+}
+
 internal_proc void
 expect_keyword(Parser *p, char *expected_keyword) {
     if ( match_keyword(p, expected_keyword) ) {
@@ -530,9 +541,15 @@ parse_stmt_set(Parser *p) {
 internal_proc Stmt *
 parse_stmt_include(Parser *p) {
     Expr *expr = parse_expr(p);
+
+    b32 ignore_missing = false;
+    if ( match_str(p, "ignore") && match_str(p, "missing") ) {
+        ignore_missing = true;
+    }
+
     expect_token(p, T_CODE_END);
 
-    return stmt_include(expr);
+    return stmt_include(expr, ignore_missing);
 }
 
 internal_proc Stmt *

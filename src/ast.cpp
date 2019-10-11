@@ -376,6 +376,7 @@ struct Stmt {
 
         struct {
             Expr *expr;
+            b32 ignore_missing;
         } stmt_include;
     };
 };
@@ -534,10 +535,11 @@ stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmt
 }
 
 internal_proc Stmt *
-stmt_include(Expr *expr) {
+stmt_include(Expr *expr, b32 ignore_missing) {
     Stmt *result = stmt_new(STMT_INCLUDE);
 
     result->stmt_include.expr = expr;
+    result->stmt_include.ignore_missing = ignore_missing;
 
     return result;
 }
