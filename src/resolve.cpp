@@ -175,6 +175,7 @@ internal_proc Val *
 val_str(char *val) {
     Val *result = val_new(VAL_STR, sizeof(char*));
 
+    result->len = strlen(val);
     *((char **)result->ptr) = val;
 
     return result;
@@ -189,6 +190,7 @@ internal_proc Val *
 val_range(int min, int max) {
     Val *result = val_new(VAL_RANGE, sizeof(int)*2);
 
+    result->len = max - min;
     *((int *)result->ptr)   = min;
     *((int *)result->ptr+1) = max;
 
@@ -233,8 +235,8 @@ internal_proc Val *
 val_array(Val **vals, size_t num_vals) {
     Val *result = val_new(VAL_ARRAY, sizeof(Val)*num_vals);
 
-    *((Val ***)result->ptr) = vals;
-    result->len  = num_vals;
+    result->ptr = (Val **)AST_DUP(vals);
+    result->len = num_vals;
 
     return result;
 }
@@ -292,6 +294,25 @@ to_char(Val *val) {
             return "";
         } break;
     }
+}
+
+internal_proc Val *
+val_item(Val *val, int idx) {
+    switch ( val->kind ) {
+        case VAL_RANGE: {
+            return val_int(val_range0(val) + idx);
+        } break;
+
+        case VAL_ARRAY: {
+            return *((Val **)val->ptr + idx);
+        } break;
+
+        default: {
+            illegal_path();
+        } break;
+    }
+
+    return 0;
 }
 
 internal_proc Val
@@ -1888,20 +1909,29 @@ resolve_expr(Expr *expr) {
         case EXPR_RANGE: {
             Resolved_Expr *left  = resolve_expr(expr->expr_range.left);
             Resolved_Expr *right = resolve_expr(expr->expr_range.right);
-            unify_arithmetic_operands(left, right);
 
-            if ( !is_int(left->type) ) {
-                fatal("range typ muss vom typ int sein");
+            if ( is_arithmetic(left->type) && is_arithmetic(right->type) ) {
+                unify_arithmetic_operands(left, right);
+
+                if ( !is_int(left->type) ) {
+                    fatal("range typ muss vom typ int sein");
+                }
+
+                if ( !is_int(right->type) ) {
+                    fatal("range typ muss vom typ int sein");
+                }
+
+                int min = val_int(left->val);
+                int max = val_int(right->val);
+
+                result = resolved_expr_range(min, max);
+            } else {
+                assert(left->type->kind == TYPE_STR || left->type->kind == TYPE_CHAR);
+                assert(right->type->kind == TYPE_STR || right->type->kind == TYPE_CHAR);
+                assert(left->val && left->val->len == 1);
+
+                result = resolved_expr_range((int)*val_str(left->val), (int)*val_str(right->val));
             }
-
-            if ( !is_int(right->type) ) {
-                fatal("range typ muss vom typ int sein");
-            }
-
-            int min = val_int(left->val);
-            int max = val_int(right->val);
-
-            result = resolved_expr_range(min, max);
         } break;
 
         case EXPR_CALL: {

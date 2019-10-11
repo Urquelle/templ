@@ -15,6 +15,38 @@ gen_indentation() {
     gen_result = strf("%s%*.s", gen_result, 4 * gen_indent, "         ");
 }
 
+struct Iterator {
+    Val *container;
+    int pos;
+    Val *val;
+};
+
+internal_proc Iterator
+init(Val *container) {
+    Iterator result = {};
+
+    assert(container->kind == VAL_RANGE || container->kind == VAL_ARRAY);
+
+    result.container = container;
+    result.pos = 0;
+    result.val = val_item(container, 0);
+
+    return result;
+}
+
+internal_proc b32
+valid(Iterator *it) {
+    b32 result = it->pos < it->container->len;
+
+    return result;
+}
+
+internal_proc void
+next(Iterator *it) {
+    it->pos += 1;
+    it->val = val_item(it->container, it->pos);
+}
+
 internal_proc Val *
 val_from_field(Resolved_Expr *expr) {
     Val *result = 0;
@@ -117,11 +149,11 @@ exec_expr(Resolved_Expr *expr) {
             assert(expr->stmt->block->super);
 
             /* @AUFGABE: expr->expr_call.args (?) */
-            result = type->type_proc.callback(expr->stmt->block->super);
+            result = type->type_proc.callback(0);
         } break;
 
         case EXPR_ARRAY_LIT: {
-            /* @AUFGABE: schauen was wir hier überhaupt machen müssen */
+            result = expr->val;
         } break;
 
         default: {
@@ -233,21 +265,11 @@ exec_stmt(Resolved_Stmt *stmt) {
 
         case STMT_FOR: {
             Val *list = exec_expr(stmt->stmt_for.expr);
-            assert(list->kind == VAL_RANGE); /* @AUFGABE: arrays müssen auch funktionieren */
 
-            s32 min = val_range0(list);
-            s32 max = val_range1(list);
-
-            if ( max - min == 0 ) {
-                for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
-                    exec_stmt(stmt->stmt_for.else_stmts[i]);
-                }
-            } else {
-                for ( int i = min; i < max; ++i ) {
-                    val_set(stmt->stmt_for.it->val, i);
-                    for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
-                        exec_stmt(stmt->stmt_for.stmts[j]);
-                    }
+            for ( Iterator it = init(list); valid(&it); next(&it) ) {
+                stmt->stmt_for.it->val = it.val;
+                for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
+                    exec_stmt(stmt->stmt_for.stmts[j]);
                 }
             }
         } break;
