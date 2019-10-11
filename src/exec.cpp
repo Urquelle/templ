@@ -329,17 +329,34 @@ exec_stmt(Resolved_Stmt *stmt) {
 
         case STMT_INCLUDE: {
             Resolved_Expr *expr = stmt->stmt_include.expr;
-            assert(expr->kind == EXPR_STR);
 
-            char *content = 0;
-            b32 file_found = file_read(val_str(expr->val), &content);
+            if ( expr->kind == EXPR_STR ) {
+                char *content = 0;
+                b32 file_found = file_read(val_str(expr->val), &content);
 
-            if ( !file_found && !stmt->stmt_include.ignore_missing ) {
-                fatal("konnte template %s nicht finden", val_str(expr->val));
-            }
+                if ( !file_found && !stmt->stmt_include.ignore_missing ) {
+                    fatal("konnte template %s nicht finden", val_str(expr->val));
+                }
 
-            if ( file_found ) {
-                genf("<!-- include %s -->\n%s", val_str(expr->val), content);
+                if ( file_found ) {
+                    genf("<!-- include %s -->\n%s", val_str(expr->val), content);
+                }
+            } else {
+                assert(expr->kind == EXPR_ARRAY_LIT);
+                Val *array = expr->val;
+
+                for ( Iterator it = init(array); valid(&it); next(&it) ) {
+                    char *content = 0;
+                    b32 file_found = file_read(val_str(it.val), &content);
+
+                    if ( !file_found && !stmt->stmt_include.ignore_missing ) {
+                        fatal("konnte template %s nicht finden", val_str(expr->val));
+                    }
+
+                    if ( file_found ) {
+                        genf("<!-- include %s -->\n%s", val_str(expr->val), content);
+                    }
+                }
             }
         } break;
 
