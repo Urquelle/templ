@@ -15,6 +15,6 @@
 
         {% include "footer.html" %}
 
-        {% include ["a.html", "b.html"] ignore missing %}
+        {% include ["a.html", "b.html"] ignore missing without context %}
     </body>
 </html>

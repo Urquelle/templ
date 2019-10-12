@@ -498,6 +498,55 @@ parse_stmt_extends(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_include(Parser *p) {
+    Expr *expr = parse_expr(p);
+
+    b32 ignore_missing = false;
+    if ( match_str(p, "ignore") && match_str(p, "missing") ) {
+        ignore_missing = true;
+    }
+
+    b32 with_context = true;
+    if ( match_str(p, "with") && match_str(p, "context") ) {
+        /* tue nix */
+    }
+
+    if ( match_str(p, "without") && match_str(p, "context") ) {
+        with_context = false;
+    }
+
+    expect_token(p, T_CODE_END);
+
+    Parsed_Templ **templ = 0;
+    if ( expr->kind == EXPR_ARRAY_LIT ) {
+        for ( int i = 0; i < expr->expr_array_lit.num_expr; ++i ) {
+            Expr *name_expr = expr->expr_array_lit.expr[i];
+            assert(name_expr->kind == EXPR_STR);
+
+            b32 success = file_exists(name_expr->expr_str.value);
+            if ( !success && !ignore_missing ) {
+                fatal("konnte datei %s nicht finden", name_expr->expr_str.value);
+            }
+
+            if ( success ) {
+                buf_push(templ, parse_file(name_expr->expr_str.value));
+            }
+        }
+    } else {
+        b32 success = file_exists(expr->expr_str.value);
+        if ( !success && !ignore_missing ) {
+            fatal("konnte datei %s nicht finden", expr->expr_str.value);
+        }
+
+        if ( success ) {
+            buf_push(templ, parse_file(expr->expr_str.value));
+        }
+    }
+
+    return stmt_include(templ, buf_len(templ), ignore_missing, with_context);
+}
+
+internal_proc Stmt *
 parse_stmt_filter(Parser *p) {
     Var_Filter *filter = 0;
     buf_push(filter, parse_filter(p));
@@ -536,20 +585,6 @@ parse_stmt_set(Parser *p) {
     expect_token(p, T_CODE_END);
 
     return stmt_set(name, expr);
-}
-
-internal_proc Stmt *
-parse_stmt_include(Parser *p) {
-    Expr *expr = parse_expr(p);
-
-    b32 ignore_missing = false;
-    if ( match_str(p, "ignore") && match_str(p, "missing") ) {
-        ignore_missing = true;
-    }
-
-    expect_token(p, T_CODE_END);
-
-    return stmt_include(expr, ignore_missing);
 }
 
 internal_proc Stmt *

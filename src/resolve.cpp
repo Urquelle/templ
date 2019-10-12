@@ -1153,8 +1153,8 @@ struct Resolved_Stmt {
         } stmt_filter;
 
         struct {
-            Resolved_Expr *expr;
-            b32 ignore_missing;
+            Resolved_Templ **templ;
+            size_t num_templ;
         } stmt_include;
 
         struct {
@@ -1288,11 +1288,11 @@ resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_include(Resolved_Expr *expr, b32 ignore_missing) {
+resolved_stmt_include(Resolved_Templ **templ, size_t num_templ) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_INCLUDE);
 
-    result->stmt_include.expr = expr;
-    result->stmt_include.ignore_missing = ignore_missing;
+    result->stmt_include.templ = templ;
+    result->stmt_include.num_templ = num_templ;
 
     return result;
 }
@@ -1699,8 +1699,12 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_INCLUDE: {
-            Resolved_Expr *expr = resolve_expr(stmt->stmt_include.expr);
-            result = resolved_stmt_include(expr, stmt->stmt_include.ignore_missing);
+            Resolved_Templ **templ = 0;
+            for ( int i = 0; i < stmt->stmt_include.num_templ; ++i ) {
+                buf_push(templ, resolve(stmt->stmt_include.templ[i]));
+            }
+
+            result = resolved_stmt_include(templ, buf_len(templ));
         } break;
 
         default: {

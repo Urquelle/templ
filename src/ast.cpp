@@ -375,8 +375,10 @@ struct Stmt {
         } stmt_filter;
 
         struct {
-            Expr *expr;
+            Parsed_Templ **templ;
+            size_t num_templ;
             b32 ignore_missing;
+            b32 with_context;
         } stmt_include;
     };
 };
@@ -535,11 +537,15 @@ stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmt
 }
 
 internal_proc Stmt *
-stmt_include(Expr *expr, b32 ignore_missing) {
+stmt_include(Parsed_Templ **templ, size_t num_templ, b32 ignore_missing,
+        b32 with_context)
+{
     Stmt *result = stmt_new(STMT_INCLUDE);
 
-    result->stmt_include.expr = expr;
+    result->stmt_include.templ     = (Parsed_Templ **)AST_DUP(templ);
+    result->stmt_include.num_templ = num_templ;
     result->stmt_include.ignore_missing = ignore_missing;
+    result->stmt_include.with_context = with_context;
 
     return result;
 }

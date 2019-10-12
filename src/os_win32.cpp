@@ -1,3 +1,5 @@
+#include <shlwapi.h>
+
 internal_proc char *
 os_env(char *name) {
     char *result = getenv(name);
@@ -13,7 +15,6 @@ file_read(char *filename, char **result) {
         return false;
     }
 
-    // result->size = GetFileSize(file, 0);
     HANDLE file_mapping = CreateFileMappingA(file, 0, PAGE_WRITECOPY, 0, 0, 0);
     *result = (char *)MapViewOfFileEx(file_mapping, FILE_MAP_COPY, 0, 0, 0, 0);
 
@@ -34,6 +35,13 @@ file_write(char *filename, char *data, size_t len) {
     CloseHandle(file);
 
     return SUCCEEDED(h);
+}
+
+internal_proc b32
+file_exists(char *filename) {
+    b32 result = PathFileExistsA(filename);
+
+    return result;
 }
 
 internal_proc void

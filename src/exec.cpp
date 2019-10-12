@@ -3,6 +3,7 @@
 #define genln()     gen_result = strf("%s\n", gen_result); gen_indentation()
 
 internal_proc void exec_stmt(Resolved_Stmt *stmt);
+internal_proc void exec(Resolved_Templ *templ);
 
 global_var char *gen_result = "";
 global_var int gen_indent   = 0;
@@ -184,7 +185,6 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
         Resolved_Stmt *parent_stmt = templ->stmts[i];
 
         if ( parent_stmt->kind == STMT_BLOCK ) {
-            /* @AUFGABE: eine map aller block statements im tmpl */
             for ( int j = 0; j < global_current_tmpl->num_stmts; ++j ) {
                 Resolved_Stmt *child_stmt = global_current_tmpl->stmts[j];
                 if ( child_stmt->kind == STMT_BLOCK &&
@@ -328,34 +328,10 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_INCLUDE: {
-            Resolved_Expr *expr = stmt->stmt_include.expr;
-
-            if ( expr->kind == EXPR_STR ) {
-                char *content = 0;
-                b32 file_found = file_read(val_str(expr->val), &content);
-
-                if ( !file_found && !stmt->stmt_include.ignore_missing ) {
-                    fatal("konnte template %s nicht finden", val_str(expr->val));
-                }
-
-                if ( file_found ) {
-                    genf("<!-- include %s -->\n%s", val_str(expr->val), content);
-                }
-            } else {
-                assert(expr->kind == EXPR_ARRAY_LIT);
-                Val *array = expr->val;
-
-                for ( Iterator it = init(array); valid(&it); next(&it) ) {
-                    char *content = 0;
-                    b32 file_found = file_read(val_str(it.val), &content);
-
-                    if ( !file_found && !stmt->stmt_include.ignore_missing ) {
-                        fatal("konnte template %s nicht finden", val_str(expr->val));
-                    }
-
-                    if ( file_found ) {
-                        genf("<!-- include %s -->\n%s", val_str(expr->val), content);
-                    }
+            for ( int i = 0; i < stmt->stmt_include.num_templ; ++i ) {
+                Resolved_Templ *templ = stmt->stmt_include.templ[i];
+                for ( int j = 0; j < templ->num_stmts; ++j ) {
+                    exec_stmt(templ->stmts[j]);
                 }
             }
         } break;
