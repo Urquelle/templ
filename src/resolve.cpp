@@ -521,6 +521,7 @@ enum Type_Kind {
     TYPE_MACRO,
     TYPE_FILTER,
     TYPE_TEST,
+    TYPE_MODULE,
 
     TYPE_COUNT,
 };
@@ -569,6 +570,11 @@ struct Type {
             Type *base;
             int num_elems;
         } type_array;
+
+        struct {
+            char *name;
+            Scope *scope;
+        } type_module;
     };
 };
 
@@ -678,6 +684,16 @@ type_array(Type *base, int num_elems) {
     return result;
 }
 
+internal_proc Type *
+type_module(char *name, Scope *scope) {
+    Type *result = type_new(TYPE_MODULE);
+
+    result->type_module.name = name;
+    result->type_module.scope = scope;
+
+    return result;
+}
+
 internal_proc void
 init_builtin_types() {
     type_void  = type_new(TYPE_VOID);
@@ -751,6 +767,7 @@ enum Sym_Kind {
     SYM_VAR,
     SYM_PROC,
     SYM_STRUCT,
+    SYM_MODULE,
 };
 
 struct Sym {
@@ -822,6 +839,11 @@ sym_push_var(char *name, Type *type, Val *val) {
 internal_proc Sym *
 sym_push_proc(char *name, Type *type) {
     return sym_push(SYM_PROC, name, type);
+}
+
+internal_proc Sym *
+sym_push_module(char *name, Type *type) {
+    return sym_push(SYM_MODULE, name, type);
 }
 /* }}} */
 /* resolved_expr {{{ */
@@ -1182,6 +1204,10 @@ struct Resolved_Stmt {
             Type_Field **params;
             size_t num_params;
         } stmt_macro;
+
+        struct {
+            Sym *sym;
+        } stmt_module;
     };
 };
 
@@ -1336,6 +1362,15 @@ resolved_stmt_macro(Sym *sym, Type *type) {
 
     result->stmt_macro.sym = sym;
     result->stmt_macro.type = type;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_import(Sym *sym) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_IMPORT);
+
+    result->stmt_module.sym = sym;
 
     return result;
 }
@@ -1762,6 +1797,17 @@ resolve_stmt(Stmt *stmt) {
             result = resolved_stmt_macro(sym, type);
         } break;
 
+        case STMT_IMPORT: {
+            Sym *sym = sym_push_module(stmt->stmt_import.name, type_module(stmt->stmt_import.name, 0));
+
+            Scope *scope = scope_enter();
+            resolve(stmt->stmt_import.templ);
+            scope_leave();
+
+            sym->type->type_module.scope = scope;
+            result = resolved_stmt_import(sym);
+        } break;
+
         default: {
             illegal_path();
             return result;
@@ -1775,7 +1821,7 @@ internal_proc Resolved_Expr *
 resolve_expr_cond(Expr *expr) {
     Resolved_Expr *result = resolve_expr(expr);
 
-    /* @AUFGABE: char, int, str akzeptieren */
+    /* @AUFGABE: int, str akzeptieren */
     if ( result->type != type_bool ) {
         fatal("boolischen ausdruck erwartet");
     }
@@ -1954,17 +2000,25 @@ resolve_expr(Expr *expr) {
 
             assert(base->type);
             Type *type = base->type;
-            assert(type->kind == TYPE_STRUCT);
 
-            Scope *old_scope = scope_set(type->type_aggr.scope);
-            Sym *sym = resolve_name(expr->expr_field.field);
-            assert(sym);
+            if ( type->kind == TYPE_STRUCT ) {
+                Scope *old_scope = scope_set(type->type_aggr.scope);
+                Sym *sym = resolve_name(expr->expr_field.field);
+                assert(sym);
 
-            s64 offset = offset_from_base(type, sym->name);
-            scope_set(old_scope);
+                s64 offset = offset_from_base(type, sym->name);
+                scope_set(old_scope);
 
-            assert(sym);
-            result = resolved_expr_field(base, sym, offset, sym->type);
+                assert(sym);
+                result = resolved_expr_field(base, sym, offset, sym->type);
+            } else {
+                assert(type->kind == TYPE_MODULE);
+                Scope *prev_scope = scope_set(type->type_module.scope);
+                Sym *sym = resolve_name(expr->expr_field.field);
+
+                assert(sym);
+                result = resolved_expr_field(base, sym, 0, sym->type);
+            }
         } break;
 
         case EXPR_RANGE: {

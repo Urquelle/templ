@@ -330,6 +330,7 @@ enum Stmt_Kind {
     STMT_FILTER,
     STMT_INCLUDE,
     STMT_MACRO,
+    STMT_IMPORT,
 };
 
 struct Stmt {
@@ -405,6 +406,11 @@ struct Stmt {
             Stmt **stmts;
             size_t num_stmts;
         } stmt_macro;
+
+        struct {
+            Parsed_Templ *templ;
+            char *name;
+        } stmt_import;
     };
 };
 
@@ -593,6 +599,16 @@ stmt_macro(char *name, Param **params, size_t num_params, Stmt **stmts,
     result->stmt_macro.num_params = num_params;
     result->stmt_macro.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_macro.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_import(Parsed_Templ *templ, char *name) {
+    Stmt *result = stmt_new(STMT_IMPORT);
+
+    result->stmt_import.templ = templ;
+    result->stmt_import.name = name;
 
     return result;
 }

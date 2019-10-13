@@ -33,6 +33,7 @@ global_var char *keyword_set;
 global_var char *keyword_filter;
 global_var char *keyword_include;
 global_var char *keyword_macro;
+global_var char *keyword_import;
 
 internal_proc void
 init_keywords() {
@@ -57,6 +58,7 @@ init_keywords() {
     ADD_KEYWORD(filter);
     ADD_KEYWORD(include);
     ADD_KEYWORD(macro);
+    ADD_KEYWORD(import);
 
 #undef ADD_KEYWORD
 }
@@ -136,9 +138,15 @@ match_str(Parser *p, char *str) {
 }
 
 internal_proc void
+expect_str(Parser *p, char *str) {
+    if ( !match_str(p, str) ) {
+        assert(0);
+    }
+}
+
+internal_proc void
 expect_keyword(Parser *p, char *expected_keyword) {
-    if ( match_keyword(p, expected_keyword) ) {
-    } else {
+    if ( !match_keyword(p, expected_keyword) ) {
         assert(0);
     }
 }
@@ -615,9 +623,10 @@ parse_stmt_macro(Parser *p) {
             }
             buf_push(params, param_new(param_name, default_value));
         }
+
+        expect_token(p, T_RPAREN);
     }
 
-    expect_token(p, T_RPAREN);
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
@@ -629,6 +638,17 @@ parse_stmt_macro(Parser *p) {
     }
 
     return stmt_macro(name, params, buf_len(params), stmts, buf_len(stmts));
+}
+
+internal_proc Stmt *
+parse_stmt_import(Parser *p) {
+    char *filename = parse_str(p);
+    expect_str(p, "as");
+    char *name = parse_name(p);
+    expect_token(p, T_CODE_END);
+
+    return stmt_import(parse_file(filename), name);
+
 }
 
 internal_proc Stmt *
@@ -698,8 +718,10 @@ parse_stmt(Parser *p) {
             result = parse_stmt_include(p);
         } else if ( match_keyword(p, keyword_macro) ) {
             result = parse_stmt_macro(p);
+        } else if ( match_keyword(p, keyword_import) ) {
+            result = parse_stmt_import(p);
         } else {
-            assert(0);
+            illegal_path();
         }
     } else if ( match_token(p, T_VAR_BEGIN) ) {
         result = parse_stmt_var(p);

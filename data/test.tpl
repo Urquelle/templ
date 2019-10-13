@@ -1,4 +1,6 @@
-{% extends "main.tpl" if 1 is eq 1 else "main2.tpl" %}
+{% extends "main.tpl" %}
+
+{% import "macros.tpl" as macros %}
 
 {% block title %}
     test - {{ default_title }}
@@ -7,6 +9,9 @@
 {% block main %}
     <h2>super()</h2>
     {{ super() }}
+
+    <h2>import macros</h2>
+    {{ macros.test1() }}
 
     <h2>macro</h2>
     {{ printf('formatstring', "argumentzeugs") }}

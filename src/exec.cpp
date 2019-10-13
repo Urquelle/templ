@@ -228,7 +228,7 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
             continue;
         }
 
-        assert(child_stmt->kind == STMT_BLOCK);
+        assert(child_stmt->kind != STMT_LIT);
 
         b32 block_already_executed = false;
         for ( int j = 0; j < templ->num_stmts; ++j ) {
@@ -360,6 +360,10 @@ exec_stmt(Resolved_Stmt *stmt) {
 
         case STMT_MACRO: {
             /* @AUFGABE: was müssen wir hier tun */
+        } break;
+
+        case STMT_IMPORT: {
+            /* @AUFGABE: ? */
         } break;
 
         default: {
