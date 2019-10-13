@@ -11,6 +11,7 @@ internal_proc Stmt * parse_stmt_var(Parser *p);
 internal_proc Stmt * parse_stmt_lit(Parser *p);
 internal_proc Var_Filter parse_filter(Parser *p);
 internal_proc Parsed_Templ * parse_file(char *filename);
+internal_proc Stmt * parse_stmt_endmacro(Parser *p);
 
 global_var char ** keywords;
 global_var char *keyword_true;
@@ -24,12 +25,14 @@ global_var char *keyword_endfor;
 global_var char *keyword_endif;
 global_var char *keyword_endblock;
 global_var char *keyword_endfilter;
+global_var char *keyword_endmacro;
 global_var char *keyword_extends;
 global_var char *keyword_block;
 global_var char *keyword_embed;
 global_var char *keyword_set;
 global_var char *keyword_filter;
 global_var char *keyword_include;
+global_var char *keyword_macro;
 
 internal_proc void
 init_keywords() {
@@ -46,12 +49,14 @@ init_keywords() {
     ADD_KEYWORD(endif);
     ADD_KEYWORD(endblock);
     ADD_KEYWORD(endfilter);
+    ADD_KEYWORD(endmacro);
     ADD_KEYWORD(extends);
     ADD_KEYWORD(block);
     ADD_KEYWORD(embed);
     ADD_KEYWORD(set);
     ADD_KEYWORD(filter);
     ADD_KEYWORD(include);
+    ADD_KEYWORD(macro);
 
 #undef ADD_KEYWORD
 }
@@ -588,6 +593,45 @@ parse_stmt_set(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_macro(Parser *p) {
+    expect_token(p, T_NAME);
+    char *name = p->lex.token.name;
+    expect_token(p, T_LPAREN);
+
+    Param **params = 0;
+    if ( !match_token(p, T_RPAREN) ) {
+        char *param_name = parse_name(p);
+        Expr *default_value = 0;
+        if ( match_token(p, T_ASSIGN) ) {
+            default_value = parse_expr(p);
+        }
+        buf_push(params, param_new(param_name, default_value));
+
+        while ( match_token(p, T_COMMA) ) {
+            param_name = parse_name(p);
+            default_value = 0;
+            if ( match_token(p, T_ASSIGN) ) {
+                default_value = parse_expr(p);
+            }
+            buf_push(params, param_new(param_name, default_value));
+        }
+    }
+
+    expect_token(p, T_RPAREN);
+    expect_token(p, T_CODE_END);
+
+    Stmt **stmts = 0;
+    Stmt *stmt = parse_stmt(p);
+
+    while ( stmt->kind != STMT_ENDMACRO ) {
+        buf_push(stmts, stmt);
+        stmt = parse_stmt(p);
+    }
+
+    return stmt_macro(name, params, buf_len(params), stmts, buf_len(stmts));
+}
+
+internal_proc Stmt *
 parse_stmt_endfor(Parser *p) {
     expect_token(p, T_CODE_END);
     return stmt_endfor();
@@ -613,6 +657,12 @@ parse_stmt_endfilter(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_endmacro(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return stmt_endmacro();
+}
+
+internal_proc Stmt *
 parse_stmt(Parser *p) {
     Stmt *result = 0;
     if ( match_token(p, T_CODE_BEGIN) ) {
@@ -628,6 +678,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_endblock(p);
         } else if ( match_keyword(p, keyword_endfilter) ) {
             result = parse_stmt_endfilter(p);
+        } else if ( match_keyword(p, keyword_endmacro) ) {
+            result = parse_stmt_endmacro(p);
         } else if ( match_keyword(p, keyword_else) ) {
             if ( match_keyword(p, keyword_if) ) {
                 result = parse_stmt_elseif(p);
@@ -644,6 +696,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_set(p);
         } else if ( match_keyword(p, keyword_include) ) {
             result = parse_stmt_include(p);
+        } else if ( match_keyword(p, keyword_macro) ) {
+            result = parse_stmt_macro(p);
         } else {
             assert(0);
         }

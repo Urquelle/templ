@@ -290,6 +290,21 @@ expr_array_lit(Expr **expr, size_t num_expr) {
     return result;
 }
 
+struct Param {
+    char *name;
+    Expr *default_value;
+};
+
+internal_proc Param *
+param_new(char *name, Expr *default_value) {
+    Param *result = (Param *)xcalloc(1, sizeof(Param));
+
+    result->name = name;
+    result->default_value = default_value;
+
+    return result;
+}
+
 struct Var_Filter {
     char*  name;
     Expr** params;
@@ -307,12 +322,14 @@ enum Stmt_Kind {
     STMT_ENDIF,
     STMT_ENDBLOCK,
     STMT_ENDFILTER,
+    STMT_ENDMACRO,
     STMT_VAR,
     STMT_LIT,
     STMT_EXTENDS,
     STMT_SET,
     STMT_FILTER,
     STMT_INCLUDE,
+    STMT_MACRO,
 };
 
 struct Stmt {
@@ -380,6 +397,14 @@ struct Stmt {
             b32 ignore_missing;
             b32 with_context;
         } stmt_include;
+
+        struct {
+            char *name;
+            Param **params;
+            size_t num_params;
+            Stmt **stmts;
+            size_t num_stmts;
+        } stmt_macro;
     };
 };
 
@@ -481,6 +506,13 @@ stmt_endfilter() {
 }
 
 internal_proc Stmt *
+stmt_endmacro() {
+    Stmt *result = stmt_new(STMT_ENDMACRO);
+
+    return result;
+}
+
+internal_proc Stmt *
 stmt_var(Expr *expr, Var_Filter *filter, size_t num_filter, Expr *if_expr) {
     Stmt *result = stmt_new(STMT_VAR);
 
@@ -546,6 +578,21 @@ stmt_include(Parsed_Templ **templ, size_t num_templ, b32 ignore_missing,
     result->stmt_include.num_templ = num_templ;
     result->stmt_include.ignore_missing = ignore_missing;
     result->stmt_include.with_context = with_context;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_macro(char *name, Param **params, size_t num_params, Stmt **stmts,
+        size_t num_stmts)
+{
+    Stmt *result = stmt_new(STMT_MACRO);
+
+    result->stmt_macro.name = name;
+    result->stmt_macro.params = params;
+    result->stmt_macro.num_params = num_params;
+    result->stmt_macro.stmts = (Stmt **)AST_DUP(stmts);
+    result->stmt_macro.num_stmts = num_stmts;
 
     return result;
 }

@@ -1,3 +1,7 @@
+{% macro printf(format, arg = "lorem ipsum") %}
+    {{ format }} - {{ arg }}
+{% endmacro %}
+
 <html>
     <head>
         {% set default_title = "tmpl" %}

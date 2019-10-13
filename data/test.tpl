@@ -8,6 +8,10 @@
     <h2>super()</h2>
     {{ super() }}
 
+    <h2>macro</h2>
+    {{ printf("formatstring", "argumentzeugs") }}
+    {{ printf("zeugs %s zum formatieren") }}
+
     <h2>for mit zeichenketten</h2>
     {% for it in "d".."i" %}
         <div>{{ it }}</div>

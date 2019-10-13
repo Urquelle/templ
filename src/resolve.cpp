@@ -107,6 +107,10 @@ val_new(Val_Kind kind, size_t size) {
 
 internal_proc Val *
 val_copy(Val *val) {
+    if ( !val ) {
+        return 0;
+    }
+
     Val *result = val_new(val->kind, val->size);
 
     result->len = val->len;
@@ -486,24 +490,26 @@ internal_proc Sym * sym_push_var(char *name, Type *type, Val *val = 0);
 /* type {{{ */
 struct Type_Field {
     char *name;
+    Sym *sym;
     Type *type;
     s64   offset;
-    Val  *default_val;
+    Val  *default_value;
 };
 
 internal_proc Type_Field *
-type_field(char *name, Type *type, Val *default_val = 0) {
+type_field(char *name, Type *type, Val *default_value = 0) {
     Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
 
     result->name = intern_str(name);
     result->type = type;
-    result->default_val = default_val;
+    result->default_value = default_value;
 
     return result;
 }
 
 enum Type_Kind {
     TYPE_NONE,
+    TYPE_ANY,
     TYPE_VOID,
     TYPE_BOOL,
     TYPE_CHAR,
@@ -513,6 +519,7 @@ enum Type_Kind {
     TYPE_ARRAY,
     TYPE_STRUCT,
     TYPE_PROC,
+    TYPE_MACRO,
     TYPE_FILTER,
     TYPE_TEST,
 
@@ -536,6 +543,14 @@ struct Type {
             Type *ret;
             Proc_Callback *callback;
         } type_proc;
+
+        struct {
+            Type_Field **params;
+            size_t num_params;
+            Type *ret;
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+        } type_macro;
 
         struct {
             Type_Field **params;
@@ -566,6 +581,7 @@ global_var Type *type_char;
 global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
+global_var Type *type_any;
 
 global_var Type *arithmetic_result_type_table[TYPE_COUNT][TYPE_COUNT];
 global_var Type *scalar_result_type_table[TYPE_COUNT][TYPE_COUNT];
@@ -611,6 +627,18 @@ type_proc(Type_Field **params, size_t num_params, Type *ret, Proc_Callback *call
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
     result->type_proc.callback = callback;
+
+    return result;
+}
+
+internal_proc Type *
+type_macro(Type_Field **params, size_t num_params, Type *ret) {
+    Type *result = type_new(TYPE_MACRO);
+
+    result->size = PTR_SIZE;
+    result->type_proc.params = (Type_Field **)AST_DUP(params);
+    result->type_proc.num_params = num_params;
+    result->type_proc.ret = ret;
 
     return result;
 }
@@ -672,6 +700,9 @@ init_builtin_types() {
     type_str   = type_new(TYPE_STR);
     type_str->size = PTR_SIZE;
 
+    type_any   = type_new(TYPE_ANY);
+    type_any->size = PTR_SIZE;
+
     arithmetic_result_type_table[TYPE_CHAR][TYPE_CHAR]   = type_char;
     arithmetic_result_type_table[TYPE_CHAR][TYPE_INT]    = type_int;
     arithmetic_result_type_table[TYPE_CHAR][TYPE_FLOAT]  = type_float;
@@ -728,7 +759,7 @@ is_scalar(Type *type) {
 
 internal_proc b32
 is_callable(Type *type) {
-    b32 result = ( type->kind == TYPE_PROC || type->kind == TYPE_FILTER );
+    b32 result = ( type->kind == TYPE_PROC || type->kind == TYPE_FILTER || type->kind == TYPE_MACRO );
 
     return result;
 }
@@ -1163,6 +1194,13 @@ struct Resolved_Stmt {
             Resolved_Templ *else_tmpl;
             Resolved_Expr *if_expr;
         } stmt_extends;
+
+        struct {
+            Sym *sym;
+            Type *type;
+            Type_Field **params;
+            size_t num_params;
+        } stmt_macro;
     };
 };
 
@@ -1307,6 +1345,16 @@ resolved_stmt_extends(char *name, Resolved_Templ *tmpl, Resolved_Templ *else_tmp
     result->stmt_extends.tmpl = tmpl;
     result->stmt_extends.else_tmpl = else_tmpl;
     result->stmt_extends.if_expr = if_expr;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_macro(Sym *sym, Type *type) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_MACRO);
+
+    result->stmt_macro.sym = sym;
+    result->stmt_macro.type = type;
 
     return result;
 }
@@ -1707,6 +1755,42 @@ resolve_stmt(Stmt *stmt) {
             result = resolved_stmt_include(templ, buf_len(templ));
         } break;
 
+        case STMT_MACRO: {
+            Type_Field **params = 0;
+            for ( int i = 0; i < stmt->stmt_macro.num_params; ++i ) {
+                Param *param = stmt->stmt_macro.params[i];
+
+                Val *default_value = 0;
+                if ( param->default_value ) {
+                    Resolved_Expr *t = resolve_expr(param->default_value);
+                    default_value = t->val;
+                }
+
+                buf_push(params, type_field(param->name, type_any, default_value));
+            }
+
+            Type *type = type_macro(params, buf_len(params), 0);
+            Sym *sym = sym_push_proc(stmt->stmt_macro.name, type);
+
+            Scope *scope = scope_enter();
+
+            for ( int i = 0; i < buf_len(params); ++i ) {
+                params[i]->sym = sym_push_var(params[i]->name, params[i]->type);
+            }
+
+            Resolved_Stmt **stmts = 0;
+            for ( int i = 0; i < stmt->stmt_macro.num_stmts; ++i ) {
+                buf_push(stmts, resolve_stmt(stmt->stmt_macro.stmts[i]));
+            }
+
+            type->type_macro.stmts = stmts;
+            type->type_macro.num_stmts = buf_len(stmts);
+
+            scope_leave();
+
+            result = resolved_stmt_macro(sym, type);
+        } break;
+
         default: {
             illegal_path();
             return result;
@@ -1956,13 +2040,13 @@ resolve_expr(Expr *expr) {
             for ( int i = 0; i < type->type_proc.num_params; ++i ) {
                 Type_Field *param = type->type_proc.params[i];
 
-                if ( param->default_val->kind == VAL_NONE && (i >= expr->expr_call.num_params) ) {
+                if ( !param->default_value && (i >= expr->expr_call.num_params) ) {
                     fatal("zu wenige parameter übergeben");
                 }
 
                 if ( i < expr->expr_call.num_params ) {
                     Resolved_Expr *arg = resolve_expr(expr->expr_call.params[i]);
-                    if (arg->type != param->type) {
+                    if (arg->type != param->type && param->type != type_any ) {
                         fatal("datentyp des arguments stimmt nicht");
                     }
                     buf_push(args, arg);
@@ -2068,7 +2152,7 @@ resolve_filter(Var_Filter *filter) {
     for ( int i = 1; i < type->type_proc.num_params-1; ++i ) {
         Type_Field *param = type->type_proc.params[i];
 
-        if ( param->default_val->kind == VAL_NONE && (i-1 >= filter->num_params) ) {
+        if ( param->default_value->kind == VAL_NONE && (i-1 >= filter->num_params) ) {
             fatal("zu wenige parameter übergeben");
         }
 

@@ -71,6 +71,29 @@ val_from_field(Resolved_Expr *expr) {
 }
 
 internal_proc Val *
+exec_macro(Resolved_Expr *expr) {
+    Type *type = expr->type;
+    assert(type->kind == TYPE_MACRO);
+
+    for ( int i = 0; i < type->type_macro.num_params; ++i ) {
+        Type_Field *field = type->type_macro.params[i];
+
+        if ( i < expr->expr_call.num_args ) {
+            field->sym->val = expr->expr_call.args[i]->val;
+        } else {
+            field->sym->val = field->default_value;
+        }
+    }
+
+    for ( int i = 0; i < type->type_macro.num_stmts; ++i ) {
+        Resolved_Stmt *stmt = type->type_macro.stmts[i];
+        exec_stmt(stmt);
+    }
+
+    return val_str("");
+}
+
+internal_proc Val *
 exec_expr(Resolved_Expr *expr) {
     Val *result = 0;
 
@@ -145,12 +168,11 @@ exec_expr(Resolved_Expr *expr) {
         case EXPR_CALL: {
             Type *type = expr->type;
 
-            assert(expr->stmt);
-            assert(expr->stmt->block);
-            assert(expr->stmt->block->super);
-
-            /* @AUFGABE: expr->expr_call.args (?) */
-            result = type->type_proc.callback(0);
+            if ( type->kind == TYPE_MACRO ) {
+                result = exec_macro(expr);
+            } else {
+                result = type->type_proc.callback(0);
+            }
         } break;
 
         case EXPR_ARRAY_LIT: {
@@ -336,6 +358,10 @@ exec_stmt(Resolved_Stmt *stmt) {
             }
         } break;
 
+        case STMT_MACRO: {
+            /* @AUFGABE: was müssen wir hier tun */
+        } break;
+
         default: {
             implement_me();
         } break;
@@ -358,7 +384,6 @@ exec(Resolved_Templ *templ) {
     global_current_tmpl = templ;
 
     for ( int i = 0; i < templ->num_stmts; ++i ) {
-
         if ( templ->stmts[i]->kind == STMT_EXTENDS && i > 0 ) {
             fatal("extends anweisung muss die erste anweisung des templates sein");
         }
