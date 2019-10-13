@@ -9,7 +9,7 @@
     {{ super() }}
 
     <h2>macro</h2>
-    {{ printf("formatstring", "argumentzeugs") }}
+    {{ printf('formatstring', "argumentzeugs") }}
     {{ printf("zeugs %s zum formatieren") }}
 
     <h2>for mit zeichenketten</h2>

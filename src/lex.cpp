@@ -9,7 +9,6 @@ enum Token_Kind {
     T_INT = 129,
     T_FLOAT,
     T_STR,
-    T_CHAR,
     T_NAME,
     T_LIT,
     T_DOT,
@@ -236,22 +235,6 @@ next_raw_token(Lexer *lex) {
             }
         } break;
 
-        case '\'': {
-            lex->token.kind = T_CHAR;
-            next(lex);
-
-            if ( at0(lex) == '\\' ) {
-                next(lex);
-            }
-
-            if ( at1(lex) != '\'' ) {
-                assert(!"fehler beim parsen eines char tokens");
-            }
-
-            lex->token.char_value = at0(lex);
-            next(lex, 2);
-        } break;
-
         case '(': {
             lex->token.kind = T_LPAREN;
             next(lex);
@@ -389,11 +372,12 @@ next_raw_token(Lexer *lex) {
             }
         } break;
 
+        case '\'':
         case '"': {
             lex->token.kind = T_STR;
             next(lex);
 
-            while (at0(lex) != '"') {
+            while (at0(lex) != '"' && at0(lex) != '\'') {
                 next(lex);
             }
 

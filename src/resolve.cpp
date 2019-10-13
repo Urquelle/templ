@@ -512,7 +512,6 @@ enum Type_Kind {
     TYPE_ANY,
     TYPE_VOID,
     TYPE_BOOL,
-    TYPE_CHAR,
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_STR,
@@ -577,7 +576,6 @@ struct Type {
 
 global_var Type *type_void;
 global_var Type *type_bool;
-global_var Type *type_char;
 global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
@@ -688,9 +686,6 @@ init_builtin_types() {
     type_bool  = type_new(TYPE_BOOL);
     type_bool->size = 1;
 
-    type_char  = type_new(TYPE_CHAR);
-    type_char->size = 1;
-
     type_int   = type_new(TYPE_INT);
     type_int->size = 4;
 
@@ -703,49 +698,35 @@ init_builtin_types() {
     type_any   = type_new(TYPE_ANY);
     type_any->size = PTR_SIZE;
 
-    arithmetic_result_type_table[TYPE_CHAR][TYPE_CHAR]   = type_char;
-    arithmetic_result_type_table[TYPE_CHAR][TYPE_INT]    = type_int;
-    arithmetic_result_type_table[TYPE_CHAR][TYPE_FLOAT]  = type_float;
-
-    arithmetic_result_type_table[TYPE_INT][TYPE_CHAR]    = type_int;
     arithmetic_result_type_table[TYPE_INT][TYPE_INT]     = type_int;
     arithmetic_result_type_table[TYPE_INT][TYPE_FLOAT]   = type_float;
 
-    arithmetic_result_type_table[TYPE_FLOAT][TYPE_CHAR]  = type_float;
     arithmetic_result_type_table[TYPE_FLOAT][TYPE_INT]   = type_float;
     arithmetic_result_type_table[TYPE_FLOAT][TYPE_FLOAT] = type_float;
 
-    scalar_result_type_table[TYPE_CHAR][TYPE_BOOL]       = type_void;
-    scalar_result_type_table[TYPE_CHAR][TYPE_CHAR]       = type_char;
-    scalar_result_type_table[TYPE_CHAR][TYPE_INT]        = type_int;
-    scalar_result_type_table[TYPE_CHAR][TYPE_FLOAT]      = type_float;
-
     scalar_result_type_table[TYPE_INT][TYPE_BOOL]        = type_void;
-    scalar_result_type_table[TYPE_INT][TYPE_CHAR]        = type_int;
     scalar_result_type_table[TYPE_INT][TYPE_INT]         = type_int;
     scalar_result_type_table[TYPE_INT][TYPE_FLOAT]       = type_float;
 
     scalar_result_type_table[TYPE_FLOAT][TYPE_BOOL]      = type_void;
-    scalar_result_type_table[TYPE_FLOAT][TYPE_CHAR]      = type_float;
     scalar_result_type_table[TYPE_FLOAT][TYPE_INT]       = type_float;
     scalar_result_type_table[TYPE_FLOAT][TYPE_FLOAT]     = type_float;
 
     scalar_result_type_table[TYPE_BOOL][TYPE_BOOL]      = type_bool;
-    scalar_result_type_table[TYPE_BOOL][TYPE_CHAR]      = type_void;
     scalar_result_type_table[TYPE_BOOL][TYPE_INT]       = type_void;
     scalar_result_type_table[TYPE_BOOL][TYPE_FLOAT]     = type_void;
 }
 
 internal_proc b32
 is_int(Type *type) {
-    b32 result = (type->kind == TYPE_INT || type->kind == TYPE_CHAR);
+    b32 result = (type->kind == TYPE_INT);
 
     return result;
 }
 
 internal_proc b32
 is_arithmetic(Type *type) {
-    b32 result = TYPE_CHAR <= type->kind && type->kind <= TYPE_FLOAT;
+    b32 result = TYPE_INT <= type->kind && type->kind <= TYPE_FLOAT;
 
     return result;
 }
@@ -1414,17 +1395,7 @@ convert_operand(Resolved_Expr *op, Type *dest_type) {
             op->type = type_float;
 
             return true;
-        } else if ( dest_type->kind == TYPE_CHAR ) {
-            return true;
         } else if ( dest_type->kind == TYPE_BOOL ) {
-            return true;
-        }
-    }
-
-    if ( op->type->kind == TYPE_CHAR ) {
-        if ( dest_type->kind == TYPE_INT ) {
-            op->type = type_int;
-
             return true;
         }
     }
@@ -2016,8 +1987,8 @@ resolve_expr(Expr *expr) {
 
                 result = resolved_expr_range(min, max);
             } else {
-                assert(left->type->kind == TYPE_STR || left->type->kind == TYPE_CHAR);
-                assert(right->type->kind == TYPE_STR || right->type->kind == TYPE_CHAR);
+                assert(left->type->kind == TYPE_STR);
+                assert(right->type->kind == TYPE_STR);
                 assert(left->val && left->val->len == 1);
 
                 result = resolved_expr_range((int)*val_str(left->val), (int)*val_str(right->val));
