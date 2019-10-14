@@ -1708,6 +1708,10 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_EXTENDS: {
+            if ( !sym_get(intern_str("super")) ) {
+                sym_push_proc("super", type_proc(0, 0, 0, super));
+            }
+
             Resolved_Expr *if_expr = 0;
             if ( stmt->stmt_extends.if_expr ) {
                 if_expr = resolve_expr(stmt->stmt_extends.if_expr);
@@ -2077,7 +2081,7 @@ resolve_expr(Expr *expr) {
                 fatal("aufruf einer nicht-prozedur");
             }
 
-            if ( type->type_proc.num_params < expr->expr_call.num_params ) {
+            if ( type->type_proc.num_params < expr->expr_call.num_args ) {
                 fatal("zu viele argumente");
             }
 
@@ -2085,12 +2089,12 @@ resolve_expr(Expr *expr) {
             for ( int i = 0; i < type->type_proc.num_params; ++i ) {
                 Type_Field *param = type->type_proc.params[i];
 
-                if ( !param->default_value && (i >= expr->expr_call.num_params) ) {
+                if ( !param->default_value && (i >= expr->expr_call.num_args) ) {
                     fatal("zu wenige parameter übergeben");
                 }
 
-                if ( i < expr->expr_call.num_params ) {
-                    Resolved_Expr *arg = resolve_expr(expr->expr_call.params[i]);
+                if ( i < expr->expr_call.num_args ) {
+                    Resolved_Expr *arg = resolve_expr(expr->expr_call.args[i]->expr);
                     if (arg->type != param->type && param->type != type_any ) {
                         fatal("datentyp des arguments stimmt nicht");
                     }
@@ -2247,14 +2251,8 @@ init_arenas() {
 }
 
 internal_proc void
-init_builtin_procs() {
-    sym_push_proc("super", type_proc(0, 0, 0, super));
-}
-
-internal_proc void
 init_resolver() {
     init_arenas();
-    init_builtin_procs();
     init_builtin_types();
     init_builtin_filter();
     init_builtin_tests();

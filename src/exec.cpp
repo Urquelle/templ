@@ -391,12 +391,19 @@ exec(Resolved_Templ *templ) {
     global_current_tmpl = templ;
 
     for ( int i = 0; i < templ->num_stmts; ++i ) {
-        if ( templ->stmts[i]->kind == STMT_EXTENDS && i > 0 ) {
+        Resolved_Stmt *stmt = templ->stmts[i];
+        if ( !stmt ) {
+            continue;
+        }
+
+        if ( stmt->kind == STMT_EXTENDS && i > 0 ) {
             fatal("extends anweisung muss die erste anweisung des templates sein");
         }
 
-        exec_stmt(templ->stmts[i]);
-        if ( templ->stmts[i]->kind == STMT_EXTENDS ) {
+        exec_stmt(stmt);
+
+        /* @AUFGABE: wird das noch benötigt? */
+        if ( stmt->kind == STMT_EXTENDS ) {
             break;
         }
     }

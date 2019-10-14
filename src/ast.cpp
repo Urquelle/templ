@@ -1,4 +1,5 @@
 struct Parsed_Templ;
+struct Expr;
 
 internal_proc void *
 ast_dup(void *src, size_t size) {
@@ -13,6 +14,21 @@ ast_dup(void *src, size_t size) {
 }
 
 #define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
+
+struct Arg {
+    char *name;
+    Expr *expr;
+};
+
+internal_proc Arg *
+arg_new(char *name, Expr *expr) {
+    Arg *result = (Arg *)xcalloc(1, sizeof(Arg));
+
+    result->name = name;
+    result->expr = expr;
+
+    return result;
+}
 
 enum Expr_Kind {
     EXPR_NONE,
@@ -98,8 +114,8 @@ struct Expr {
 
         struct {
             Expr *expr;
-            Expr **params;
-            size_t num_params;
+            Arg **args;
+            size_t num_args;
         } expr_call;
 
         struct {
@@ -248,12 +264,12 @@ expr_range(Expr *left, Expr *right) {
 }
 
 internal_proc Expr *
-expr_call(Expr *expr, Expr **params, size_t num_params) {
+expr_call(Expr *expr, Arg **args, size_t num_args) {
     Expr *result = expr_new(EXPR_CALL);
 
     result->expr_call.expr = expr;
-    result->expr_call.params = (Expr **)AST_DUP(params);
-    result->expr_call.num_params = num_params;
+    result->expr_call.args = (Arg **)AST_DUP(args);
+    result->expr_call.num_args = num_args;
 
     return result;
 }

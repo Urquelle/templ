@@ -199,15 +199,33 @@ parse_expr_field_or_call_or_index(Parser *p) {
 
     while ( is_token(p, T_LPAREN) || is_token(p, T_LBRACKET) || is_token(p, T_DOT) ) {
         if ( match_token(p, T_LPAREN) ) {
-            Expr **exprs = 0;
+            Arg **args = 0;
             if ( !is_token(p, T_RPAREN) ) {
-                buf_push(exprs, parse_expr(p));
+                char *name = 0;
+                Expr *expr = parse_expr(p);
+
+                if ( match_token(p, T_ASSIGN) ) {
+                    assert(expr->kind == EXPR_NAME);
+                    name = expr->expr_name.value;
+                    expr = parse_expr(p);
+                }
+
+                buf_push(args, arg_new(name, expr));
+
                 while ( match_token(p, T_COMMA) ) {
-                    buf_push(exprs, parse_expr(p));
+                    name = 0;
+                    expr = parse_expr(p);
+                    if ( match_token(p, T_ASSIGN) ) {
+                        assert(expr->kind == EXPR_NAME);
+                        name = expr->expr_name.value;
+                        expr = parse_expr(p);
+                    }
+
+                    buf_push(args, arg_new(name, expr));
                 }
             }
             expect_token(p, T_RPAREN);
-            left = expr_call(left, exprs, buf_len(exprs));
+            left = expr_call(left, args, buf_len(args));
         } else if ( match_token(p, T_LBRACKET) ) {
             Expr **index = 0;
 
