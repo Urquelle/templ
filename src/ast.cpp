@@ -311,6 +311,21 @@ struct Var_Filter {
     size_t num_params;
 };
 
+struct Imported_Sym {
+    char *name;
+    char *alias;
+};
+
+internal_proc Imported_Sym *
+imported_sym(char *name, char *alias) {
+    Imported_Sym *result = (Imported_Sym *)xcalloc(1, sizeof(Imported_Sym));
+
+    result->name = name;
+    result->alias = alias;
+
+    return result;
+}
+
 enum Stmt_Kind {
     STMT_NONE,
     STMT_FOR,
@@ -331,6 +346,7 @@ enum Stmt_Kind {
     STMT_INCLUDE,
     STMT_MACRO,
     STMT_IMPORT,
+    STMT_FROM_IMPORT,
 };
 
 struct Stmt {
@@ -401,6 +417,7 @@ struct Stmt {
 
         struct {
             char *name;
+            char *alias;
             Param **params;
             size_t num_params;
             Stmt **stmts;
@@ -411,6 +428,12 @@ struct Stmt {
             Parsed_Templ *templ;
             char *name;
         } stmt_import;
+
+        struct {
+            Parsed_Templ *templ;
+            Imported_Sym **syms;
+            size_t num_syms;
+        } stmt_from_import;
     };
 };
 
@@ -595,6 +618,7 @@ stmt_macro(char *name, Param **params, size_t num_params, Stmt **stmts,
     Stmt *result = stmt_new(STMT_MACRO);
 
     result->stmt_macro.name = name;
+    result->stmt_macro.alias = 0;
     result->stmt_macro.params = params;
     result->stmt_macro.num_params = num_params;
     result->stmt_macro.stmts = (Stmt **)AST_DUP(stmts);
@@ -609,6 +633,17 @@ stmt_import(Parsed_Templ *templ, char *name) {
 
     result->stmt_import.templ = templ;
     result->stmt_import.name = name;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_from_import(Parsed_Templ *templ, Imported_Sym **syms, size_t num_syms) {
+    Stmt *result = stmt_new(STMT_FROM_IMPORT);
+
+    result->stmt_from_import.templ = templ;
+    result->stmt_from_import.syms = (Imported_Sym **)AST_DUP(syms);
+    result->stmt_from_import.num_syms = num_syms;
 
     return result;
 }

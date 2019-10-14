@@ -1776,7 +1776,9 @@ resolve_stmt(Stmt *stmt) {
             }
 
             Type *type = type_macro(params, buf_len(params), 0);
-            Sym *sym = sym_push_proc(stmt->stmt_macro.name, type);
+
+            char *macro_name = ( stmt->stmt_macro.alias ) ? stmt->stmt_macro.alias : stmt->stmt_macro.name;
+            Sym *sym = sym_push_proc(macro_name, type);
 
             Scope *scope = scope_enter();
 
@@ -1800,12 +1802,29 @@ resolve_stmt(Stmt *stmt) {
         case STMT_IMPORT: {
             Sym *sym = sym_push_module(stmt->stmt_import.name, type_module(stmt->stmt_import.name, 0));
 
-            Scope *scope = scope_enter();
+            Scope *scope = scope_enter(stmt->stmt_import.name);
             resolve(stmt->stmt_import.templ);
             scope_leave();
 
             sym->type->type_module.scope = scope;
             result = resolved_stmt_import(sym);
+        } break;
+
+        case STMT_FROM_IMPORT: {
+            Parsed_Templ *templ = stmt->stmt_from_import.templ;
+            for ( int i = 0; i < templ->num_stmts; ++i ) {
+                Stmt *parsed_stmt = templ->stmts[i];
+
+                for ( int j = 0; j < stmt->stmt_from_import.num_syms; ++j ) {
+                    Imported_Sym *import_sym = stmt->stmt_from_import.syms[j];
+                    assert(parsed_stmt->kind == STMT_MACRO);
+
+                    if ( import_sym->name == parsed_stmt->stmt_macro.name ) {
+                        parsed_stmt->stmt_macro.alias = import_sym->alias;
+                        resolve_stmt(parsed_stmt);
+                    }
+                }
+            }
         } break;
 
         default: {
@@ -2002,12 +2021,12 @@ resolve_expr(Expr *expr) {
             Type *type = base->type;
 
             if ( type->kind == TYPE_STRUCT ) {
-                Scope *old_scope = scope_set(type->type_aggr.scope);
+                Scope *prev_scope = scope_set(type->type_aggr.scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
                 assert(sym);
 
                 s64 offset = offset_from_base(type, sym->name);
-                scope_set(old_scope);
+                scope_set(prev_scope);
 
                 assert(sym);
                 result = resolved_expr_field(base, sym, offset, sym->type);
@@ -2015,6 +2034,7 @@ resolve_expr(Expr *expr) {
                 assert(type->kind == TYPE_MODULE);
                 Scope *prev_scope = scope_set(type->type_module.scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
+                scope_set(prev_scope);
 
                 assert(sym);
                 result = resolved_expr_field(base, sym, 0, sym->type);

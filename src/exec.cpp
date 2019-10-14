@@ -209,6 +209,11 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
         if ( parent_stmt->kind == STMT_BLOCK ) {
             for ( int j = 0; j < global_current_tmpl->num_stmts; ++j ) {
                 Resolved_Stmt *child_stmt = global_current_tmpl->stmts[j];
+
+                if ( !child_stmt ) {
+                    continue;
+                }
+
                 if ( child_stmt->kind == STMT_BLOCK &&
                      child_stmt->stmt_block.name == parent_stmt->stmt_block.name )
                 {
@@ -224,7 +229,7 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
     for ( int i = 0; i < global_current_tmpl->num_stmts; ++i ) {
         Resolved_Stmt *child_stmt = global_current_tmpl->stmts[i];
 
-        if ( child_stmt->kind == STMT_EXTENDS ) {
+        if ( !child_stmt || child_stmt->kind == STMT_EXTENDS ) {
             continue;
         }
 
@@ -358,12 +363,10 @@ exec_stmt(Resolved_Stmt *stmt) {
             }
         } break;
 
-        case STMT_MACRO: {
-            /* @AUFGABE: was müssen wir hier tun */
-        } break;
-
+        case STMT_MACRO:
+        case STMT_FROM_IMPORT:
         case STMT_IMPORT: {
-            /* @AUFGABE: ? */
+            /* @AUFGABE: nix tun */
         } break;
 
         default: {

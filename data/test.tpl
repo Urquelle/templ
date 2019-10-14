@@ -1,6 +1,7 @@
 {% extends "main.tpl" %}
 
 {% import "macros.tpl" as macros %}
+{% from "macros.tpl" import test1 as test_1, test2 %}
 
 {% block title %}
     test - {{ default_title }}
@@ -12,6 +13,10 @@
 
     <h2>import macros</h2>
     {{ macros.test1() }}
+
+    <h2>from import macro</h2>
+    {{ test_1() }}
+    {{ test2() }}
 
     <h2>macro</h2>
     {{ printf('formatstring', "argumentzeugs") }}

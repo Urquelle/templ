@@ -19,6 +19,7 @@ global_var char *keyword_false;
 global_var char *keyword_if;
 global_var char *keyword_else;
 global_var char *keyword_for;
+global_var char *keyword_from;
 global_var char *keyword_in;
 global_var char *keyword_is;
 global_var char *keyword_endfor;
@@ -44,6 +45,7 @@ init_keywords() {
     ADD_KEYWORD(if);
     ADD_KEYWORD(else);
     ADD_KEYWORD(for);
+    ADD_KEYWORD(from);
     ADD_KEYWORD(in);
     ADD_KEYWORD(is);
     ADD_KEYWORD(endfor);
@@ -131,6 +133,15 @@ match_str(Parser *p, char *str) {
     if ( is_token(p, T_NAME) && p->lex.token.literal == intern_str(str) ) {
         next_token(&p->lex);
 
+        return true;
+    }
+
+    return false;
+}
+
+internal_proc b32
+is_str(Parser *p, char *str) {
+    if ( p->lex.token.literal == intern_str(str) ) {
         return true;
     }
 
@@ -652,6 +663,28 @@ parse_stmt_import(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_from_import(Parser *p) {
+    char *filename = parse_str(p);
+    expect_keyword(p, keyword_import);
+
+    Imported_Sym **syms = 0;
+    do {
+        char *name = parse_name(p);
+        char *alias = 0;
+
+        if ( match_str(p, "as") ) {
+            alias = parse_name(p);
+        }
+
+        buf_push(syms, imported_sym(name, alias));
+    } while ( match_token(p, T_COMMA) );
+
+    expect_token(p, T_CODE_END);
+
+    return stmt_from_import(parse_file(filename), syms, buf_len(syms));
+}
+
+internal_proc Stmt *
 parse_stmt_endfor(Parser *p) {
     expect_token(p, T_CODE_END);
     return stmt_endfor();
@@ -720,6 +753,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_macro(p);
         } else if ( match_keyword(p, keyword_import) ) {
             result = parse_stmt_import(p);
+        } else if ( match_keyword(p, keyword_from) ) {
+            result = parse_stmt_from_import(p);
         } else {
             illegal_path();
         }
