@@ -14,13 +14,16 @@
     <h2>import macros</h2>
     {{ macros.test1() }}
 
+    <h2>import variablen</h2>
+    {{ macros.macro_name }}
+
     <h2>from import macro</h2>
     {{ test_1() }}
     {{ test2() }}
 
     <h2>macro</h2>
-    {{ printf('formatstring', arg="argumentzeugs") }}
-    {{ printf("zeugs %s zum formatieren") }}
+    {{ macros.printf(arg='10, 5', format="%d = %d") }}
+    {{ macros.printf("zeugs %s zum formatieren") }}
 
     <h2>for mit zeichenketten</h2>
     {% for it in "d".."i" %}

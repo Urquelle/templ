@@ -125,7 +125,13 @@ exec_expr(Resolved_Expr *expr) {
 
         case EXPR_FIELD: {
             /* @AUFGABE: mehr als nur eine ebene unterstützen? */
-            result = val_from_field(expr);
+            assert(expr->expr_field.base->type);
+
+            if ( expr->expr_field.base->type->kind == TYPE_MODULE ) {
+                result = expr->sym->val;
+            } else {
+                result = val_from_field(expr);
+            }
         } break;
 
         case EXPR_BINARY: {

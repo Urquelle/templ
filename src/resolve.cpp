@@ -1837,11 +1837,18 @@ resolve_stmt(Stmt *stmt) {
 
                 for ( int j = 0; j < stmt->stmt_from_import.num_syms; ++j ) {
                     Imported_Sym *import_sym = stmt->stmt_from_import.syms[j];
-                    assert(parsed_stmt->kind == STMT_MACRO);
 
-                    if ( import_sym->name == parsed_stmt->stmt_macro.name ) {
-                        parsed_stmt->stmt_macro.alias = import_sym->alias;
-                        resolve_stmt(parsed_stmt);
+                    if ( parsed_stmt->kind == STMT_MACRO ) {
+                        if ( import_sym->name == parsed_stmt->stmt_macro.name ) {
+                            parsed_stmt->stmt_macro.alias = import_sym->alias;
+                            resolve_stmt(parsed_stmt);
+                        }
+                    } else {
+                        assert(parsed_stmt->kind == STMT_SET);
+                        if ( import_sym->name == parsed_stmt->stmt_set.name ) {
+                            parsed_stmt->stmt_macro.alias = import_sym->alias;
+                            resolve_stmt(parsed_stmt);
+                        }
                     }
                 }
             }
