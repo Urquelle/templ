@@ -846,6 +846,22 @@ sym_push_module(char *name, Type *type) {
     return sym_push(SYM_MODULE, name, type);
 }
 /* }}} */
+/* resolved_arg {{{ */
+struct Resolved_Arg {
+    char *name;
+    Val *val;
+};
+
+internal_proc Resolved_Arg *
+resolved_arg_new(char *name, Val *val) {
+    Resolved_Arg *result = ALLOC_STRUCT(&resolve_arena, Resolved_Arg);
+
+    result->name = name;
+    result->val = val;
+
+    return result;
+}
+/* }}} */
 /* resolved_expr {{{ */
 struct Resolved_Expr {
     Expr_Kind kind;
@@ -913,7 +929,7 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *expr;
-            Resolved_Expr **args;
+            Resolved_Arg **args;
             size_t num_args;
         } expr_call;
 
@@ -1052,11 +1068,11 @@ resolved_expr_is(Resolved_Expr *expr, Resolved_Expr *test, Resolved_Expr **args,
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_call(Resolved_Expr *expr, Resolved_Expr **args, size_t num_args, Type *type) {
+resolved_expr_call(Resolved_Expr *expr, Resolved_Arg **args, size_t num_args, Type *type) {
     Resolved_Expr *result = resolved_expr_new(EXPR_CALL, type);
 
     result->expr_call.expr = expr;
-    result->expr_call.args = (Resolved_Expr **)AST_DUP(args);
+    result->expr_call.args = (Resolved_Arg **)AST_DUP(args);
     result->expr_call.num_args = num_args;
 
     return result;
@@ -2085,21 +2101,58 @@ resolve_expr(Expr *expr) {
                 fatal("zu viele argumente");
             }
 
-            Resolved_Expr **args = 0;
             for ( int i = 0; i < type->type_proc.num_params; ++i ) {
                 Type_Field *param = type->type_proc.params[i];
 
                 if ( !param->default_value && (i >= expr->expr_call.num_args) ) {
                     fatal("zu wenige parameter übergeben");
                 }
+            }
 
-                if ( i < expr->expr_call.num_args ) {
-                    Resolved_Expr *arg = resolve_expr(expr->expr_call.args[i]->expr);
-                    if (arg->type != param->type && param->type != type_any ) {
-                        fatal("datentyp des arguments stimmt nicht");
-                    }
-                    buf_push(args, arg);
+            Resolved_Arg **args = 0;
+            b32 must_be_named = false;
+            char **params = 0;
+            for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
+                Arg *arg = expr->expr_call.args[i];
+
+                char *name = 0;
+                if ( arg->name ) {
+                    must_be_named = true;
+                    name = arg->name;
                 }
+
+                if ( !arg->name && must_be_named ) {
+                    fatal("nach benamten parameter müssen alle folgende parameter benamt sein");
+                }
+
+                b32 found = false;
+                for ( int j = 0; j < type->type_proc.num_params; ++j ) {
+                    Type_Field *param = type->type_proc.params[j];
+
+                    if ( !arg->name || arg->name && arg->name == param->name ) {
+                        found = true;
+
+                        if ( !name ) {
+                            name = param->name;
+                        }
+                    }
+                }
+
+                if ( !found ) {
+                    fatal("kein argument mit der bezeichnung %s gefunden", arg->name);
+                }
+
+                for ( int j = 0; j < buf_len(params); ++j ) {
+                    if ( name == params[j] ) {
+                        fatal("parameter %s wurde bereits gesetzt", name);
+                    }
+                }
+
+                buf_push(params, name);
+
+                Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
+                Resolved_Arg *resolved_arg = resolved_arg_new(name, arg_expr->val);
+                buf_push(args, resolved_arg);
             }
 
             result = resolved_expr_call(call_expr, args, buf_len(args), type);

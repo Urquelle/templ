@@ -19,7 +19,7 @@
     {{ test2() }}
 
     <h2>macro</h2>
-    {{ printf('formatstring', bla="argumentzeugs") }}
+    {{ printf('formatstring', arg="argumentzeugs") }}
     {{ printf("zeugs %s zum formatieren") }}
 
     <h2>for mit zeichenketten</h2>
