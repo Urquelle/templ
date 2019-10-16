@@ -26,8 +26,8 @@
     {% endfilter %}
 
     {# @AUFGABE: unary operatoren zum laufen bringen
-    {{ -1*5 }}
     #}
+    {{ -1*5 }}
 
     <h2>from import macro</h2>
     {{ test_1() }}

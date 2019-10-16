@@ -322,6 +322,8 @@ operator*(Val left, Val right) {
     /* @AUFGABE: val_set implementieren */
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
+        result.size = sizeof(s32);
+        result.ptr = ALLOC_SIZE(&resolve_arena, result.size);
         val_set(&result, val_int(&left) * val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
@@ -1034,6 +1036,7 @@ internal_proc Resolved_Expr *
 resolved_expr_unary(Token_Kind op, Resolved_Expr *expr) {
     Resolved_Expr *result = resolved_expr_new(EXPR_UNARY, expr->type);
 
+    result->val = expr->val;
     result->expr_unary.op = op;
     result->expr_unary.expr = expr;
 
