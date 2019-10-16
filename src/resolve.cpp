@@ -80,7 +80,6 @@ enum Val_Kind {
     VAL_FLOAT,
     VAL_STR,
     VAL_RANGE,
-    VAL_STRUCT,
     VAL_FIELD,
     VAL_ARRAY,
 };
@@ -219,20 +218,6 @@ val_range0(Val *val) {
 internal_proc int
 val_range1(Val *val) {
     return *((int *)val->ptr+1);
-}
-
-internal_proc Val *
-val_struct(void *ptr, size_t size) {
-    Val *result = val_new(VAL_STRUCT, size);
-
-    memcpy(result->ptr, ptr, size);
-
-    return result;
-}
-
-internal_proc void *
-val_struct(Val *val) {
-    return val->ptr;
 }
 
 internal_proc Val *
@@ -2277,34 +2262,6 @@ resolve_filter(Var_Filter *filter) {
     return resolved_filter(sym, type, args, buf_len(args), type->type_filter.callback);
 }
 
-struct Address {
-    char *street;
-    char *city;
-};
-
-struct User {
-    char *name;
-    int age;
-    Address address;
-};
-
-internal_proc void
-init_test_datatype() {
-    Type_Field *address_fields[] = { type_field("street", type_str), type_field("city", type_str) };
-    Type *address_type = type_struct(address_fields, 2);
-
-    Type_Field *user_fields[] = { type_field("name", type_str), type_field("age", type_int), type_field("address", address_type) };
-    Type *user_type = type_struct(user_fields, 3);
-
-    User *user = (User *)xmalloc(sizeof(User));
-    user->name = "Noob";
-    user->age  = 40;
-    user->address.street = "Traube";
-    user->address.city = "Mannheim";
-
-    Sym *sym = sym_push_var("user", user_type, val_struct(user, sizeof(User)));
-}
-
 internal_proc void
 init_arenas() {
     arena_init(&resolve_arena, MB(100));
@@ -2316,7 +2273,6 @@ init_resolver() {
     init_builtin_types();
     init_builtin_filter();
     init_builtin_tests();
-    init_test_datatype();
 }
 
 internal_proc Resolved_Templ *

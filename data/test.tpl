@@ -11,6 +11,9 @@
     <h2>super()</h2>
     {{ super() }}
 
+    <h2>templ vars</h2>
+    {{ name }}
+
     <h2>import macros</h2>
     {{ macros.test1() }}
 
@@ -37,7 +40,7 @@
     <h2>if anweisung</h2>
     {% set b = 2 %}
     {% if b is eq 2 %}
-        {{ user.name if b is eq 2 else "rumpelstilzchen" }}
+        {#{ user.name if b is eq 2 else "rumpelstilzchen" }#}
     {% endif %}
 
     <h2>array literal</h2>
