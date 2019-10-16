@@ -20,6 +20,15 @@
     <h2>import variablen</h2>
     {{ macros.macro_name }}
 
+    <h2>filter statement</h2>
+    {% filter upper %}
+        {{ macros.macro_name }}
+    {% endfilter %}
+
+    {# @AUFGABE: unary operatoren zum laufen bringen
+    {{ -1*5 }}
+    #}
+
     <h2>from import macro</h2>
     {{ test_1() }}
     {{ test2() }}
@@ -36,11 +45,13 @@
     <h2>set anweisung</h2>
     {% set a = "test" %}
     <div class="bla">{{ a }}</div>
+    {% set a = "tset" %}
+    <div class="alb">{{ a }}</div>
 
     <h2>if anweisung</h2>
     {% set b = 2 %}
     {% if b is eq 2 %}
-        {#{ user.name if b is eq 2 else "rumpelstilzchen" }#}
+        {{ name if b is eq 2 else "rumpelstilzchen" }}
     {% endif %}
 
     <h2>array literal</h2>

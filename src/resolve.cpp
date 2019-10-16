@@ -260,6 +260,17 @@ val_set(Val *val, s32 min, s32 max) {
     *((s32 *)val->ptr+1) = max;
 }
 
+internal_proc Val *
+val_op(Token_Kind op, Val *val) {
+    if ( op == T_MINUS ) {
+        if ( val->kind == VAL_INT ) {
+            return val_int( val_int(val)*-1 );
+        }
+    }
+
+    return val;
+}
+
 global_var char to_char_buf[1000];
 internal_proc char *
 to_char(Val *val) {
@@ -1021,7 +1032,7 @@ resolved_expr_range(int min, int max) {
 
 internal_proc Resolved_Expr *
 resolved_expr_unary(Token_Kind op, Resolved_Expr *expr) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_UNARY);
+    Resolved_Expr *result = resolved_expr_new(EXPR_UNARY, expr->type);
 
     result->expr_unary.op = op;
     result->expr_unary.expr = expr;
@@ -1183,6 +1194,8 @@ struct Resolved_Stmt {
         } stmt_set;
 
         struct {
+            Resolved_Filter **filter;
+            size_t num_filter;
             Resolved_Stmt **stmts;
             size_t num_stmts;
         } stmt_filter;
@@ -1324,9 +1337,13 @@ resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_filter(Resolved_Stmt **stmts, size_t num_stmts) {
+resolved_stmt_filter(Resolved_Filter **filter, size_t num_filter,
+        Resolved_Stmt **stmts, size_t num_stmts)
+{
     Resolved_Stmt *result = resolved_stmt_new(STMT_FILTER);
 
+    result->stmt_filter.filter = filter;
+    result->stmt_filter.num_filter = num_filter;
     result->stmt_filter.stmts = stmts;
     result->stmt_filter.num_stmts = num_stmts;
 
@@ -1458,6 +1475,10 @@ unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
 }
 
 /* filter {{{ */
+internal_proc FILTER_CALLBACK(abs) {
+    return "";
+}
+
 internal_proc FILTER_CALLBACK(upper) {
     char *str = (char *)val;
     char *result = "";
@@ -1484,6 +1505,10 @@ internal_proc FILTER_CALLBACK(truncate) {
 internal_proc void
 init_builtin_filter() {
     Type_Field *str_type[] = { type_field("s", type_str) };
+    Type_Field *int_type[] = { type_field("s", type_int) };
+
+    sym_push_filter("abs", type_filter(int_type, 1, type_str, abs));
+
     sym_push_filter("upper",  type_filter(str_type, 1, type_str, upper));
     sym_push_filter("escape", type_filter(str_type, 1, type_str, escape));
 
@@ -1743,10 +1768,9 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_FILTER: {
-            assert(0);
-
+            Resolved_Filter **filter = 0;
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
-                resolve_filter(&stmt->stmt_filter.filter[i]);
+                buf_push(filter, resolve_filter(&stmt->stmt_filter.filter[i]));
             }
 
             Resolved_Stmt **stmts = 0;
@@ -1754,7 +1778,7 @@ resolve_stmt(Stmt *stmt) {
                 buf_push(stmts, resolve_stmt(stmt->stmt_filter.stmts[i]));
             }
 
-            result = resolved_stmt_filter(stmts, buf_len(stmts));
+            result = resolved_stmt_filter(filter, buf_len(filter), stmts, buf_len(stmts));
         } break;
 
         case STMT_INCLUDE: {

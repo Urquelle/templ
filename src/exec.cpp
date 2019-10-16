@@ -120,7 +120,7 @@ exec_expr(Resolved_Expr *expr) {
 
         case EXPR_UNARY: {
             /* @AUFGABE: vorzeichen */
-            result = exec_expr(expr->expr_unary.expr);
+            result = val_op(expr->expr_unary.op, exec_expr(expr->expr_unary.expr));
         } break;
 
         case EXPR_FIELD: {
@@ -367,6 +367,25 @@ exec_stmt(Resolved_Stmt *stmt) {
                     exec_stmt(templ->stmts[j]);
                 }
             }
+        } break;
+
+        case STMT_FILTER: {
+            char *old_gen_result = gen_result;
+            char *temp = "";
+            gen_result = temp;
+
+            for ( int i = 0; i < stmt->stmt_filter.num_stmts; ++i ) {
+                exec_stmt(stmt->stmt_filter.stmts[i]);
+            }
+
+            char *result = gen_result;
+            for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
+                Resolved_Filter *filter = stmt->stmt_filter.filter[i];
+                result = filter->proc(result, filter->args, filter->num_args);
+            }
+
+            gen_result = old_gen_result;
+            genf("%s", result);
         } break;
 
         case STMT_MACRO:
