@@ -13,7 +13,7 @@ global_var Arena resolve_arena;
 typedef PROC_CALLBACK(Proc_Callback);
 PROC_CALLBACK(super);
 
-#define FILTER_CALLBACK(name) char * name(void *val, Resolved_Expr **params, size_t num_params)
+#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Expr **params, size_t num_params)
 typedef FILTER_CALLBACK(Filter_Callback);
 
 #define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
@@ -1478,36 +1478,31 @@ unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
 }
 
 /* filter {{{ */
-internal_proc FILTER_CALLBACK(abs) {
-    char *str = (char *)val;
-    s32 temp = atoi(str);
-    s32 i = abs(temp);
+internal_proc FILTER_CALLBACK(filter_abs) {
+    assert(val->kind == VAL_INT);
+    s32 i = abs(val_int(val));
 
-    char *result = strf("%d", i);
-    return result;
+    return val_int(i);
 }
 
-internal_proc FILTER_CALLBACK(upper) {
-    char *str = (char *)val;
+internal_proc FILTER_CALLBACK(filter_upper) {
+    assert(val->kind == VAL_STR);
+    char *str = val_str(val);
     char *result = "";
 
     for ( int i = 0; i < strlen(str); ++i ) {
         result = strf("%s%c", result, toupper(str[i]));
     }
 
-    return result;
+    return val_str(result);
 }
 
-internal_proc FILTER_CALLBACK(escape) {
-    char *str = *(char **)val;
-
-    return str;
+internal_proc FILTER_CALLBACK(filter_escape) {
+    return val_str("<!-- @AUFGABE: implementiere filter escape -->");
 }
 
-internal_proc FILTER_CALLBACK(truncate) {
-    char *str = *(char **)val;
-
-    return str;
+internal_proc FILTER_CALLBACK(filter_truncate) {
+    return val_str("<!-- @AUFGABE: implementiere filter truncate -->");
 }
 
 internal_proc void
@@ -1515,10 +1510,9 @@ init_builtin_filter() {
     Type_Field *str_type[] = { type_field("s", type_str) };
     Type_Field *int_type[] = { type_field("s", type_int) };
 
-    sym_push_filter("abs", type_filter(int_type, 1, type_str, abs));
-
-    sym_push_filter("upper",  type_filter(str_type, 1, type_str, upper));
-    sym_push_filter("escape", type_filter(str_type, 1, type_str, escape));
+    sym_push_filter("abs",    type_filter(int_type, 1, type_str, filter_abs));
+    sym_push_filter("upper",  type_filter(str_type, 1, type_str, filter_upper));
+    sym_push_filter("escape", type_filter(str_type, 1, type_str, filter_escape));
 
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
@@ -1527,7 +1521,7 @@ init_builtin_filter() {
         type_field("killwords", type_bool, val_bool(false)),
         type_field("leeway", type_int, val_int(0)),
     };
-    sym_push_filter("truncate", type_filter(trunc_type, 5, type_str, truncate));
+    sym_push_filter("truncate", type_filter(trunc_type, 5, type_str, filter_truncate));
 }
 /* }}} */
 /* tests {{{ */

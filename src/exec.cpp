@@ -266,7 +266,7 @@ exec_stmt(Resolved_Stmt *stmt) {
             Resolved_Expr *if_expr = stmt->stmt_var.if_expr;
 
             if ( !if_expr || if_expr_cond(if_expr) ) {
-                char *value = to_char(exec_expr(stmt->stmt_var.expr));
+                Val *value = exec_expr(stmt->stmt_var.expr);
 
                 for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
                     Resolved_Filter *filter = stmt->stmt_var.filter[i];
@@ -377,14 +377,14 @@ exec_stmt(Resolved_Stmt *stmt) {
                 exec_stmt(stmt->stmt_filter.stmts[i]);
             }
 
-            char *result = gen_result;
+            Val *result = val_str(gen_result);
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
                 Resolved_Filter *filter = stmt->stmt_filter.filter[i];
                 result = filter->proc(result, filter->args, filter->num_args);
             }
 
             gen_result = old_gen_result;
-            genf("%s", result);
+            genf("%s", to_char(result));
         } break;
 
         case STMT_MACRO:
