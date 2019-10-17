@@ -21,7 +21,7 @@ typedef TEST_CALLBACK(Test_Callback);
 
 internal_proc Resolved_Expr *   resolve_expr(Expr *expr);
 internal_proc Resolved_Expr *   resolve_expr_cond(Expr *expr);
-internal_proc Resolved_Filter * resolve_filter(Var_Filter *filter);
+internal_proc Resolved_Filter * resolve_filter(Expr *expr);
 internal_proc Resolved_Stmt *   resolve_stmt(Stmt *stmt);
 internal_proc Resolved_Templ *  resolve(Parsed_Templ *d);
 
@@ -1406,15 +1406,10 @@ struct Resolved_Filter {
 };
 
 internal_proc Resolved_Filter *
-resolved_filter_new() {
+resolved_filter(Sym *sym, Type *type, Resolved_Expr **args, size_t num_args,
+        Filter_Callback *proc)
+{
     Resolved_Filter *result = ALLOC_STRUCT(&resolve_arena, Resolved_Filter);
-
-    return result;
-}
-
-internal_proc Resolved_Filter *
-resolved_filter(Sym *sym, Type *type, Resolved_Expr **args, size_t num_args, Filter_Callback *proc) {
-    Resolved_Filter *result = resolved_filter_new();
 
     result->sym = sym;
     result->type = type;
@@ -1485,6 +1480,28 @@ internal_proc FILTER_CALLBACK(filter_abs) {
     return val_int(i);
 }
 
+internal_proc FILTER_CALLBACK(filter_capitalize) {
+    assert(val->kind == VAL_STR);
+
+    char first_letter = (*(char **)val->ptr)[0];
+    if ( first_letter >= 'a' && first_letter <= 'z' ) {
+        (*(char **)val->ptr)[0] = first_letter - 32;
+    }
+
+    return val_str( val_str(val) );
+}
+
+internal_proc FILTER_CALLBACK(filter_default) {
+    assert(val->kind == VAL_STR);
+    assert(num_params > 0);
+
+    if ( !val->len ) {
+        return params[0]->val;
+    }
+
+    return val;
+}
+
 internal_proc FILTER_CALLBACK(filter_upper) {
     assert(val->kind == VAL_STR);
     char *str = val_str(val);
@@ -1509,10 +1526,13 @@ internal_proc void
 init_builtin_filter() {
     Type_Field *str_type[] = { type_field("s", type_str) };
     Type_Field *int_type[] = { type_field("s", type_int) };
+    Type_Field *str2_type[] = { type_field("value", type_str), type_field("default_value", type_str) };
 
-    sym_push_filter("abs",    type_filter(int_type, 1, type_str, filter_abs));
-    sym_push_filter("upper",  type_filter(str_type, 1, type_str, filter_upper));
-    sym_push_filter("escape", type_filter(str_type, 1, type_str, filter_escape));
+    sym_push_filter("abs",        type_filter(int_type,  1, type_str, filter_abs));
+    sym_push_filter("capitalize", type_filter(str_type,  1, type_str, filter_capitalize));
+    sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default));
+    sym_push_filter("upper",      type_filter(str_type,  1, type_str, filter_upper));
+    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape));
 
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
@@ -1628,10 +1648,9 @@ resolve_stmt(Stmt *stmt) {
 
     switch (stmt->kind) {
         case STMT_VAR: {
-            Resolved_Filter **res_filter = 0;
+            Resolved_Filter **filter = 0;
             for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
-                Var_Filter filter = stmt->stmt_var.filter[i];
-                buf_push(res_filter, resolve_filter(&filter));
+                buf_push(filter, resolve_filter(stmt->stmt_var.filter[i]));
             }
 
             Resolved_Expr *expr = resolve_expr(stmt->stmt_var.expr);
@@ -1640,7 +1659,7 @@ resolve_stmt(Stmt *stmt) {
                 if_expr = resolve_expr(stmt->stmt_var.if_expr);
             }
 
-            result = resolved_stmt_var(expr, res_filter, buf_len(res_filter), if_expr);
+            result = resolved_stmt_var(expr, filter, buf_len(filter), if_expr);
             expr->stmt = result;
         } break;
 
@@ -1772,7 +1791,7 @@ resolve_stmt(Stmt *stmt) {
         case STMT_FILTER: {
             Resolved_Filter **filter = 0;
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
-                buf_push(filter, resolve_filter(&stmt->stmt_filter.filter[i]));
+                buf_push(filter, resolve_filter(stmt->stmt_filter.filter[i]));
             }
 
             Resolved_Stmt **stmts = 0;
@@ -2253,8 +2272,19 @@ resolve_expr(Expr *expr) {
 }
 
 internal_proc Resolved_Filter *
-resolve_filter(Var_Filter *filter) {
-    Sym *sym = resolve_name(filter->name);
+resolve_filter(Expr *expr) {
+    Sym *sym = 0;
+    size_t num_args = 0;
+
+    if ( expr->kind == EXPR_NAME ) {
+        sym = resolve_name(expr->expr_name.value);
+    } else {
+        assert(expr->kind == EXPR_CALL);
+
+        Resolved_Expr *call = resolve_expr(expr->expr_call.expr);
+        num_args = expr->expr_call.num_args;
+        sym = call->sym;
+    }
 
     if ( !sym ) {
         fatal("symbol konnte nicht gefunden werden!");
@@ -2264,24 +2294,25 @@ resolve_filter(Var_Filter *filter) {
     assert(sym->type->kind == TYPE_FILTER);
     Type *type = sym->type;
 
-    if ( type->type_proc.num_params-1 < filter->num_params ) {
+    if ( type->type_proc.num_params-1 < num_args ) {
         fatal("zu viele argumente");
     }
 
     Resolved_Expr **args = 0;
-    for ( int i = 1; i < type->type_proc.num_params-1; ++i ) {
+    for ( int i = 1; i < type->type_proc.num_params; ++i ) {
         Type_Field *param = type->type_proc.params[i];
 
-        if ( param->default_value->kind == VAL_NONE && (i-1 >= filter->num_params) ) {
+        if ( !param->default_value && (i-1 >= num_args) ) {
             fatal("zu wenige parameter übergeben");
         }
 
-        if ( i-1 < filter->num_params ) {
-            Resolved_Expr *arg = resolve_expr(filter->params[i-1]);
-            if (arg->type != param->type) {
+        if ( i-1 < num_args ) {
+            Arg *arg = expr->expr_call.args[i-1];
+            Resolved_Expr *resolved_arg = resolve_expr(arg->expr);
+            if (resolved_arg->type != param->type) {
                 fatal("datentyp des arguments stimmt nicht");
             }
-            buf_push(args, arg);
+            buf_push(args, resolved_arg);
         }
     }
 

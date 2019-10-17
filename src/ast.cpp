@@ -396,7 +396,7 @@ struct Stmt {
 
         struct {
             Expr *expr;
-            Var_Filter *filter;
+            Expr **filter;
             size_t num_filter;
             Expr *if_expr;
         } stmt_var;
@@ -418,7 +418,7 @@ struct Stmt {
         } stmt_set;
 
         struct {
-            Var_Filter *filter;
+            Expr **filter;
             size_t num_filter;
             Stmt **stmts;
             size_t num_stmts;
@@ -558,11 +558,11 @@ stmt_endmacro() {
 }
 
 internal_proc Stmt *
-stmt_var(Expr *expr, Var_Filter *filter, size_t num_filter, Expr *if_expr) {
+stmt_var(Expr *expr, Expr **filter, size_t num_filter, Expr *if_expr) {
     Stmt *result = stmt_new(STMT_VAR);
 
     result->stmt_var.expr = expr;
-    result->stmt_var.filter = filter;
+    result->stmt_var.filter = (Expr **)AST_DUP(filter);
     result->stmt_var.num_filter = num_filter;
     result->stmt_var.if_expr = if_expr;
 
@@ -602,10 +602,10 @@ stmt_set(char *name, Expr *expr) {
 }
 
 internal_proc Stmt *
-stmt_filter(Var_Filter *filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
+stmt_filter(Expr **filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_FILTER);
 
-    result->stmt_filter.filter = (Var_Filter *)AST_DUP(filter);
+    result->stmt_filter.filter = (Expr **)AST_DUP(filter);
     result->stmt_filter.num_filter = num_filter;
     result->stmt_filter.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_filter.num_stmts = num_stmts;
@@ -670,15 +670,4 @@ struct Parsed_Templ {
     Stmt **stmts;
     size_t num_stmts;
 };
-
-internal_proc Var_Filter
-var_filter(char *name, Expr **params, size_t num_params) {
-    Var_Filter result = {};
-
-    result.name = name;
-    result.params = params;
-    result.num_params = num_params;
-
-    return result;
-}
 

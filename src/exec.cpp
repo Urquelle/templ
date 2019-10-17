@@ -273,7 +273,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                     value = filter->proc(value, filter->args, filter->num_args);
                 }
 
-                genf("%s", value);
+                genf("%s", to_char(value));
             } else {
                 if ( if_expr->expr_if.else_expr ) {
                     Val *else_val = exec_expr(if_expr->expr_if.else_expr);

@@ -9,7 +9,6 @@ internal_proc char * parse_name(Parser *p);
 internal_proc Stmt * parse_stmt(Parser *p);
 internal_proc Stmt * parse_stmt_var(Parser *p);
 internal_proc Stmt * parse_stmt_lit(Parser *p);
-internal_proc Var_Filter parse_filter(Parser *p);
 internal_proc Parsed_Templ * parse_file(char *filename);
 internal_proc Stmt * parse_stmt_endmacro(Parser *p);
 
@@ -590,11 +589,11 @@ parse_stmt_include(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_filter(Parser *p) {
-    Var_Filter *filter = 0;
-    buf_push(filter, parse_filter(p));
+    Expr **filter = 0;
+    buf_push(filter, parse_expr(p));
 
     while ( match_token(p, T_BAR) ) {
-        buf_push(filter, parse_filter(p));
+        buf_push(filter, parse_expr(p));
     }
     expect_token(p, T_CODE_END);
 
@@ -785,24 +784,13 @@ parse_stmt(Parser *p) {
     return result;
 }
 
-internal_proc Var_Filter
-parse_filter(Parser *p) {
-    char *name = parse_name(p);
-    Expr **params = 0;
-    while ( !is_token(p, T_BAR) && !is_token(p, T_VAR_END) && !is_token(p, T_CODE_END) ) {
-        buf_push(params, parse_expr(p));
-    }
-
-    return var_filter(name, params, buf_len(params));
-}
-
 internal_proc Stmt *
 parse_stmt_var(Parser *p) {
     Expr *expr = parse_expr(p);
 
-    Var_Filter *filter = 0;
+    Expr **filter = 0;
     while ( match_token(p, T_BAR) ) {
-        buf_push(filter, parse_filter(p));
+        buf_push(filter, parse_expr(p));
     }
 
     Expr *if_expr = 0;
