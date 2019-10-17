@@ -29,6 +29,7 @@
     {{ "hallo" | capitalize }}
     <h2>test default</h2>
     {{ '' | default("bla") }}
+    {{ '<div>oel</div>' | e }}
 
     <h2>from import macro</h2>
     {{ test_1() }}

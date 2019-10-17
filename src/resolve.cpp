@@ -6,6 +6,7 @@ struct Resolved_Stmt;
 struct Resolved_Expr;
 struct Resolved_Filter;
 struct Resolved_Templ;
+struct Resolved_Arg;
 
 global_var Arena resolve_arena;
 
@@ -13,7 +14,7 @@ global_var Arena resolve_arena;
 typedef PROC_CALLBACK(Proc_Callback);
 PROC_CALLBACK(super);
 
-#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Expr **params, size_t num_params)
+#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
 typedef FILTER_CALLBACK(Filter_Callback);
 
 #define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
@@ -851,7 +852,7 @@ struct Resolved_Arg {
 };
 
 internal_proc Resolved_Arg *
-resolved_arg_new(char *name, Val *val) {
+resolved_arg(char *name, Val *val) {
     Resolved_Arg *result = ALLOC_STRUCT(&resolve_arena, Resolved_Arg);
 
     result->name = name;
@@ -1398,21 +1399,15 @@ resolved_stmt_import(Sym *sym) {
 /* }}} */
 
 struct Resolved_Filter {
-    Sym *sym;
-    Type *type;
-    Resolved_Expr **args;
+    Resolved_Arg **args;
     size_t num_args;
     Filter_Callback *proc;
 };
 
 internal_proc Resolved_Filter *
-resolved_filter(Sym *sym, Type *type, Resolved_Expr **args, size_t num_args,
-        Filter_Callback *proc)
-{
+resolved_filter(Resolved_Arg **args, size_t num_args, Filter_Callback *proc) {
     Resolved_Filter *result = ALLOC_STRUCT(&resolve_arena, Resolved_Filter);
 
-    result->sym = sym;
-    result->type = type;
     result->args = args;
     result->num_args = num_args;
     result->proc = proc;
@@ -1493,10 +1488,10 @@ internal_proc FILTER_CALLBACK(filter_capitalize) {
 
 internal_proc FILTER_CALLBACK(filter_default) {
     assert(val->kind == VAL_STR);
-    assert(num_params > 0);
+    assert(num_args > 0);
 
     if ( !val->len ) {
-        return params[0]->val;
+        return args[0]->val;
     }
 
     return val;
@@ -1515,7 +1510,29 @@ internal_proc FILTER_CALLBACK(filter_upper) {
 }
 
 internal_proc FILTER_CALLBACK(filter_escape) {
-    return val_str("<!-- @AUFGABE: implementiere filter escape -->");
+    char *result = "";
+
+    for ( int i = 0; i < val->len; ++i ) {
+        char c = (*(char **)val->ptr)[i];
+
+        if        ( c == '<' ) {
+            result = strf("%s%s", result, "&lt;");
+        } else if ( c == '>' ) {
+            result = strf("%s%s", result, "&gt;");
+        } else if ( c == '&' ) {
+            result = strf("%s%s", result, "&amp;");
+        } else if ( c == ' ' ) {
+            result = strf("%s%s", result, "&nbsp;");
+        } else {
+            result = strf("%s%c", result, c);
+        }
+    }
+
+    return val_str(result);
+}
+
+internal_proc FILTER_CALLBACK(filter_e) {
+    return filter_escape(val, args, num_args);
 }
 
 internal_proc FILTER_CALLBACK(filter_truncate) {
@@ -1533,6 +1550,7 @@ init_builtin_filter() {
     sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default));
     sym_push_filter("upper",      type_filter(str_type,  1, type_str, filter_upper));
     sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape));
+    sym_push_filter("e",          type_filter(str_type,  1, type_str, filter_escape));
 
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
@@ -2188,8 +2206,8 @@ resolve_expr(Expr *expr) {
                 buf_push(params, name);
 
                 Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
-                Resolved_Arg *resolved_arg = resolved_arg_new(name, arg_expr->val);
-                buf_push(args, resolved_arg);
+                Resolved_Arg *rarg = resolved_arg(name, arg_expr->val);
+                buf_push(args, rarg);
             }
 
             result = resolved_expr_call(call_expr, args, buf_len(args), type);
@@ -2298,7 +2316,7 @@ resolve_filter(Expr *expr) {
         fatal("zu viele argumente");
     }
 
-    Resolved_Expr **args = 0;
+    Resolved_Arg **args = 0;
     for ( int i = 1; i < type->type_proc.num_params; ++i ) {
         Type_Field *param = type->type_proc.params[i];
 
@@ -2308,15 +2326,15 @@ resolve_filter(Expr *expr) {
 
         if ( i-1 < num_args ) {
             Arg *arg = expr->expr_call.args[i-1];
-            Resolved_Expr *resolved_arg = resolve_expr(arg->expr);
-            if (resolved_arg->type != param->type) {
+            Resolved_Expr *arg_expr = resolve_expr(arg->expr);
+            if (arg_expr->type != param->type) {
                 fatal("datentyp des arguments stimmt nicht");
             }
-            buf_push(args, resolved_arg);
+            buf_push(args, resolved_arg(arg->name, arg_expr->val));
         }
     }
 
-    return resolved_filter(sym, type, args, buf_len(args), type->type_filter.callback);
+    return resolved_filter(args, buf_len(args), type->type_filter.callback);
 }
 
 internal_proc void
