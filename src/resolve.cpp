@@ -1479,7 +1479,12 @@ unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
 
 /* filter {{{ */
 internal_proc FILTER_CALLBACK(abs) {
-    return "";
+    char *str = (char *)val;
+    s32 temp = atoi(str);
+    s32 i = abs(temp);
+
+    char *result = strf("%d", i);
+    return result;
 }
 
 internal_proc FILTER_CALLBACK(upper) {
@@ -2067,15 +2072,15 @@ resolve_expr(Expr *expr) {
                 s64 offset = offset_from_base(type, sym->name);
                 scope_set(prev_scope);
 
-                assert(sym);
                 result = resolved_expr_field(base, sym, offset, sym->type);
             } else {
                 assert(type->kind == TYPE_MODULE);
                 Scope *prev_scope = scope_set(type->type_module.scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
+                assert(sym);
+
                 scope_set(prev_scope);
 
-                assert(sym);
                 result = resolved_expr_field(base, sym, 0, sym->type);
             }
         } break;

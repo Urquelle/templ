@@ -119,10 +119,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_UNARY: {
-            if ( expr->expr_unary.op == T_MINUS ) {
-                genf("-");
-            }
-            result = exec_expr(expr->expr_unary.expr);
+            result = val_op(expr->expr_unary.op, exec_expr(expr->expr_unary.expr));
         } break;
 
         case EXPR_FIELD: {
