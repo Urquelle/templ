@@ -1,3 +1,4 @@
+{#% set Öl = "fisch" %#}
 <html>
     <head>
         {% set default_title = "tmpl" %}

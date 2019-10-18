@@ -214,235 +214,163 @@ next_raw_token(Lexer *lex) {
     lex->token.pos = lex->pos;
     lex->token.pos.start = start;
 
-    switch ( at0(lex) ) {
-        case 0: {
-            lex->token.kind = T_EOF;
+    char c = at0(lex);
+    if ( c == 0 ) {
+        lex->token.kind = T_EOF;
+        next(lex);
+    } else if ( c == ',' ) {
+        lex->token.kind = T_COMMA;
+        next(lex);
+    } else if ( c == '.' ) {
+        lex->token.kind = T_DOT;
+        next(lex);
+
+        if ( at0(lex) == '.' ) {
+            lex->token.kind = T_RANGE;
             next(lex);
-        } break;
+        }
+    } else if ( c == '(' ) {
+        lex->token.kind = T_LPAREN;
+        next(lex);
+    } else if ( c == ')' ) {
+        lex->token.kind = T_RPAREN;
+        next(lex);
+    } else if ( c == '[' ) {
+        lex->token.kind = T_LBRACKET;
+        next(lex);
+    } else if ( c == ']' ) {
+        lex->token.kind = T_RBRACKET;
+        next(lex);
+    } else if ( c == '!' ) {
+        lex->token.kind = T_BANG;
+        next(lex);
 
-        case ',': {
-            lex->token.kind = T_COMMA;
+        if ( at0(lex) == '=' ) {
+            lex->token.kind = T_NEQ;
             next(lex);
-        } break;
+        }
+    } else if ( c == '=' ) {
+        lex->token.kind = T_ASSIGN;
+        next(lex);
 
-        case '.': {
-            lex->token.kind = T_DOT;
+        if ( at0(lex) == '=' ) {
+            lex->token.kind = T_EQL;
             next(lex);
+        }
+    } else if ( c == '<' ) {
+        lex->token.kind = T_LT;
+        next(lex);
 
-            if ( at0(lex) == '.' ) {
-                lex->token.kind = T_RANGE;
-                next(lex);
-            }
-        } break;
-
-        case '(': {
-            lex->token.kind = T_LPAREN;
+        if ( at0(lex) == '=' ) {
+            lex->token.kind = T_LEQ;
             next(lex);
-        } break;
+        }
+    } else if ( c == '>' ) {
+        lex->token.kind = T_GT;
+        next(lex);
 
-        case ')': {
-            lex->token.kind = T_RPAREN;
+        if ( at0(lex) == '=' ) {
+            lex->token.kind = T_GEQ;
             next(lex);
-        } break;
+        }
+    } else if ( c == '+' ) {
+        lex->token.kind = T_PLUS;
+        next(lex);
+    } else if ( c == '-' ) {
+        lex->token.kind = T_MINUS;
+        next(lex);
+    } else if ( c == '*' ) {
+        lex->token.kind = T_MUL;
+        next(lex);
+    } else if ( c == '/' ) {
+        lex->token.kind = T_DIV;
+        next(lex);
+    } else if ( c == '?' ) {
+        lex->token.kind = T_QMARK;
+        next(lex);
+    } else if ( c == ':' ) {
+        lex->token.kind = T_COLON;
+        next(lex);
+    } else if ( c == ' ' ) {
+        lex->token.kind = T_SPACE;
+        next(lex);
+    } else if ( c == '\t' ) {
+        lex->token.kind = T_TAB;
+        next(lex);
+    } else if ( c == '\n' ) {
+        lex->token.kind = T_NEWLINE;
+        next(lex);
+    } else if ( c == '\v' ) {
+        lex->token.kind = T_SPACE;
+        next(lex);
+    } else if ( c == '{' ) {
+        lex->token.kind = T_LBRACE;
+        next(lex);
 
-        case '[': {
-            lex->token.kind = T_LBRACKET;
+        if ( at0(lex) == '{' ) {
+            lex->token.kind = T_VAR_BEGIN;
             next(lex);
-        } break;
-
-        case ']': {
-            lex->token.kind = T_RBRACKET;
+        } else if ( at0(lex) == '#' ) {
+            lex->token.kind = T_COMMENT;
             next(lex);
-        } break;
-
-        case '!': {
-            lex->token.kind = T_BANG;
+            skip_comment(lex);
+        } else if ( at0(lex) == '%' ) {
+            lex->token.kind = T_CODE_BEGIN;
             next(lex);
+        }
+    } else if ( c == '}' ) {
+        lex->token.kind = T_RBRACE;
+        next(lex);
 
-            if ( at0(lex) == '=' ) {
-                lex->token.kind = T_NEQ;
-                next(lex);
-            }
-        } break;
-
-        case '=': {
-            lex->token.kind = T_ASSIGN;
+        if ( at0(lex) == '}' ) {
+            lex->token.kind = T_VAR_END;
             next(lex);
+        }
+    } else if ( c == '\'' || c == '"' ) {
+        lex->token.kind = T_STR;
+        next(lex);
 
-            if ( at0(lex) == '=' ) {
-                lex->token.kind = T_EQL;
-                next(lex);
-            }
-        } break;
-
-        case '<': {
-            lex->token.kind = T_LT;
+        while (at0(lex) != '"' && at0(lex) != '\'') {
             next(lex);
+        }
 
-            if ( at0(lex) == '=' ) {
-                lex->token.kind = T_LEQ;
-                next(lex);
-            }
-        } break;
+        lex->token.str_value = intern_str(start+1, lex->input);
+        next(lex);
+    } else if ( c == '#' ) {
+        lex->token.kind = T_HASH;
+        next(lex);
+    } else if ( c == '%' ) {
+        lex->token.kind = T_PERCENT;
+        next(lex);
 
-        case '>': {
-            lex->token.kind = T_GT;
+        if ( at0(lex) == '}' ) {
+            lex->token.kind = T_CODE_END;
             next(lex);
+        }
+    } else if ( c >= '0' && c <= '9' ) {
+        lex->token.kind = T_INT;
+        s32 int_value = scan_int(lex);
 
-            if ( at0(lex) == '=' ) {
-                lex->token.kind = T_GEQ;
-                next(lex);
-            }
-        } break;
+        if ( at0(lex) == '.' && isdigit(at1(lex)) ) {
+            lex->token.kind = T_FLOAT;
+            lex->token.float_value = int_value + scan_float(lex);
+        } else {
+            lex->token.int_value = int_value;
+        }
+    } else if ( c == '_' || c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' ) {
+        lex->token.kind = T_NAME;
 
-        case '+': {
-            lex->token.kind = T_PLUS;
+        while ( isalnum(at0(lex)) || at0(lex) == '_' ) {
             next(lex);
-        } break;
+        }
 
-        case '-': {
-            lex->token.kind = T_MINUS;
-            next(lex);
-        } break;
-
-        case '*': {
-            lex->token.kind = T_MUL;
-            next(lex);
-        } break;
-
-        case '/': {
-            lex->token.kind = T_DIV;
-            next(lex);
-        } break;
-
-        case '?': {
-            lex->token.kind = T_QMARK;
-            next(lex);
-        } break;
-
-        case ':': {
-            lex->token.kind = T_COLON;
-            next(lex);
-        } break;
-
-        case ' ': {
-            lex->token.kind = T_SPACE;
-            next(lex);
-        } break;
-
-        case '\t': {
-            lex->token.kind = T_TAB;
-            next(lex);
-        } break;
-
-        case '\n': {
-            lex->token.kind = T_NEWLINE;
-            next(lex);
-        } break;
-
-        case '\v': {
-            lex->token.kind = T_SPACE;
-            next(lex);
-        } break;
-
-        case '{': {
-            lex->token.kind = T_LBRACE;
-            next(lex);
-
-            if ( at0(lex) == '{' ) {
-                lex->token.kind = T_VAR_BEGIN;
-                next(lex);
-            } else if ( at0(lex) == '#' ) {
-                lex->token.kind = T_COMMENT;
-                next(lex);
-                skip_comment(lex);
-            } else if ( at0(lex) == '%' ) {
-                lex->token.kind = T_CODE_BEGIN;
-                next(lex);
-            }
-        } break;
-
-        case '}': {
-            lex->token.kind = T_RBRACE;
-            next(lex);
-
-            if ( at0(lex) == '}' ) {
-                lex->token.kind = T_VAR_END;
-                next(lex);
-            }
-        } break;
-
-        case '\'':
-        case '"': {
-            lex->token.kind = T_STR;
-            next(lex);
-
-            while (at0(lex) != '"' && at0(lex) != '\'') {
-                next(lex);
-            }
-
-            lex->token.str_value = intern_str(start+1, lex->input);
-            next(lex);
-        } break;
-
-        case '#': {
-            lex->token.kind = T_HASH;
-            next(lex);
-        } break;
-
-        case '%': {
-            lex->token.kind = T_PERCENT;
-            next(lex);
-
-            if ( at0(lex) == '}' ) {
-                lex->token.kind = T_CODE_END;
-                next(lex);
-            }
-        } break;
-
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9': {
-            lex->token.kind = T_INT;
-            int int_value = scan_int(lex);
-
-            if ( at0(lex) == '.' && isdigit(at1(lex)) ) {
-                lex->token.kind = T_FLOAT;
-                lex->token.float_value = int_value + scan_float(lex);
-            } else {
-                lex->token.int_value = int_value;
-            }
-        } break;
-
-        case 'A': case 'B': case 'C': case 'D': case 'E':
-        case 'F': case 'G': case 'H': case 'I': case 'J':
-        case 'K': case 'L': case 'M': case 'N': case 'O':
-        case 'P': case 'Q': case 'R': case 'S': case 'T':
-        case 'U': case 'V': case 'W': case 'X': case 'Y':
-        case 'Z':
-        case 'a': case 'b': case 'c': case 'd': case 'e':
-        case 'f': case 'g': case 'h': case 'i': case 'j':
-        case 'k': case 'l': case 'm': case 'n': case 'o':
-        case 'p': case 'q': case 'r': case 's': case 't':
-        case 'u': case 'v': case 'w': case 'x': case 'y':
-        case 'z': case '_': {
-            lex->token.kind = T_NAME;
-
-            while ( isalnum(at0(lex)) || at0(lex) == '_' ) {
-                next(lex);
-            }
-
-            lex->token.name = intern_str(start, lex->input);
-        } break;
-
-        case '|': {
-            lex->token.kind = T_BAR;
-            next(lex);
-        } break;
-
-        default: {
-            lex->token.kind = (Token_Kind)at0(lex);
-            next(lex);
-        } break;
+        lex->token.name = intern_str(start, lex->input);
+    } else if ( c == '|' ) {
+        lex->token.kind = T_BAR;
+        next(lex);
+    } else {
+        lex->token.kind = (Token_Kind)at0(lex);
+        next(lex);
     }
 
     lex->token.literal = intern_str(start, lex->input);

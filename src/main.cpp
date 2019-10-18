@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <locale.h>
 #include <string.h>
 #include <stdarg.h>
 
