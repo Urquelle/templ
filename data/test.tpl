@@ -29,7 +29,7 @@
     {{ "hallo" | capitalize }}
     <h2>test default</h2>
     {{ '' | default("bla") }}
-    {{ '<div>oel</div>' | e }}
+    {{ '<div>©oel</div>' | e }}
 
     <h2>from import macro</h2>
     {{ test_1() }}
@@ -49,6 +49,8 @@
     <div class="bla">{{ a }}</div>
     {% set a = "tset" %}
     <div class="alb">{{ a }}</div>
+    {% set A = "blub" %}
+    <div>{{ A }}</div>
 
     <h2>if anweisung</h2>
     {% set b = 2 %}

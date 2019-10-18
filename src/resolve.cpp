@@ -821,8 +821,16 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
 }
 
 internal_proc Sym *
-sym_push_filter(char *name, Type *type) {
-    return sym_push(SYM_PROC, name, type);
+sym_push_filter(char *name, Type *type, char **alias = 0,
+        size_t num_alias = 0)
+{
+    Sym *result = sym_push(SYM_PROC, name, type);
+
+    for ( int i = 0; i < num_alias; ++i ) {
+        sym_push(SYM_PROC, alias[i], type);
+    }
+
+    return result;
 }
 
 internal_proc Sym *
@@ -1549,8 +1557,10 @@ init_builtin_filter() {
     sym_push_filter("capitalize", type_filter(str_type,  1, type_str, filter_capitalize));
     sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default));
     sym_push_filter("upper",      type_filter(str_type,  1, type_str, filter_upper));
-    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape));
-    sym_push_filter("e",          type_filter(str_type,  1, type_str, filter_escape));
+
+    char **aliase = 0;
+    buf_push(aliase, "e");
+    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliase, buf_len(aliase));
 
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
