@@ -22,8 +22,38 @@ file_read(char *filename, char **result) {
 }
 
 internal_proc b32
+file_read_unicode(wchar_t *filename, wchar_t **result) {
+    HANDLE file = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+
+    if ( file == INVALID_HANDLE_VALUE ) {
+        return false;
+    }
+
+    HANDLE file_mapping = CreateFileMappingW(file, 0, PAGE_WRITECOPY, 0, 0, 0);
+    *result = (wchar_t *)MapViewOfFileEx(file_mapping, FILE_MAP_COPY, 0, 0, 0, 0);
+
+    return true;
+}
+
+internal_proc b32
 file_write(char *filename, char *data, size_t len) {
     HANDLE file = CreateFileA(filename, GENERIC_WRITE, FILE_SHARE_WRITE, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+    if ( file == INVALID_HANDLE_VALUE ) {
+        return false;
+    }
+
+    DWORD bytes_written = 0;
+    HRESULT h = WriteFile(file, data, (DWORD)len, &bytes_written, NULL);
+
+    CloseHandle(file);
+
+    return SUCCEEDED(h);
+}
+
+internal_proc b32
+file_write_unicode(wchar_t *filename, wchar_t *data, size_t len) {
+    HANDLE file = CreateFileW(filename, GENERIC_WRITE, FILE_SHARE_WRITE, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 
     if ( file == INVALID_HANDLE_VALUE ) {
         return false;
