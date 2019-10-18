@@ -1201,6 +1201,10 @@ struct Resolved_Stmt {
         } stmt_lit;
 
         struct {
+            char *value;
+        } stmt_raw;
+
+        struct {
             Sym *sym;
             Resolved_Expr *expr;
         } stmt_set;
@@ -1319,6 +1323,15 @@ resolved_stmt_lit(char *val) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_LIT);
 
     result->stmt_lit.lit = val;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_raw(char *value) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_RAW);
+
+    result->stmt_raw.value = value;
 
     return result;
 }
@@ -1785,6 +1798,10 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_LIT: {
             result = resolved_stmt_lit(stmt->stmt_lit.value);
+        } break;
+
+        case STMT_RAW: {
+            result = resolved_stmt_raw(stmt->stmt_raw.value);
         } break;
 
         case STMT_EXTENDS: {

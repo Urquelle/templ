@@ -363,6 +363,7 @@ enum Stmt_Kind {
     STMT_MACRO,
     STMT_IMPORT,
     STMT_FROM_IMPORT,
+    STMT_RAW,
 };
 
 struct Stmt {
@@ -450,6 +451,10 @@ struct Stmt {
             Imported_Sym **syms;
             size_t num_syms;
         } stmt_from_import;
+
+        struct {
+            char *value;
+        } stmt_raw;
     };
 };
 
@@ -660,6 +665,15 @@ stmt_from_import(Parsed_Templ *templ, Imported_Sym **syms, size_t num_syms) {
     result->stmt_from_import.templ = templ;
     result->stmt_from_import.syms = (Imported_Sym **)AST_DUP(syms);
     result->stmt_from_import.num_syms = num_syms;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_raw(char *value) {
+    Stmt *result = stmt_new(STMT_RAW);
+
+    result->stmt_raw.value = value;
 
     return result;
 }

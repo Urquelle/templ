@@ -387,6 +387,10 @@ exec_stmt(Resolved_Stmt *stmt) {
             genf("%s", to_char(result));
         } break;
 
+        case STMT_RAW: {
+            genf("%s", stmt->stmt_raw.value);
+        } break;
+
         case STMT_MACRO:
         case STMT_FROM_IMPORT:
         case STMT_IMPORT: {

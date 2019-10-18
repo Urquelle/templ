@@ -2,6 +2,11 @@ struct Parser {
     Lexer lex;
 };
 
+internal_proc b32
+valid(Parser *p) {
+    return p->lex.input != 0;
+}
+
 global_var Stmt **parsed_stmts;
 
 internal_proc Expr * parse_expr(Parser *p);
@@ -26,6 +31,7 @@ global_var char *keyword_endif;
 global_var char *keyword_endblock;
 global_var char *keyword_endfilter;
 global_var char *keyword_endmacro;
+global_var char *keyword_endraw;
 global_var char *keyword_extends;
 global_var char *keyword_block;
 global_var char *keyword_embed;
@@ -34,6 +40,7 @@ global_var char *keyword_filter;
 global_var char *keyword_include;
 global_var char *keyword_macro;
 global_var char *keyword_import;
+global_var char *keyword_raw;
 
 internal_proc void
 init_keywords() {
@@ -52,6 +59,7 @@ init_keywords() {
     ADD_KEYWORD(endblock);
     ADD_KEYWORD(endfilter);
     ADD_KEYWORD(endmacro);
+    ADD_KEYWORD(endraw);
     ADD_KEYWORD(extends);
     ADD_KEYWORD(block);
     ADD_KEYWORD(embed);
@@ -60,6 +68,7 @@ init_keywords() {
     ADD_KEYWORD(include);
     ADD_KEYWORD(macro);
     ADD_KEYWORD(import);
+    ADD_KEYWORD(raw);
 
 #undef ADD_KEYWORD
 }
@@ -702,6 +711,28 @@ parse_stmt_from_import(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_raw(Parser *p) {
+    char *start = p->lex.input;
+    char *end = start;
+
+    expect_token(p, T_CODE_END);
+
+    for (;; ) {
+        while ( valid(p) && !match_token(p, T_CODE_BEGIN) ) {
+            end = p->lex.input;
+            next_token(&p->lex);
+        }
+
+        if ( match_keyword(p, keyword_endraw) ) {
+            expect_token(p, T_CODE_END);
+            break;
+        }
+    }
+
+    return stmt_raw(intern_str(start, end));
+}
+
+internal_proc Stmt *
 parse_stmt_endfor(Parser *p) {
     expect_token(p, T_CODE_END);
     return stmt_endfor();
@@ -772,6 +803,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_import(p);
         } else if ( match_keyword(p, keyword_from) ) {
             result = parse_stmt_from_import(p);
+        } else if ( match_keyword(p, keyword_raw) ) {
+            result = parse_stmt_raw(p);
         } else {
             illegal_path();
         }

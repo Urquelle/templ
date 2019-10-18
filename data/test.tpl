@@ -25,6 +25,12 @@
         {{ macros.macro_name }}
     {% endfilter %}
 
+    <h2>raw</h2>
+    {% raw %}
+        {% set foo = "bar" %}
+        und dann
+    {% endraw %}
+
     {{ -1*5 | abs }}
     {{ "hallo" | capitalize }}
     <h2>test default</h2>
