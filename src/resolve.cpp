@@ -1549,18 +1549,23 @@ internal_proc FILTER_CALLBACK(filter_truncate) {
 
 internal_proc void
 init_builtin_filter() {
+    char **aliases = 0;
+
     Type_Field *str_type[] = { type_field("s", type_str) };
     Type_Field *int_type[] = { type_field("s", type_int) };
     Type_Field *str2_type[] = { type_field("value", type_str), type_field("default_value", type_str) };
 
     sym_push_filter("abs",        type_filter(int_type,  1, type_str, filter_abs));
     sym_push_filter("capitalize", type_filter(str_type,  1, type_str, filter_capitalize));
-    sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default));
+
+    aliases = 0;
+    buf_push(aliases, "d");
+    sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default), aliases, buf_len(aliases));
     sym_push_filter("upper",      type_filter(str_type,  1, type_str, filter_upper));
 
-    char **aliase = 0;
-    buf_push(aliase, "e");
-    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliase, buf_len(aliase));
+    aliases = 0;
+    buf_push(aliases, "e");
+    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliases, buf_len(aliases));
 
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
