@@ -26,7 +26,7 @@ internal_proc Iterator
 init(Val *container) {
     Iterator result = {};
 
-    assert(container->kind == VAL_RANGE || container->kind == VAL_LIST);
+    assert(container->kind == VAL_RANGE || container->kind == VAL_LIST || container->kind == VAL_TUPLE);
 
     result.container = container;
     result.pos = 0;
@@ -167,6 +167,10 @@ exec_expr(Resolved_Expr *expr) {
             } else {
                 result = type->type_proc.callback(0);
             }
+        } break;
+
+        case EXPR_TUPLE: {
+            result = expr->val;
         } break;
 
         case EXPR_LIST: {

@@ -85,6 +85,7 @@ enum Val_Kind {
     VAL_STR,
     VAL_RANGE,
     VAL_FIELD,
+    VAL_TUPLE,
     VAL_LIST,
 };
 
@@ -225,6 +226,16 @@ val_range1(Val *val) {
 }
 
 internal_proc Val *
+val_tuple(Val **vals, size_t num_vals) {
+    Val *result = val_new(VAL_TUPLE, sizeof(Val)*num_vals);
+
+    result->ptr = (Val **)AST_DUP(vals);
+    result->len = num_vals;
+
+    return result;
+}
+
+internal_proc Val *
 val_list(Val **vals, size_t num_vals) {
     Val *result = val_new(VAL_LIST, sizeof(Val)*num_vals);
 
@@ -312,6 +323,10 @@ val_item(Val *val, int idx) {
         } break;
 
         case VAL_LIST: {
+            return *((Val **)val->ptr + idx);
+        } break;
+
+        case VAL_TUPLE: {
             return *((Val **)val->ptr + idx);
         } break;
 
@@ -983,6 +998,11 @@ struct Resolved_Expr {
         } expr_if;
 
         struct {
+            Resolved_Expr **exprs;
+            size_t num_exprs;
+        } expr_tuple;
+
+        struct {
             Resolved_Expr **expr;
             size_t num_expr;
         } expr_list;
@@ -1150,6 +1170,17 @@ resolved_expr_index(Resolved_Expr *expr, Resolved_Expr **index, size_t num_index
     result->expr_index.expr = expr;
     result->expr_index.index = index;
     result->expr_index.num_index = num_index;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_tuple(Resolved_Expr **exprs, size_t num_exprs, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_TUPLE);
+
+    result->val = val;
+    result->expr_tuple.exprs     = (Resolved_Expr **)AST_DUP(exprs);
+    result->expr_tuple.num_exprs = num_exprs;
 
     return result;
 }
@@ -2379,6 +2410,18 @@ resolve_expr(Expr *expr) {
             }
 
             result = resolved_expr_list(index, buf_len(index), val_list(vals, buf_len(vals)));
+        } break;
+
+        case EXPR_TUPLE: {
+            Resolved_Expr **exprs = 0;
+            Val **vals = 0;
+            for ( int i = 0; i < expr->expr_tuple.num_exprs; ++i ) {
+                Resolved_Expr *rexpr = resolve_expr(expr->expr_tuple.exprs[i]);
+                buf_push(vals, rexpr->val);
+                buf_push(exprs, rexpr);
+            }
+
+            result = resolved_expr_tuple(exprs, buf_len(exprs), val_tuple(vals, buf_len(vals)));
         } break;
 
         default: {

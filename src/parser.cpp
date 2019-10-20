@@ -198,8 +198,30 @@ parse_expr_base(Parser *p) {
             next_token(lex);
         }
     } else if ( match_token(p, T_LPAREN) ) {
-        result = expr_paren(parse_expr(p));
+        Expr **exprs = 0;
+        buf_push(exprs, parse_expr(p));
+
+        while ( match_token(p, T_COMMA) ) {
+            /* @INFO: aus der jinja2 doku geht folgendes hervor:
+             *        "If a tuple only has one item, it must be followed by a comma (('1-tuple',))"
+             */
+            if ( is_token(p, T_RPAREN) ) {
+                break;
+            }
+
+            buf_push(exprs, parse_expr(p));
+        }
+
         expect_token(p, T_RPAREN);
+
+        size_t num_exprs = buf_len(exprs);
+        if ( num_exprs > 1 ) {
+            result = expr_tuple(exprs, num_exprs);
+        } else {
+            result = expr_paren((num_exprs) ? exprs[0] : 0);
+        }
+
+        buf_free(exprs);
     }
 
     return result;
@@ -212,6 +234,7 @@ parse_expr_field_or_call_or_index(Parser *p) {
     while ( is_token(p, T_LPAREN) || is_token(p, T_LBRACKET) || is_token(p, T_DOT) ) {
         if ( match_token(p, T_LPAREN) ) {
             Arg **args = 0;
+
             if ( !is_token(p, T_RPAREN) ) {
                 char *name = 0;
                 Expr *expr = parse_expr(p);
@@ -227,6 +250,7 @@ parse_expr_field_or_call_or_index(Parser *p) {
                 while ( match_token(p, T_COMMA) ) {
                     name = 0;
                     expr = parse_expr(p);
+
                     if ( match_token(p, T_ASSIGN) ) {
                         assert(expr->kind == EXPR_NAME);
                         name = expr->expr_name.value;
@@ -236,6 +260,7 @@ parse_expr_field_or_call_or_index(Parser *p) {
                     buf_push(args, arg_new(name, expr));
                 }
             }
+
             expect_token(p, T_RPAREN);
             left = expr_call(left, args, buf_len(args));
         } else if ( match_token(p, T_LBRACKET) ) {

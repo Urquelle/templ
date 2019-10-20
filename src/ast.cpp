@@ -48,6 +48,7 @@ enum Expr_Kind {
     EXPR_IS,
     EXPR_IN,
     EXPR_IF,
+    EXPR_TUPLE,
     EXPR_LIST,
 };
 
@@ -135,6 +136,11 @@ struct Expr {
             Expr *cond;
             Expr *else_expr;
         } expr_if;
+
+        struct {
+            Expr **exprs;
+            size_t num_exprs;
+        } expr_tuple;
 
         struct {
             Expr **expr;
@@ -308,6 +314,16 @@ expr_if(Expr *cond, Expr *else_expr) {
 
     result->expr_if.cond = cond;
     result->expr_if.else_expr = else_expr;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_tuple(Expr **exprs, size_t num_exprs) {
+    Expr *result = expr_new(EXPR_TUPLE);
+
+    result->expr_tuple.exprs = (Expr **)AST_DUP(exprs);
+    result->expr_tuple.num_exprs = num_exprs;
 
     return result;
 }

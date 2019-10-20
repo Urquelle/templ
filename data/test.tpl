@@ -20,6 +20,12 @@
     <h2>import variablen</h2>
     {{ macros.macro_name }}
 
+    <h2>tuple test</h2>
+    {% set tuple = ("europa", "asien", "amerika") %}
+    {% for kontinent in tuple %}
+        <div>kontinent:</div><div>{{ kontinent }}</div>
+    {% endfor %}
+
     <h2>filter statement</h2>
     {% filter upper %}
         {{ macros.macro_name }}
