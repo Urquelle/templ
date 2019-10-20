@@ -515,6 +515,8 @@ operator&&(Val left, Val right) {
         left_result = true;
     } else if ( left.kind == VAL_STR && left.len > 0 ) {
         left_result = true;
+    } else if ( left.kind == VAL_BOOL ) {
+        left_result = val_bool(&left);
     }
 
     b32 right_result = false;
@@ -525,9 +527,40 @@ operator&&(Val left, Val right) {
         right_result = true;
     } else if ( right.kind == VAL_STR && right.len > 0 ) {
         right_result = true;
+    } else if ( right.kind == VAL_BOOL ) {
+        right_result = val_bool(&right);
     }
 
     return left_result && right_result;
+}
+
+internal_proc b32
+operator||(Val left, Val right) {
+    b32 left_result = false;
+
+    if ( left.kind == VAL_INT && val_int(&left) != 0 ) {
+        left_result = true;
+    } else if ( left.kind == VAL_FLOAT && val_float(&left) > 0.0001 && val_float(&left) < -0.0001 ) {
+        left_result = true;
+    } else if ( left.kind == VAL_STR && left.len > 0 ) {
+        left_result = true;
+    } else if ( left.kind == VAL_BOOL ) {
+        left_result = val_bool(&left);
+    }
+
+    b32 right_result = false;
+
+    if ( right.kind == VAL_INT && val_int(&right) != 0 ) {
+        right_result = true;
+    } else if ( right.kind == VAL_FLOAT && val_float(&right) > 0.0001 && val_float(&right) < -0.0001 ) {
+        right_result = true;
+    } else if ( right.kind == VAL_STR && right.len > 0 ) {
+        right_result = true;
+    } else if ( right.kind == VAL_BOOL ) {
+        right_result = val_bool(&right);
+    }
+
+    return left_result || right_result;
 }
 /* }}} */
 
@@ -2482,6 +2515,12 @@ resolve_filter(Expr *expr) {
 
 internal_proc void
 add_block(char *name, Resolved_Stmt *block) {
+    Resolved_Stmt *entry = (Resolved_Stmt *)map_get(&current_templ->blocks, name);
+
+    if ( entry ) {
+        fatal("block %s existiert bereits", name);
+    }
+
     map_put(&current_templ->blocks, name, block);
 }
 

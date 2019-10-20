@@ -70,9 +70,11 @@
     <div>{{ A }}</div>
 
     <h2>if anweisung</h2>
-    {% set b = 2 %}
-    {% if b is eq 2 and true %}
+    {% set b = 1 %}
+    {% if true %}
         {{ name if b is eq 2 else "rumpelstilzchen" }}
+    {% else %}
+        else-zweig
     {% endif %}
 
     <h2>array literal</h2>

@@ -141,6 +141,11 @@ exec_expr(Resolved_Expr *expr) {
                     result = val_bool(calc);
                 } break;
 
+                case T_OR: {
+                    b32 calc = *exec_expr(expr->expr_binary.left) || *exec_expr(expr->expr_binary.right);
+                    result = val_bool(calc);
+                } break;
+
                 default: {
                     illegal_path();
                 } break;
