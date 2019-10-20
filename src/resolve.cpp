@@ -87,6 +87,7 @@ enum Val_Kind {
     VAL_FIELD,
     VAL_TUPLE,
     VAL_LIST,
+    VAL_DICT,
 };
 
 struct Val {
@@ -241,6 +242,16 @@ val_list(Val **vals, size_t num_vals) {
 
     result->ptr = (Val **)AST_DUP(vals);
     result->len = num_vals;
+
+    return result;
+}
+
+internal_proc Val *
+val_dict(Map *map, size_t num_keys) {
+    Val *result = val_new(VAL_DICT, 0);
+
+    result->len = num_keys;
+    result->ptr = map;
 
     return result;
 }
@@ -1039,6 +1050,12 @@ struct Resolved_Expr {
             Resolved_Expr **expr;
             size_t num_expr;
         } expr_list;
+
+        struct {
+            Map *map;
+            char **keys;
+            size_t num_keys;
+        } expr_dict;
     };
 };
 
@@ -1225,6 +1242,18 @@ resolved_expr_list(Resolved_Expr **expr, size_t num_expr, Val *val) {
     result->val = val;
     result->expr_list.expr = expr;
     result->expr_list.num_expr = num_expr;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_dict(Map *map, char **keys, size_t num_keys, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_DICT);
+
+    result->val = val;
+    result->expr_dict.map = map;
+    result->expr_dict.keys = keys;
+    result->expr_dict.num_keys = num_keys;
 
     return result;
 }
@@ -2455,6 +2484,14 @@ resolve_expr(Expr *expr) {
             }
 
             result = resolved_expr_tuple(exprs, buf_len(exprs), val_tuple(vals, buf_len(vals)));
+        } break;
+
+        case EXPR_DICT: {
+            Map *map = expr->expr_dict.map;
+            char **keys = expr->expr_dict.keys;
+            size_t num_keys = expr->expr_dict.num_keys;
+
+            result = resolved_expr_dict(map, keys, num_keys, val_dict(map, num_keys));
         } break;
 
         default: {

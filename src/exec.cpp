@@ -186,6 +186,10 @@ exec_expr(Resolved_Expr *expr) {
             result = expr->val;
         } break;
 
+        case EXPR_DICT: {
+            result = expr->val;
+        } break;
+
         default: {
             illegal_path();
         } break;

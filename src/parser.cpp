@@ -16,6 +16,7 @@ internal_proc Stmt * parse_stmt_var(Parser *p);
 internal_proc Stmt * parse_stmt_lit(Parser *p);
 internal_proc Parsed_Templ * parse_file(char *filename);
 internal_proc Stmt * parse_stmt_endmacro(Parser *p);
+internal_proc char * parse_str(Parser *p);
 
 global_var char ** keywords;
 global_var char *keyword_and;
@@ -197,6 +198,25 @@ parse_expr_base(Parser *p) {
             result = expr_name(lex->token.name);
             next_token(lex);
         }
+    } else if ( match_token(p, T_LBRACE) ) {
+        Map *map = (Map *)xcalloc(1, sizeof(Map));
+        char **keys = 0;
+        char *key = 0;
+        char *value = 0;
+
+        do {
+            key = parse_str(p);
+            expect_token(p, T_COLON);
+            value = parse_str(p);
+
+            map_put(map, key, value);
+            buf_push(keys, key);
+        } while ( match_token(p, T_COMMA) );
+
+        expect_token(p, T_RBRACE);
+
+        result = expr_dict(map, keys, buf_len(keys));
+
     } else if ( match_token(p, T_LPAREN) ) {
         Expr **exprs = 0;
         buf_push(exprs, parse_expr(p));

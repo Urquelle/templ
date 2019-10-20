@@ -50,6 +50,7 @@ enum Expr_Kind {
     EXPR_IF,
     EXPR_TUPLE,
     EXPR_LIST,
+    EXPR_DICT,
 };
 
 struct Expr {
@@ -146,6 +147,12 @@ struct Expr {
             Expr **expr;
             size_t num_expr;
         } expr_list;
+
+        struct {
+            Map *map;
+            char **keys;
+            size_t num_keys;
+        } expr_dict;
     };
 };
 
@@ -334,6 +341,17 @@ expr_list(Expr **expr, size_t num_expr) {
 
     result->expr_list.expr = (Expr **)AST_DUP(expr);
     result->expr_list.num_expr = num_expr;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_dict(Map *map, char **keys, size_t num_keys) {
+    Expr *result = expr_new(EXPR_DICT);
+
+    result->expr_dict.map = map;
+    result->expr_dict.keys = (char **)AST_DUP(keys);
+    result->expr_dict.num_keys = num_keys;
 
     return result;
 }
