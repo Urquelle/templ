@@ -18,6 +18,8 @@ internal_proc Parsed_Templ * parse_file(char *filename);
 internal_proc Stmt * parse_stmt_endmacro(Parser *p);
 
 global_var char ** keywords;
+global_var char *keyword_and;
+global_var char *keyword_or;
 global_var char *keyword_true;
 global_var char *keyword_false;
 global_var char *keyword_if;
@@ -46,6 +48,8 @@ internal_proc void
 init_keywords() {
 #define ADD_KEYWORD(K) keyword_##K = intern_str(#K); buf_push(keywords, keyword_##K)
 
+    ADD_KEYWORD(and);
+    ADD_KEYWORD(or);
     ADD_KEYWORD(true);
     ADD_KEYWORD(false);
     ADD_KEYWORD(if);
@@ -326,12 +330,65 @@ parse_expr_range(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_cmp(Parser *p) {
+parse_expr_is(Parser *p) {
     Expr *left = parse_expr_range(p);
+
+    if ( match_keyword(p, keyword_is) ) {
+        Expr *expr = parse_expr_range(p);
+        Expr **args = 0;
+
+        while ( !is_keyword(p, keyword_else) && !is_keyword(p, keyword_and) &&
+                !is_keyword(p, keyword_or) && !is_token(p, T_CODE_END) )
+        {
+            buf_push(args, parse_expr_range(p));
+        }
+
+        left = expr_is(left, expr, args, buf_len(args));
+    }
+
+    return left;
+}
+
+internal_proc Expr *
+parse_expr_in(Parser *p) {
+    Expr *left = parse_expr_is(p);
+
+    if ( match_keyword(p, keyword_in) ) {
+        left = expr_in(left, parse_expr_is(p));
+    }
+
+    return left;
+}
+
+internal_proc Expr *
+parse_expr_cmp(Parser *p) {
+    Expr *left = parse_expr_in(p);
 
     while ( is_cmp(p->lex.token.kind) ) {
         Token op = eat_token(&p->lex);
-        left = expr_binary(op.kind, left, parse_expr_range(p));
+        left = expr_binary(op.kind, left, parse_expr_in(p));
+    }
+
+    return left;
+}
+
+internal_proc Expr *
+parse_expr_and(Parser *p) {
+    Expr *left = parse_expr_cmp(p);
+
+    if ( match_keyword(p, keyword_and) ) {
+        left = expr_binary(T_AND, left, parse_expr(p));
+    }
+
+    return left;
+}
+
+internal_proc Expr *
+parse_expr_or(Parser *p) {
+    Expr *left = parse_expr_and(p);
+
+    if ( match_keyword(p, keyword_or) ) {
+        left = expr_binary(T_OR, left, parse_expr(p));
     }
 
     return left;
@@ -339,12 +396,12 @@ parse_expr_cmp(Parser *p) {
 
 internal_proc Expr *
 parse_expr_ternary(Parser *p) {
-    Expr *left = parse_expr_cmp(p);
+    Expr *left = parse_expr_or(p);
 
     if ( match_token(p, T_QMARK) ) {
-        Expr *middle = parse_expr_cmp(p);
+        Expr *middle = parse_expr_or(p);
         expect_token(p, T_COLON);
-        left = expr_ternary(left, middle, parse_expr_cmp(p));
+        left = expr_ternary(left, middle, parse_expr_or(p));
     }
 
     return left;
@@ -362,21 +419,8 @@ parse_expr(Parser *p) {
 internal_proc Expr *
 parse_expr_if(Parser *p) {
     Expr *cond = parse_expr(p);
-
-    if ( match_keyword(p, keyword_is) ) {
-        Expr *test = parse_expr(p);
-        assert(test->kind == EXPR_NAME);
-
-        Expr **args = 0;
-        while ( !is_token(p, T_CODE_END ) && !is_keyword(p, keyword_else) ) {
-            buf_push(args, parse_expr(p));
-            match_token(p, T_COMMA);
-        }
-
-        cond = expr_is(cond, test, args, buf_len(args));
-    }
-
     Expr *else_expr = 0;
+
     if ( match_keyword(p, keyword_else) ) {
         else_expr = parse_expr(p);
     }
@@ -402,9 +446,7 @@ parse_str(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_for(Parser *p) {
-    char *it = parse_name(p);
-    expect_keyword(p, keyword_in);
-    Expr *cond = parse_expr(p);
+    Expr *expr = parse_expr(p);
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
@@ -426,7 +468,7 @@ parse_stmt_for(Parser *p) {
         }
     }
 
-    Stmt *result = stmt_for(it, cond, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
+    Stmt *result = stmt_for(expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
     buf_free(stmts);
 
     return result;
@@ -435,19 +477,6 @@ parse_stmt_for(Parser *p) {
 internal_proc Stmt *
 parse_stmt_if(Parser *p) {
     Expr *cond = parse_expr(p);
-
-    if ( match_keyword(p, keyword_is) ) {
-        Expr *test = parse_expr(p);
-        assert(test->kind == EXPR_NAME);
-
-        Expr **args = 0;
-        while ( !is_token(p, T_CODE_END ) ) {
-            buf_push(args, parse_expr(p));
-            match_token(p, T_COMMA);
-        }
-
-        cond = expr_is(cond, test, args, buf_len(args));
-    }
 
     expect_token(p, T_CODE_END);
 

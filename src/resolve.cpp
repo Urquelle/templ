@@ -25,6 +25,9 @@ internal_proc Resolved_Expr *   resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Filter * resolve_filter(Expr *expr);
 internal_proc Resolved_Stmt *   resolve_stmt(Stmt *stmt);
 internal_proc Resolved_Templ *  resolve(Parsed_Templ *d);
+internal_proc void add_block(char *name, Resolved_Stmt *block);
+
+global_var Resolved_Templ *current_templ;
 
 /* scope {{{ */
 struct Scope {
@@ -290,6 +293,10 @@ to_char(Val *val) {
             return to_char_buf;
         } break;
 
+        case VAL_NONE: {
+            return "";
+        } break;
+
         default: {
             illegal_path();
             return "";
@@ -481,6 +488,31 @@ operator==(Val left, Val right) {
     }
 
     return false;
+}
+
+internal_proc b32
+operator&&(Val left, Val right) {
+    b32 left_result = false;
+
+    if ( left.kind == VAL_INT && val_int(&left) != 0 ) {
+        left_result = true;
+    } else if ( left.kind == VAL_FLOAT && val_float(&left) > 0.0001 && val_float(&left) < -0.0001 ) {
+        left_result = true;
+    } else if ( left.kind == VAL_STR && left.len > 0 ) {
+        left_result = true;
+    }
+
+    b32 right_result = false;
+
+    if ( right.kind == VAL_INT && val_int(&right) != 0 ) {
+        right_result = true;
+    } else if ( right.kind == VAL_FLOAT && val_float(&right) > 0.0001 && val_float(&right) < -0.0001 ) {
+        right_result = true;
+    } else if ( right.kind == VAL_STR && right.len > 0 ) {
+        right_result = true;
+    }
+
+    return left_result && right_result;
 }
 /* }}} */
 
@@ -936,6 +968,11 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *expr;
+            Resolved_Expr *set;
+        } expr_in;
+
+        struct {
+            Resolved_Expr *expr;
             Resolved_Arg **args;
             size_t num_args;
         } expr_call;
@@ -1071,6 +1108,16 @@ resolved_expr_is(Resolved_Expr *expr, Resolved_Expr *test, Resolved_Expr **args,
     result->expr_is.test = test;
     result->expr_is.args = args;
     result->expr_is.num_args = num_args;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_in(Resolved_Expr *expr, Resolved_Expr *set) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_IN);
+
+    result->expr_in.expr = expr;
+    result->expr_in.set  = set;
 
     return result;
 }
@@ -1357,6 +1404,8 @@ resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
     for ( int i = 0; i < num_stmts; ++i ) {
         stmts[i]->block = result;
     }
+
+    add_block(name, result);
 
     return result;
 }
@@ -1661,15 +1710,17 @@ struct Resolved_Templ {
     char *name;
     Resolved_Stmt **stmts;
     size_t num_stmts;
+    Map blocks;
 };
 
 internal_proc Resolved_Templ *
-resolved_templ_new() {
+resolved_templ() {
     Resolved_Templ *result = ALLOC_STRUCT(&resolve_arena, Resolved_Templ);
 
     result->name = 0;
     result->stmts = 0;
     result->num_stmts = 0;
+    result->blocks = {};
 
     return result;
 }
@@ -1712,8 +1763,9 @@ resolve_stmt(Stmt *stmt) {
         case STMT_FOR: {
             scope_enter();
 
-            Resolved_Expr *expr = resolve_expr(stmt->stmt_for.cond);
-            Sym *it = sym_push_var(stmt->stmt_for.it, expr->type, val_int(0));
+            assert(stmt->stmt_for.expr->kind == EXPR_IN);
+            Sym *it = sym_push_var(stmt->stmt_for.expr->expr_in.expr->expr_name.value, type_any, val_int(0));
+            Resolved_Expr *expr = resolve_expr(stmt->stmt_for.expr);
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
@@ -1814,11 +1866,15 @@ resolve_stmt(Stmt *stmt) {
                 if_expr = resolve_expr(stmt->stmt_extends.if_expr);
             }
 
+            Resolved_Templ *prev_templ = current_templ;
+
             Resolved_Templ *templ = resolve(stmt->stmt_extends.templ);
             Resolved_Templ *else_templ = 0;
             if ( stmt->stmt_extends.else_templ ) {
                 else_templ = resolve(stmt->stmt_extends.else_templ);
             }
+
+            current_templ = prev_templ;
 
             result = resolved_stmt_extends(stmt->stmt_extends.name, templ, else_templ, if_expr);
         } break;
@@ -1854,10 +1910,13 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_INCLUDE: {
             Resolved_Templ **templ = 0;
+            Resolved_Templ *prev_templ = current_templ;
+
             for ( int i = 0; i < stmt->stmt_include.num_templ; ++i ) {
                 buf_push(templ, resolve(stmt->stmt_include.templ[i]));
             }
 
+            current_templ = prev_templ;
             result = resolved_stmt_include(templ, buf_len(templ));
         } break;
 
@@ -1902,9 +1961,11 @@ resolve_stmt(Stmt *stmt) {
         case STMT_IMPORT: {
             Sym *sym = sym_push_module(stmt->stmt_import.name, type_module(stmt->stmt_import.name, 0));
 
+            Resolved_Templ *prev_templ = current_templ;
             Scope *scope = scope_enter(stmt->stmt_import.name);
             resolve(stmt->stmt_import.templ);
             scope_leave();
+            current_templ = prev_templ;
 
             sym->type->type_module.scope = scope;
             result = resolved_stmt_import(sym);
@@ -2057,7 +2118,7 @@ resolve_expr(Expr *expr) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
             if ( !sym ) {
-                fatal("konnte symbol nicht auflösen");
+                fatal("konnte symbol %s nicht auflösen", expr->expr_name.value);
             }
 
             result = resolved_expr_name(sym, sym->type, sym->val);
@@ -2291,6 +2352,13 @@ resolve_expr(Expr *expr) {
             result = resolved_expr_is(test_expr, test_proc, args, buf_len(args));
         } break;
 
+        case EXPR_IN: {
+            Resolved_Expr *rexpr = resolve_expr(expr->expr_in.expr);
+            Resolved_Expr *set   = resolve_expr(expr->expr_in.set);
+
+            result = resolved_expr_in(rexpr, set);
+        } break;
+
         case EXPR_IF: {
             Resolved_Expr *cond = resolve_expr(expr->expr_if.cond);
             Resolved_Expr *else_expr = 0;
@@ -2370,6 +2438,11 @@ resolve_filter(Expr *expr) {
 }
 
 internal_proc void
+add_block(char *name, Resolved_Stmt *block) {
+    map_put(&current_templ->blocks, name, block);
+}
+
+internal_proc void
 init_arenas() {
     arena_init(&resolve_arena, MB(100));
 }
@@ -2384,8 +2457,9 @@ init_resolver() {
 
 internal_proc Resolved_Templ *
 resolve(Parsed_Templ *parsed_templ) {
-    Resolved_Templ *result = resolved_templ_new();
+    Resolved_Templ *result = resolved_templ();
     result->name = parsed_templ->name;
+    current_templ = result;
 
     for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
         Resolved_Stmt *stmt = resolve_stmt(parsed_templ->stmts[i]);

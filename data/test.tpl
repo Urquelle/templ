@@ -50,6 +50,11 @@
         <div>{{ it }}</div>
     {% endfor %}
 
+    <h2>for mit array</h2>
+    {% for it in ['grün', 'blau', 'weiss'] %}
+        <li>{{ it }}</li>
+    {% endfor %}
+
     <h2>set anweisung</h2>
     {% set a = "test" %}
     <div class="bla">{{ a }}</div>
@@ -60,7 +65,7 @@
 
     <h2>if anweisung</h2>
     {% set b = 2 %}
-    {% if b is eq 2 %}
+    {% if b is eq 2 and true %}
         {{ name if b is eq 2 else "rumpelstilzchen" }}
     {% endif %}
 

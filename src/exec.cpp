@@ -49,28 +49,6 @@ next(Iterator *it) {
 }
 
 internal_proc Val *
-val_from_field(Resolved_Expr *expr) {
-    Val *result = 0;
-    u8 *raw = (u8 *)expr->expr_field.base->val->ptr + expr->expr_field.offset;
-
-    switch ( expr->type->kind ) {
-        case TYPE_STR: {
-            result = val_str(*(char **)raw);
-        } break;
-
-        case TYPE_FLOAT: {
-            result = val_float(*(float *)raw);
-        } break;
-
-        case TYPE_INT: {
-            result = val_int(*(int *)raw);
-        } break;
-    }
-
-    return result;
-}
-
-internal_proc Val *
 exec_macro(Resolved_Expr *expr) {
     Type *type = expr->type;
     assert(type->kind == TYPE_MACRO);
@@ -90,7 +68,7 @@ exec_macro(Resolved_Expr *expr) {
         exec_stmt(stmt);
     }
 
-    return val_str("");
+    return &val_none;
 }
 
 internal_proc Val *
@@ -128,8 +106,6 @@ exec_expr(Resolved_Expr *expr) {
 
             if ( expr->expr_field.base->type->kind == TYPE_MODULE ) {
                 result = expr->sym->val;
-            } else {
-                result = val_from_field(expr);
             }
         } break;
 
@@ -159,6 +135,15 @@ exec_expr(Resolved_Expr *expr) {
                     Val calc = *exec_expr(expr->expr_binary.left) < *exec_expr(expr->expr_binary.right);
                     result = val_copy(&calc);
                 } break;
+
+                case T_AND: {
+                    b32 calc = *exec_expr(expr->expr_binary.left) && *exec_expr(expr->expr_binary.right);
+                    result = val_bool(calc);
+                } break;
+
+                default: {
+                    illegal_path();
+                } break;
             }
         } break;
 
@@ -168,6 +153,10 @@ exec_expr(Resolved_Expr *expr) {
             assert(type->kind == TYPE_TEST);
 
             result = type->type_test.callback(var_val, expr->expr_is.args, expr->expr_is.num_args);
+        } break;
+
+        case EXPR_IN: {
+            result = exec_expr(expr->expr_in.set);
         } break;
 
         case EXPR_CALL: {
@@ -181,6 +170,10 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_ARRAY_LIT: {
+            result = expr->val;
+        } break;
+
+        case EXPR_BOOL: {
             result = expr->val;
         } break;
 
@@ -210,25 +203,7 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
 
     for ( int i = 0; i < templ->num_stmts; ++i ) {
         Resolved_Stmt *parent_stmt = templ->stmts[i];
-
-        if ( parent_stmt->kind == STMT_BLOCK ) {
-            for ( int j = 0; j < global_current_tmpl->num_stmts; ++j ) {
-                Resolved_Stmt *child_stmt = global_current_tmpl->stmts[j];
-
-                if ( !child_stmt ) {
-                    continue;
-                }
-
-                if ( child_stmt->kind == STMT_BLOCK &&
-                     child_stmt->stmt_block.name == parent_stmt->stmt_block.name )
-                {
-                    global_super_block = parent_stmt;
-                    exec_stmt(child_stmt);
-                }
-            }
-        } else {
-            exec_stmt(parent_stmt);
-        }
+        exec_stmt(parent_stmt);
     }
 
     for ( int i = 0; i < global_current_tmpl->num_stmts; ++i ) {
@@ -239,17 +214,8 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
         }
 
         assert(child_stmt->kind != STMT_LIT);
-
-        b32 block_already_executed = false;
-        for ( int j = 0; j < templ->num_stmts; ++j ) {
-            Resolved_Stmt *parent_stmt = templ->stmts[j];
-
-            if ( parent_stmt->stmt_block.name == child_stmt->stmt_block.name ) {
-                block_already_executed = true;
-            }
-        }
-
-        if ( !block_already_executed ) {
+        Resolved_Stmt *block = (Resolved_Stmt *)map_get(&templ->blocks, child_stmt->stmt_block.name);
+        if ( !block ) {
             exec_stmt(child_stmt);
         }
     }
@@ -284,10 +250,19 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
-            genlnf("<!-- %s -->", stmt->stmt_block.name);
+            Resolved_Stmt *block = (Resolved_Stmt *)map_get(&global_current_tmpl->blocks, stmt->stmt_block.name);
+            if ( block ) {
+                global_super_block = stmt;
+                genf("<!-- kindtemplate inhalt -->");
+            } else {
+                block = stmt;
+            }
+
+            genlnf("<!-- %s -->", block->stmt_block.name);
             genln();
-            for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
-                exec_stmt(stmt->stmt_block.stmts[i]);
+
+            for ( int i = 0; i < block->stmt_block.num_stmts; ++i ) {
+                exec_stmt(block->stmt_block.stmts[i]);
             }
         } break;
 

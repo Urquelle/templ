@@ -1,9 +1,11 @@
 {#% set Öl = "fisch" %#}
 <html>
+    {% set default_title = "tmpl" %}
+    {% block head %}
     <head>
-        {% set default_title = "tmpl" %}
         <title>{% block title %}{% endblock %}</title>
     </head>
+    {% endblock %}
     <body>
         {% include "header.html" %}
         {% set z = ["a", "b", "c"] %}

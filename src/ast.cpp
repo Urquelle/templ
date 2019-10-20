@@ -46,6 +46,7 @@ enum Expr_Kind {
     EXPR_RANGE,
     EXPR_CALL,
     EXPR_IS,
+    EXPR_IN,
     EXPR_IF,
     EXPR_ARRAY_LIT,
 };
@@ -124,6 +125,11 @@ struct Expr {
             Expr **args;
             size_t num_args;
         } expr_is;
+
+        struct {
+            Expr *expr;
+            Expr *set;
+        } expr_in;
 
         struct {
             Expr *cond;
@@ -275,13 +281,23 @@ expr_call(Expr *expr, Arg **args, size_t num_args) {
 }
 
 internal_proc Expr *
-expr_is(Expr *var, Expr *test, Expr **args, size_t num_args) {
+expr_is(Expr *var, Expr *test, Expr **args = 0, size_t num_args = 0) {
     Expr *result = expr_new(EXPR_IS);
 
     result->expr_is.var = var;
     result->expr_is.test = test;
     result->expr_is.args = args;
     result->expr_is.num_args = num_args;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_in(Expr *expr, Expr *set) {
+    Expr *result = expr_new(EXPR_IN);
+
+    result->expr_in.expr = expr;
+    result->expr_in.set  = set;
 
     return result;
 }
@@ -371,8 +387,7 @@ struct Stmt {
 
     union {
         struct {
-            char *it;
-            Expr *cond;
+            Expr *expr;
             Stmt **stmts;
             size_t num_stmts;
             Stmt **else_stmts;
@@ -468,13 +483,12 @@ stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Stmt *
-stmt_for(char *it, Expr *cond, Stmt **stmts, size_t num_stmts,
+stmt_for(Expr *expr, Stmt **stmts, size_t num_stmts,
         Stmt **else_stmts, size_t num_else_stmts)
 {
     Stmt *result = stmt_new(STMT_FOR);
 
-    result->stmt_for.it = it;
-    result->stmt_for.cond = cond;
+    result->stmt_for.expr = expr;
     result->stmt_for.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_for.num_stmts = num_stmts;
     result->stmt_for.else_stmts = (Stmt **)AST_DUP(else_stmts);

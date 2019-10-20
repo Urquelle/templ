@@ -49,6 +49,9 @@ enum Token_Kind {
     T_GT,
     T_CMP_LAST = T_GT,
 
+    T_AND,
+    T_OR,
+
     T_VAR_BEGIN,
     T_VAR_END,
     T_CODE_BEGIN,
@@ -178,6 +181,17 @@ is_eql(Token_Kind kind) {
     b32 result = (kind == T_EQL || kind == T_NEQ);
 
     return result;
+}
+
+internal_proc b32
+is_alpha(char c) {
+    // return ( c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || (u8)c >= 0xC0 );
+    return ( c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' );
+}
+
+internal_proc b32
+is_numeric(char c) {
+    return ( c >= '0' && c <= '9' );
 }
 
 internal_proc int
@@ -357,10 +371,10 @@ next_raw_token(Lexer *lex) {
         } else {
             lex->token.int_value = int_value;
         }
-    } else if ( c == '_' || c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' ) {
+    } else if ( c == '_' || c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || (u8)c >= 0xC0 ) {
         lex->token.kind = T_NAME;
 
-        while ( isalnum(at0(lex)) || at0(lex) == '_' ) {
+        while ( is_alpha(at0(lex)) || is_numeric(at0(lex)) || at0(lex) == '_' ) {
             next(lex);
         }
 
