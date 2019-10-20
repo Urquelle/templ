@@ -85,7 +85,7 @@ enum Val_Kind {
     VAL_STR,
     VAL_RANGE,
     VAL_FIELD,
-    VAL_ARRAY,
+    VAL_LIST,
 };
 
 struct Val {
@@ -225,8 +225,8 @@ val_range1(Val *val) {
 }
 
 internal_proc Val *
-val_array(Val **vals, size_t num_vals) {
-    Val *result = val_new(VAL_ARRAY, sizeof(Val)*num_vals);
+val_list(Val **vals, size_t num_vals) {
+    Val *result = val_new(VAL_LIST, sizeof(Val)*num_vals);
 
     result->ptr = (Val **)AST_DUP(vals);
     result->len = num_vals;
@@ -311,7 +311,7 @@ val_item(Val *val, int idx) {
             return val_int(val_range0(val) + idx);
         } break;
 
-        case VAL_ARRAY: {
+        case VAL_LIST: {
             return *((Val **)val->ptr + idx);
         } break;
 
@@ -985,7 +985,7 @@ struct Resolved_Expr {
         struct {
             Resolved_Expr **expr;
             size_t num_expr;
-        } expr_array_lit;
+        } expr_list;
     };
 };
 
@@ -1155,12 +1155,12 @@ resolved_expr_index(Resolved_Expr *expr, Resolved_Expr **index, size_t num_index
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_array_lit(Resolved_Expr **expr, size_t num_expr, Val *val) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_ARRAY_LIT);
+resolved_expr_list(Resolved_Expr **expr, size_t num_expr, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_LIST);
 
     result->val = val;
-    result->expr_array_lit.expr = expr;
-    result->expr_array_lit.num_expr = num_expr;
+    result->expr_list.expr = expr;
+    result->expr_list.num_expr = num_expr;
 
     return result;
 }
@@ -2369,16 +2369,16 @@ resolve_expr(Expr *expr) {
             result = resolved_expr_if(cond, else_expr);
         } break;
 
-        case EXPR_ARRAY_LIT: {
+        case EXPR_LIST: {
             Resolved_Expr **index = 0;
             Val **vals = 0;
-            for ( int i = 0; i < expr->expr_array_lit.num_expr; ++i ) {
-                Resolved_Expr *resolved_expr = resolve_expr(expr->expr_array_lit.expr[i]);
+            for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
+                Resolved_Expr *resolved_expr = resolve_expr(expr->expr_list.expr[i]);
                 buf_push(index, resolved_expr);
                 buf_push(vals, resolved_expr->val);
             }
 
-            result = resolved_expr_array_lit(index, buf_len(index), val_array(vals, buf_len(vals)));
+            result = resolved_expr_list(index, buf_len(index), val_list(vals, buf_len(vals)));
         } break;
 
         default: {

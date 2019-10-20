@@ -263,12 +263,12 @@ parse_expr_field_or_call_or_index(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_array_lit(Parser *p) {
+parse_expr_list(Parser *p) {
     if ( match_token(p, T_LBRACKET) ) {
         Expr **expr = 0;
 
         if ( match_token(p, T_RBRACKET) ) {
-            return expr_array_lit(expr, buf_len(expr));
+            return expr_list(expr, buf_len(expr));
         }
 
         buf_push(expr, parse_expr(p));
@@ -278,7 +278,10 @@ parse_expr_array_lit(Parser *p) {
 
         expect_token(p, T_RBRACKET);
 
-        return expr_array_lit(expr, buf_len(expr));
+        Expr *result = expr_list(expr, buf_len(expr));
+        buf_free(expr);
+
+        return result;
     } else {
         return parse_expr_field_or_call_or_index(p);
     }
@@ -290,7 +293,7 @@ parse_expr_unary(Parser *p) {
         Token op = eat_token(&p->lex);
         return expr_unary(op.kind, parse_expr_unary(p));
     } else {
-        return parse_expr_array_lit(p);
+        return parse_expr_list(p);
     }
 }
 
@@ -597,9 +600,9 @@ parse_stmt_include(Parser *p) {
     expect_token(p, T_CODE_END);
 
     Parsed_Templ **templ = 0;
-    if ( expr->kind == EXPR_ARRAY_LIT ) {
-        for ( int i = 0; i < expr->expr_array_lit.num_expr; ++i ) {
-            Expr *name_expr = expr->expr_array_lit.expr[i];
+    if ( expr->kind == EXPR_LIST ) {
+        for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
+            Expr *name_expr = expr->expr_list.expr[i];
             assert(name_expr->kind == EXPR_STR);
 
             b32 success = file_exists(name_expr->expr_str.value);

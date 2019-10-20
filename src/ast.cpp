@@ -48,7 +48,7 @@ enum Expr_Kind {
     EXPR_IS,
     EXPR_IN,
     EXPR_IF,
-    EXPR_ARRAY_LIT,
+    EXPR_LIST,
 };
 
 struct Expr {
@@ -139,7 +139,7 @@ struct Expr {
         struct {
             Expr **expr;
             size_t num_expr;
-        } expr_array_lit;
+        } expr_list;
     };
 };
 
@@ -313,11 +313,11 @@ expr_if(Expr *cond, Expr *else_expr) {
 }
 
 internal_proc Expr *
-expr_array_lit(Expr **expr, size_t num_expr) {
-    Expr *result = expr_new(EXPR_ARRAY_LIT);
+expr_list(Expr **expr, size_t num_expr) {
+    Expr *result = expr_new(EXPR_LIST);
 
-    result->expr_array_lit.expr = (Expr **)AST_DUP(expr);
-    result->expr_array_lit.num_expr = num_expr;
+    result->expr_list.expr = (Expr **)AST_DUP(expr);
+    result->expr_list.num_expr = num_expr;
 
     return result;
 }

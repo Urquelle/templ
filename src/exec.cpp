@@ -26,7 +26,7 @@ internal_proc Iterator
 init(Val *container) {
     Iterator result = {};
 
-    assert(container->kind == VAL_RANGE || container->kind == VAL_ARRAY);
+    assert(container->kind == VAL_RANGE || container->kind == VAL_LIST);
 
     result.container = container;
     result.pos = 0;
@@ -169,7 +169,7 @@ exec_expr(Resolved_Expr *expr) {
             }
         } break;
 
-        case EXPR_ARRAY_LIT: {
+        case EXPR_LIST: {
             result = expr->val;
         } break;
 
