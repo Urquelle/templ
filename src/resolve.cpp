@@ -79,15 +79,12 @@ scope_set(Scope *scope) {
 enum Val_Kind {
     VAL_NONE,
     VAL_BOOL,
-    VAL_CHAR,
     VAL_INT,
     VAL_FLOAT,
     VAL_STR,
     VAL_RANGE,
-    VAL_FIELD,
     VAL_TUPLE,
     VAL_LIST,
-    VAL_DICT,
 };
 
 struct Val {
@@ -136,15 +133,6 @@ val_bool(b32 val) {
 internal_proc b32
 val_bool(Val *val) {
     return *(b32 *)val->ptr;
-}
-
-internal_proc Val *
-val_char(char val) {
-    Val *result = val_new(VAL_CHAR, sizeof(char));
-
-    *((char *)result->ptr) = val;
-
-    return result;
 }
 
 internal_proc char
@@ -246,16 +234,6 @@ val_list(Val **vals, size_t num_vals) {
     return result;
 }
 
-internal_proc Val *
-val_dict(Map *map, size_t num_keys) {
-    Val *result = val_new(VAL_DICT, 0);
-
-    result->len = num_keys;
-    result->ptr = map;
-
-    return result;
-}
-
 internal_proc void
 val_set(Val *val, s32 value) {
     assert(val->kind == VAL_INT);
@@ -291,6 +269,13 @@ val_set(Val *dest, Val *source, size_t index) {
     assert(dest->kind == VAL_LIST || dest->kind == VAL_TUPLE);
 
     *((Val **)dest->ptr + index) = source;
+}
+
+internal_proc void
+val_inc(Val *val) {
+    assert(val->kind == VAL_INT);
+
+    val_set(val, val_int(val) + 1);
 }
 
 internal_proc Val *
@@ -613,12 +598,12 @@ enum Type_Kind {
     TYPE_FLOAT,
     TYPE_STR,
     TYPE_ARRAY,
-    TYPE_STRUCT,
     TYPE_PROC,
     TYPE_MACRO,
     TYPE_FILTER,
     TYPE_TEST,
     TYPE_MODULE,
+    TYPE_DICT,
 
     TYPE_COUNT,
 };
@@ -682,6 +667,7 @@ global_var Type *type_bool;
 global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
+global_var Type *type_dict;
 global_var Type *type_any;
 
 global_var Type *arithmetic_result_type_table[TYPE_COUNT][TYPE_COUNT];
@@ -692,29 +678,6 @@ type_new(Type_Kind kind) {
     Type *result = ALLOC_STRUCT(&resolve_arena, Type);
 
     result->kind = kind;
-
-    return result;
-}
-
-internal_proc Type *
-type_struct(Type_Field **fields, size_t num_fields) {
-    Type *result = type_new(TYPE_STRUCT);
-
-    result->type_aggr.fields = (Type_Field **)AST_DUP(fields);
-    result->type_aggr.num_fields = num_fields;
-    result->type_aggr.scope = scope_enter();
-
-    s64 offset = 0;
-    for ( int i = 0; i < num_fields; ++i ) {
-        Type_Field *field = fields[i];
-
-        field->offset = offset;
-        result->size += field->type->size;
-        offset += field->type->size;
-
-        sym_push_var(field->name, field->type);
-    }
-    scope_leave();
 
     return result;
 }
@@ -807,6 +770,9 @@ init_builtin_types() {
 
     type_str   = type_new(TYPE_STR);
     type_str->size = PTR_SIZE;
+
+    type_dict  = type_new(TYPE_DICT);
+    type_dict->size = sizeof(Map);
 
     type_any   = type_new(TYPE_ANY);
     type_any->size = PTR_SIZE;
@@ -1023,7 +989,6 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *base;
-            s64 offset;
         } expr_field;
 
         struct {
@@ -1143,13 +1108,13 @@ resolved_expr_name(Sym *sym, Type *type, Val *val) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_field(Resolved_Expr *base, Sym *sym, s64 offset, Type *type) {
+resolved_expr_field(Resolved_Expr *base, Sym *sym, Type *type, Val *val) {
     Resolved_Expr *result = resolved_expr_new(EXPR_FIELD, type);
 
     result->is_lvalue = true;
     result->sym = sym;
+    result->val = val;
     result->expr_field.base = base;
-    result->expr_field.offset = offset;
 
     return result;
 }
@@ -1342,6 +1307,9 @@ struct Resolved_Stmt {
             size_t num_stmts;
             Resolved_Stmt **else_stmts;
             size_t num_else_stmts;
+
+            Sym *loop_index;
+            Sym *loop_index0;
         } stmt_for;
 
         struct {
@@ -1463,7 +1431,8 @@ resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
 
 internal_proc Resolved_Stmt *
 resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
-        size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts)
+        size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts,
+        Sym *loop_index, Sym *loop_index0)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
 
@@ -1473,6 +1442,9 @@ resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
     result->stmt_for.num_stmts = num_stmts;
     result->stmt_for.else_stmts = else_stmts;
     result->stmt_for.num_else_stmts = num_else_stmts;
+
+    result->stmt_for.loop_index  = loop_index;
+    result->stmt_for.loop_index0 = loop_index0;
 
     return result;
 }
@@ -1856,6 +1828,16 @@ resolve_stmt(Stmt *stmt) {
             Sym *it = sym_push_var(stmt->stmt_for.expr->expr_in.expr->expr_name.value, type_any, val_int(0));
             Resolved_Expr *expr = resolve_expr(stmt->stmt_for.expr);
 
+            /* loop variablen {{{ */
+            Sym *loop = sym_push_var("loop", type_dict);
+            loop->scope = scope_enter();
+
+            Sym *loop_index  = sym_push_var("index", type_int, val_int(1));
+            Sym *loop_index0 = sym_push_var("index0", type_int, val_int(0));
+
+            scope_leave();
+            /* }}} */
+
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
                 buf_push(stmts, resolve_stmt(stmt->stmt_for.stmts[i]));
@@ -1868,7 +1850,8 @@ resolve_stmt(Stmt *stmt) {
 
             scope_leave();
 
-            result = resolved_stmt_for(it, expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
+            result = resolved_stmt_for(it, expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts),
+                    loop_index, loop_index0);
         } break;
 
         case STMT_IF: {
@@ -2277,24 +2260,22 @@ resolve_expr(Expr *expr) {
             assert(base->type);
             Type *type = base->type;
 
-            if ( type->kind == TYPE_STRUCT ) {
-                Scope *prev_scope = scope_set(type->type_aggr.scope);
+            if ( type->kind == TYPE_DICT ) {
+                assert(base->sym);
+                Scope *prev_scope = scope_set(base->sym->scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
                 assert(sym);
-
-                s64 offset = offset_from_base(type, sym->name);
                 scope_set(prev_scope);
 
-                result = resolved_expr_field(base, sym, offset, sym->type);
+                result = resolved_expr_field(base, sym, sym->type, sym->val);
             } else {
                 assert(type->kind == TYPE_MODULE);
                 Scope *prev_scope = scope_set(type->type_module.scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
                 assert(sym);
-
                 scope_set(prev_scope);
 
-                result = resolved_expr_field(base, sym, 0, sym->type);
+                result = resolved_expr_field(base, sym, sym->type, sym->val);
             }
         } break;
 
@@ -2483,11 +2464,7 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_DICT: {
-            Map *map = expr->expr_dict.map;
-            char **keys = expr->expr_dict.keys;
-            size_t num_keys = expr->expr_dict.num_keys;
-
-            result = resolved_expr_dict(map, keys, num_keys, val_dict(map, num_keys));
+            implement_me();
         } break;
 
         default: {

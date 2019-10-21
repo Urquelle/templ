@@ -101,12 +101,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_FIELD: {
-            /* @AUFGABE: mehr als nur eine ebene unterstützen? */
-            assert(expr->expr_field.base->type);
-
-            if ( expr->expr_field.base->type->kind == TYPE_MODULE ) {
-                result = expr->sym->val;
-            }
+            result = expr->val;
         } break;
 
         case EXPR_BINARY: {
@@ -297,9 +292,13 @@ exec_stmt(Resolved_Stmt *stmt) {
             if ( list->len ) {
                 for ( Iterator it = init(list); valid(&it); next(&it) ) {
                     stmt->stmt_for.it->val = it.val;
+
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                         exec_stmt(stmt->stmt_for.stmts[j]);
                     }
+
+                    val_inc(stmt->stmt_for.loop_index->val);
+                    val_inc(stmt->stmt_for.loop_index0->val);
                 }
             } else if ( stmt->stmt_for.else_stmts ) {
                 for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {

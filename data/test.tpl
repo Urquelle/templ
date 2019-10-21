@@ -23,11 +23,12 @@
     <h2>tuple test</h2>
     {% set tuple = ("europa" | upper, "asien", "amerika") %}
     {% for kontinent in tuple %}
+        {{ loop.index }} -- {{ loop.index0 }}
         <div>kontinent:</div><div>{{ kontinent }}</div>
     {% endfor %}
 
     <h2>dict test</h2>
-    {% set dict = { "key1": "val1", "key2": "val2" } %}
+    {#% set dict = { "key1": "val1", "key2": "val2" } %#}
 
     <h2>filter statement</h2>
     {% filter upper %}
