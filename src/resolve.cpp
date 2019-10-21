@@ -311,6 +311,14 @@ to_char(Val *val) {
             return "";
         } break;
 
+        case VAL_BOOL: {
+            if ( val_bool(val) ) {
+                return "true";
+            } else {
+                return "false";
+            }
+        } break;
+
         default: {
             illegal_path();
             return "";
@@ -1310,6 +1318,8 @@ struct Resolved_Stmt {
 
             Sym *loop_index;
             Sym *loop_index0;
+            Sym *loop_first;
+            Sym *loop_last;
         } stmt_for;
 
         struct {
@@ -1432,7 +1442,7 @@ resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
 internal_proc Resolved_Stmt *
 resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
         size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts,
-        Sym *loop_index, Sym *loop_index0)
+        Sym *loop_index, Sym *loop_index0, Sym *loop_first, Sym *loop_last)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
 
@@ -1445,6 +1455,8 @@ resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
 
     result->stmt_for.loop_index  = loop_index;
     result->stmt_for.loop_index0 = loop_index0;
+    result->stmt_for.loop_first  = loop_first;
+    result->stmt_for.loop_last   = loop_last;
 
     return result;
 }
@@ -1832,8 +1844,10 @@ resolve_stmt(Stmt *stmt) {
             Sym *loop = sym_push_var("loop", type_dict);
             loop->scope = scope_enter();
 
-            Sym *loop_index  = sym_push_var("index", type_int, val_int(1));
-            Sym *loop_index0 = sym_push_var("index0", type_int, val_int(0));
+            Sym *loop_index  = sym_push_var("index",  type_int,  val_int(1));
+            Sym *loop_index0 = sym_push_var("index0", type_int,  val_int(0));
+            Sym *loop_first  = sym_push_var("first",  type_bool, val_bool(true));
+            Sym *loop_last   = sym_push_var("last",   type_bool, val_bool(false));
 
             scope_leave();
             /* }}} */
@@ -1851,7 +1865,7 @@ resolve_stmt(Stmt *stmt) {
             scope_leave();
 
             result = resolved_stmt_for(it, expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts),
-                    loop_index, loop_index0);
+                    loop_index, loop_index0, loop_first, loop_last);
         } break;
 
         case STMT_IF: {

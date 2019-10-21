@@ -23,7 +23,8 @@
     <h2>tuple test</h2>
     {% set tuple = ("europa" | upper, "asien", "amerika") %}
     {% for kontinent in tuple %}
-        {{ loop.index }} -- {{ loop.index0 }}
+        idx: {{ loop.index }} idx0: {{ loop.index0 }}
+        first: {{ loop.first }} last: {{ loop.last }}
         <div>kontinent:</div><div>{{ kontinent }}</div>
     {% endfor %}
 

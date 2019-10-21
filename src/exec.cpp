@@ -42,6 +42,13 @@ valid(Iterator *it) {
     return result;
 }
 
+internal_proc b32
+last(Iterator *it) {
+    b32 result = (it->pos+1) == it->container->len;
+
+    return result;
+}
+
 internal_proc void
 next(Iterator *it) {
     it->pos += 1;
@@ -293,12 +300,15 @@ exec_stmt(Resolved_Stmt *stmt) {
                 for ( Iterator it = init(list); valid(&it); next(&it) ) {
                     stmt->stmt_for.it->val = it.val;
 
+                    val_set(stmt->stmt_for.loop_last->val, (bool)last(&it));
+
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                         exec_stmt(stmt->stmt_for.stmts[j]);
                     }
 
                     val_inc(stmt->stmt_for.loop_index->val);
                     val_inc(stmt->stmt_for.loop_index0->val);
+                    val_set(stmt->stmt_for.loop_first->val, false);
                 }
             } else if ( stmt->stmt_for.else_stmts ) {
                 for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
