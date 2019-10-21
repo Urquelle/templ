@@ -175,10 +175,18 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_TUPLE: {
+            for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
+                val_set(expr->val, exec_expr(expr->expr_list.expr[i]), i);
+            }
+
             result = expr->val;
         } break;
 
         case EXPR_LIST: {
+            for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
+                val_set(expr->val, exec_expr(expr->expr_list.expr[i]), i);
+            }
+
             result = expr->val;
         } break;
 
@@ -193,6 +201,11 @@ exec_expr(Resolved_Expr *expr) {
         default: {
             illegal_path();
         } break;
+    }
+
+    for ( int i = 0; i < expr->num_filters; ++i ) {
+        Resolved_Filter *filter = expr->filters[i];
+        result = filter->proc(result, filter->args, filter->num_args);
     }
 
     return result;
@@ -246,11 +259,6 @@ exec_stmt(Resolved_Stmt *stmt) {
 
             if ( !if_expr || if_expr_cond(if_expr) ) {
                 Val *value = exec_expr(stmt->stmt_var.expr);
-
-                for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
-                    Resolved_Filter *filter = stmt->stmt_var.filter[i];
-                    value = filter->proc(value, filter->args, filter->num_args);
-                }
 
                 genf("%s", to_char(value));
             } else {

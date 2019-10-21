@@ -455,11 +455,46 @@ parse_expr_ternary(Parser *p) {
     return left;
 }
 
+internal_proc Filter **
+parse_filter(Parser *p) {
+    Filter **result = 0;
+
+    do {
+        Expr *call = parse_expr(p);
+
+        Arg **args = 0;
+        while ( !is_token(p, T_BAR) && !is_token(p, T_CODE_END) && !is_token(p, T_VAR_END) && !is_token(p, T_COMMA) ) {
+            buf_push(args, arg_new(0, parse_expr(p)));
+        }
+
+        size_t num_args = buf_len(args);
+
+        if ( call->kind != EXPR_CALL ) {
+            call = expr_call(call, args, num_args);
+        }
+
+        assert(call->kind == EXPR_CALL);
+        assert(call->expr_call.expr->kind == EXPR_NAME);
+
+        buf_push(result, filter(call->expr_call.expr->expr_name.value, call->expr_call.args, call->expr_call.num_args));
+    } while ( match_token(p, T_BAR) );
+
+    return result;
+}
+
 internal_proc Expr *
 parse_expr(Parser *p) {
     Pos pos = p->lex.token.pos;
     Expr *expr = parse_expr_ternary(p);
     expr->pos = pos;
+
+    Filter **filters = 0;
+    if ( match_token(p, T_BAR) ) {
+        filters = parse_filter(p);
+    }
+
+    expr->filters = filters;
+    expr->num_filters = buf_len(filters);
 
     return expr;
 }
@@ -675,12 +710,7 @@ parse_stmt_include(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_filter(Parser *p) {
-    Expr **filter = 0;
-    buf_push(filter, parse_expr(p));
-
-    while ( match_token(p, T_BAR) ) {
-        buf_push(filter, parse_expr(p));
-    }
+    Filter **filters = parse_filter(p);
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
@@ -697,8 +727,8 @@ parse_stmt_filter(Parser *p) {
         }
     }
 
-    Stmt *result = stmt_filter(filter, buf_len(filter), stmts, buf_len(stmts));
-    buf_free(filter);
+    Stmt *result = stmt_filter(filters, buf_len(filters), stmts, buf_len(stmts));
+    buf_free(filters);
     buf_free(stmts);
 
     return result;
@@ -898,11 +928,6 @@ internal_proc Stmt *
 parse_stmt_var(Parser *p) {
     Expr *expr = parse_expr(p);
 
-    Expr **filter = 0;
-    while ( match_token(p, T_BAR) ) {
-        buf_push(filter, parse_expr(p));
-    }
-
     Expr *if_expr = 0;
     if ( match_keyword(p, keyword_if) ) {
         if_expr = parse_expr_if(p);
@@ -910,7 +935,7 @@ parse_stmt_var(Parser *p) {
 
     expect_token(p, T_VAR_END);
 
-    return stmt_var(expr, filter, buf_len(filter), if_expr);
+    return stmt_var(expr, if_expr);
 }
 
 internal_proc Stmt *

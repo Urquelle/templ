@@ -30,6 +30,23 @@ arg_new(char *name, Expr *expr) {
     return result;
 }
 
+struct Filter {
+    char*  name;
+    Arg **args;
+    size_t num_args;
+};
+
+internal_proc Filter *
+filter(char *name, Arg **args, size_t num_args) {
+    Filter *result = (Filter *)xcalloc(1, sizeof(Filter));
+
+    result->name = name;
+    result->args = args;
+    result->num_args = num_args;
+
+    return result;
+}
+
 enum Expr_Kind {
     EXPR_NONE,
     EXPR_PAREN,
@@ -56,6 +73,8 @@ enum Expr_Kind {
 struct Expr {
     Pos pos;
     Expr_Kind kind;
+    Filter **filters;
+    size_t num_filters;
 
     union {
         struct {
@@ -371,12 +390,6 @@ param_new(char *name, Expr *default_value) {
     return result;
 }
 
-struct Var_Filter {
-    char*  name;
-    Expr** params;
-    size_t num_params;
-};
-
 struct Imported_Sym {
     char *name;
     char *alias;
@@ -446,8 +459,6 @@ struct Stmt {
 
         struct {
             Expr *expr;
-            Expr **filter;
-            size_t num_filter;
             Expr *if_expr;
         } stmt_var;
 
@@ -468,7 +479,7 @@ struct Stmt {
         } stmt_set;
 
         struct {
-            Expr **filter;
+            Filter **filter;
             size_t num_filter;
             Stmt **stmts;
             size_t num_stmts;
@@ -611,12 +622,10 @@ stmt_endmacro() {
 }
 
 internal_proc Stmt *
-stmt_var(Expr *expr, Expr **filter, size_t num_filter, Expr *if_expr) {
+stmt_var(Expr *expr, Expr *if_expr) {
     Stmt *result = stmt_new(STMT_VAR);
 
     result->stmt_var.expr = expr;
-    result->stmt_var.filter = (Expr **)AST_DUP(filter);
-    result->stmt_var.num_filter = num_filter;
     result->stmt_var.if_expr = if_expr;
 
     return result;
@@ -655,10 +664,10 @@ stmt_set(char *name, Expr *expr) {
 }
 
 internal_proc Stmt *
-stmt_filter(Expr **filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
+stmt_filter(Filter **filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_FILTER);
 
-    result->stmt_filter.filter = (Expr **)AST_DUP(filter);
+    result->stmt_filter.filter = (Filter **)AST_DUP(filter);
     result->stmt_filter.num_filter = num_filter;
     result->stmt_filter.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_filter.num_stmts = num_stmts;

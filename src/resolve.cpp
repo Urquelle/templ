@@ -22,7 +22,7 @@ typedef TEST_CALLBACK(Test_Callback);
 
 internal_proc Resolved_Expr *   resolve_expr(Expr *expr);
 internal_proc Resolved_Expr *   resolve_expr_cond(Expr *expr);
-internal_proc Resolved_Filter * resolve_filter(Expr *expr);
+internal_proc Resolved_Filter * resolve_filter(Filter *expr);
 internal_proc Resolved_Stmt *   resolve_stmt(Stmt *stmt);
 internal_proc Resolved_Templ *  resolve(Parsed_Templ *d);
 internal_proc void add_block(char *name, Resolved_Stmt *block);
@@ -284,6 +284,13 @@ internal_proc void
 val_set(Val *val, s32 min, s32 max) {
     *((s32 *)val->ptr+0) = min;
     *((s32 *)val->ptr+1) = max;
+}
+
+internal_proc void
+val_set(Val *dest, Val *source, size_t index) {
+    assert(dest->kind == VAL_LIST || dest->kind == VAL_TUPLE);
+
+    *((Val **)dest->ptr + index) = source;
 }
 
 internal_proc Val *
@@ -960,13 +967,31 @@ resolved_arg(char *name, Val *val) {
     return result;
 }
 /* }}} */
+struct Resolved_Filter {
+    Resolved_Arg **args;
+    size_t num_args;
+    Filter_Callback *proc;
+};
+
+internal_proc Resolved_Filter *
+resolved_filter(Resolved_Arg **args, size_t num_args, Filter_Callback *proc) {
+    Resolved_Filter *result = ALLOC_STRUCT(&resolve_arena, Resolved_Filter);
+
+    result->args = args;
+    result->num_args = num_args;
+    result->proc = proc;
+
+    return result;
+}
 /* resolved_expr {{{ */
 struct Resolved_Expr {
     Expr_Kind kind;
     Type *type;
     Sym *sym;
     Val *val;
-    Resolved_Stmt *stmt;
+
+    Resolved_Filter **filters;
+    size_t num_filters;
 
     b32 is_const;
     b32 is_lvalue;
@@ -1307,8 +1332,6 @@ struct Resolved_Stmt {
     union {
         struct {
             Resolved_Expr *expr;
-            Resolved_Filter **filter;
-            size_t num_filter;
             Resolved_Expr *if_expr;
         } stmt_var;
 
@@ -1391,15 +1414,11 @@ resolved_stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_var(Resolved_Expr *expr, Resolved_Filter **filter,
-        size_t num_filter, Resolved_Expr *if_expr)
-{
+resolved_stmt_var(Resolved_Expr *expr, Resolved_Expr *if_expr) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_VAR);
 
-    result->stmt_var.expr       = expr;
-    result->stmt_var.filter     = filter;
-    result->stmt_var.num_filter = num_filter;
-    result->stmt_var.if_expr    = if_expr;
+    result->stmt_var.expr    = expr;
+    result->stmt_var.if_expr = if_expr;
 
     return result;
 }
@@ -1560,23 +1579,6 @@ resolved_stmt_import(Sym *sym) {
     return result;
 }
 /* }}} */
-
-struct Resolved_Filter {
-    Resolved_Arg **args;
-    size_t num_args;
-    Filter_Callback *proc;
-};
-
-internal_proc Resolved_Filter *
-resolved_filter(Resolved_Arg **args, size_t num_args, Filter_Callback *proc) {
-    Resolved_Filter *result = ALLOC_STRUCT(&resolve_arena, Resolved_Filter);
-
-    result->args = args;
-    result->num_args = num_args;
-    result->proc = proc;
-
-    return result;
-}
 
 internal_proc b32
 unify_arithmetic_operands(Resolved_Expr *left, Resolved_Expr *right) {
@@ -1838,19 +1840,13 @@ resolve_stmt(Stmt *stmt) {
 
     switch (stmt->kind) {
         case STMT_VAR: {
-            Resolved_Filter **filter = 0;
-            for ( int i = 0; i < stmt->stmt_var.num_filter; ++i ) {
-                buf_push(filter, resolve_filter(stmt->stmt_var.filter[i]));
-            }
-
             Resolved_Expr *expr = resolve_expr(stmt->stmt_var.expr);
             Resolved_Expr *if_expr = 0;
             if ( stmt->stmt_var.if_expr ) {
                 if_expr = resolve_expr(stmt->stmt_var.if_expr);
             }
 
-            result = resolved_stmt_var(expr, filter, buf_len(filter), if_expr);
-            expr->stmt = result;
+            result = resolved_stmt_var(expr, if_expr);
         } break;
 
         case STMT_FOR: {
@@ -2499,27 +2495,26 @@ resolve_expr(Expr *expr) {
         } break;
     }
 
+    Resolved_Filter **filters = 0;
+    for ( int i = 0; i < expr->num_filters; ++i ) {
+        buf_push(filters, resolve_filter(expr->filters[i]));
+    }
+
+    result->filters = filters;
+    result->num_filters = buf_len(filters);
+
     return result;
 }
 
 internal_proc Resolved_Filter *
-resolve_filter(Expr *expr) {
-    Sym *sym = 0;
-    size_t num_args = 0;
-
-    if ( expr->kind == EXPR_NAME ) {
-        sym = resolve_name(expr->expr_name.value);
-    } else {
-        assert(expr->kind == EXPR_CALL);
-
-        Resolved_Expr *call = resolve_expr(expr->expr_call.expr);
-        num_args = expr->expr_call.num_args;
-        sym = call->sym;
-    }
+resolve_filter(Filter *filter) {
+    Sym *sym = resolve_name(filter->name);
 
     if ( !sym ) {
         fatal("symbol konnte nicht gefunden werden!");
     }
+
+    size_t num_args = filter->num_args;
 
     assert(sym->type);
     assert(sym->type->kind == TYPE_FILTER);
@@ -2538,7 +2533,7 @@ resolve_filter(Expr *expr) {
         }
 
         if ( i-1 < num_args ) {
-            Arg *arg = expr->expr_call.args[i-1];
+            Arg *arg = filter->args[i-1];
             Resolved_Expr *arg_expr = resolve_expr(arg->expr);
             if (arg_expr->type != param->type) {
                 fatal("datentyp des arguments stimmt nicht");

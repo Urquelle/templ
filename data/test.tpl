@@ -21,7 +21,7 @@
     {{ macros.macro_name }}
 
     <h2>tuple test</h2>
-    {% set tuple = ("europa", "asien", "amerika") %}
+    {% set tuple = ("europa" | upper, "asien", "amerika") %}
     {% for kontinent in tuple %}
         <div>kontinent:</div><div>{{ kontinent }}</div>
     {% endfor %}
