@@ -24,12 +24,11 @@
     {% set tuple = ("europa" | upper, "asien", "amerika") %}
     {% for kontinent in tuple %}
         idx: {{ loop.index }} idx0: {{ loop.index0 }}
+        revidx: {{ loop.revindex }} revidx0: {{ loop.revindex0 }}
         first: {{ loop.first }} last: {{ loop.last }}
+        length: {{ loop.length }} cycle: {{ loop.cycle('odd', 'even') }}
         <div>kontinent:</div><div>{{ kontinent }}</div>
     {% endfor %}
-
-    <h2>dict test</h2>
-    {#% set dict = { "key1": "val1", "key2": "val2" } %#}
 
     <h2>filter statement</h2>
     {% filter upper %}

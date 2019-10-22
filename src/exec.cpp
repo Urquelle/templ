@@ -10,6 +10,7 @@ global_var int gen_indent   = 0;
 
 Resolved_Templ *global_current_tmpl;
 Resolved_Stmt  *global_super_block;
+Resolved_Stmt  *global_for_stmt;
 
 internal_proc void
 gen_indentation() {
@@ -43,7 +44,7 @@ valid(Iterator *it) {
 }
 
 internal_proc b32
-last(Iterator *it) {
+is_last(Iterator *it) {
     b32 result = (it->pos+1) == it->container->len;
 
     return result;
@@ -172,7 +173,7 @@ exec_expr(Resolved_Expr *expr) {
             if ( type->kind == TYPE_MACRO ) {
                 result = exec_macro(expr);
             } else {
-                result = type->type_proc.callback(0);
+                result = type->type_proc.callback(0, expr->expr_call.args, expr->expr_call.num_args);
             }
         } break;
 
@@ -297,10 +298,13 @@ exec_stmt(Resolved_Stmt *stmt) {
             Val *list = exec_expr(stmt->stmt_for.expr);
 
             if ( list->len ) {
+                global_for_stmt = stmt;
+                val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
+
                 for ( Iterator it = init(list); valid(&it); next(&it) ) {
                     stmt->stmt_for.it->val = it.val;
 
-                    val_set(stmt->stmt_for.loop_last->val, (bool)last(&it));
+                    val_set(stmt->stmt_for.loop_last->val, (bool)is_last(&it));
 
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                         exec_stmt(stmt->stmt_for.stmts[j]);
@@ -416,7 +420,16 @@ PROC_CALLBACK(super) {
         exec_stmt(global_super_block->stmt_block.stmts[i]);
     }
 
-    return val_str("");
+    return &val_none;
+}
+
+PROC_CALLBACK(cycle) {
+    assert(global_for_stmt->kind == STMT_FOR);
+
+    s32 loop_index = val_int(global_for_stmt->stmt_for.loop_index->val);
+    s32 arg_index  = loop_index % num_args;
+
+    return args[arg_index]->val;
 }
 
 internal_proc void

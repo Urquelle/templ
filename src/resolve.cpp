@@ -1,7 +1,6 @@
 struct Type;
 struct Sym;
 struct Val;
-struct Operand;
 struct Resolved_Stmt;
 struct Resolved_Expr;
 struct Resolved_Filter;
@@ -10,9 +9,11 @@ struct Resolved_Arg;
 
 global_var Arena resolve_arena;
 
-#define PROC_CALLBACK(name) Val * name(Resolved_Stmt *stmt)
+#define PROC_CALLBACK(name) Val * name(Resolved_Stmt *stmt, Resolved_Arg **args, size_t num_args)
 typedef PROC_CALLBACK(Proc_Callback);
+
 PROC_CALLBACK(super);
+PROC_CALLBACK(cycle);
 
 #define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
 typedef FILTER_CALLBACK(Filter_Callback);
@@ -20,12 +21,13 @@ typedef FILTER_CALLBACK(Filter_Callback);
 #define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
 typedef TEST_CALLBACK(Test_Callback);
 
-internal_proc Resolved_Expr *   resolve_expr(Expr *expr);
-internal_proc Resolved_Expr *   resolve_expr_cond(Expr *expr);
+internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
+internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Filter * resolve_filter(Filter *expr);
-internal_proc Resolved_Stmt *   resolve_stmt(Stmt *stmt);
-internal_proc Resolved_Templ *  resolve(Parsed_Templ *d);
-internal_proc void add_block(char *name, Resolved_Stmt *block);
+internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
+internal_proc Resolved_Templ  * resolve(Parsed_Templ *d);
+internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
+internal_proc void              add_block(char *name, Resolved_Stmt *block);
 
 global_var Resolved_Templ *current_templ;
 
@@ -574,15 +576,11 @@ operator||(Val left, Val right) {
     return left_result || right_result;
 }
 /* }}} */
-
-internal_proc Sym * sym_push_var(char *name, Type *type, Val *val = 0);
-
 /* type {{{ */
 struct Type_Field {
     char *name;
     Sym *sym;
     Type *type;
-    s64   offset;
     Val  *default_value;
 };
 
@@ -632,6 +630,7 @@ struct Type {
             size_t num_params;
             Type *ret;
             Proc_Callback *callback;
+            b32 variadic;
         } type_proc;
 
         struct {
@@ -691,7 +690,9 @@ type_new(Type_Kind kind) {
 }
 
 internal_proc Type *
-type_proc(Type_Field **params, size_t num_params, Type *ret, Proc_Callback *callback) {
+type_proc(Type_Field **params, size_t num_params, Type *ret,
+        Proc_Callback *callback = 0, b32 variadic = false)
+{
     Type *result = type_new(TYPE_PROC);
 
     result->size = PTR_SIZE;
@@ -699,6 +700,7 @@ type_proc(Type_Field **params, size_t num_params, Type *ret, Proc_Callback *call
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
     result->type_proc.callback = callback;
+    result->type_proc.variadic = variadic;
 
     return result;
 }
@@ -708,9 +710,9 @@ type_macro(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_MACRO);
 
     result->size = PTR_SIZE;
-    result->type_proc.params = (Type_Field **)AST_DUP(params);
-    result->type_proc.num_params = num_params;
-    result->type_proc.ret = ret;
+    result->type_macro.params = (Type_Field **)AST_DUP(params);
+    result->type_macro.num_params = num_params;
+    result->type_macro.ret = ret;
 
     return result;
 }
@@ -837,7 +839,6 @@ enum Sym_Kind {
     SYM_NONE,
     SYM_VAR,
     SYM_PROC,
-    SYM_STRUCT,
     SYM_MODULE,
 };
 
@@ -941,6 +942,7 @@ resolved_arg(char *name, Val *val) {
     return result;
 }
 /* }}} */
+/* resolved_filter {{{ */
 struct Resolved_Filter {
     Resolved_Arg **args;
     size_t num_args;
@@ -957,12 +959,15 @@ resolved_filter(Resolved_Arg **args, size_t num_args, Filter_Callback *proc) {
 
     return result;
 }
+/* }}} */
 /* resolved_expr {{{ */
 struct Resolved_Expr {
     Expr_Kind kind;
     Type *type;
     Sym *sym;
     Val *val;
+
+    Resolved_Stmt *stmt;
 
     Resolved_Filter **filters;
     size_t num_filters;
@@ -1256,51 +1261,9 @@ resolved_expr_dict(Map *map, char **keys, size_t num_keys, Val *val) {
     return result;
 }
 /* }}} */
-
-internal_proc Resolved_Expr *
-operand_new(Type *type, Val *val) {
-    Resolved_Expr *result = ALLOC_STRUCT(&resolve_arena, Resolved_Expr);
-
-    result->type      = type;
-    result->val       = val;
-    result->is_const  = false;
-    result->is_lvalue = false;
-
-    return result;
-}
-
-internal_proc Resolved_Expr *
-operand_lvalue(Type *type, Sym *sym = NULL, Val *val = 0) {
-    Resolved_Expr *result = operand_new(type, val);
-
-    result->is_lvalue = true;
-    result->sym = sym;
-
-    return result;
-}
-
-internal_proc Resolved_Expr *
-operand_rvalue(Type *type, Val *val = 0) {
-    Resolved_Expr *result = operand_new(type, val);
-
-    return result;
-}
-
-internal_proc Resolved_Expr *
-operand_const(Type *type, Val *val) {
-    Resolved_Expr *result = operand_new(type, val);
-
-    result->is_const = true;
-
-    return result;
-}
-
 /* resolved_stmt {{{ */
 struct Resolved_Stmt {
     Stmt_Kind kind;
-
-    Resolved_Stmt *block;
-    Resolved_Stmt *super;
 
     union {
         struct {
@@ -1318,8 +1281,12 @@ struct Resolved_Stmt {
 
             Sym *loop_index;
             Sym *loop_index0;
+            Sym *loop_revindex;
+            Sym *loop_revindex0;
             Sym *loop_first;
             Sym *loop_last;
+            Sym *loop_length;
+            Sym *loop_cycle;
         } stmt_for;
 
         struct {
@@ -1442,7 +1409,8 @@ resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
 internal_proc Resolved_Stmt *
 resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
         size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts,
-        Sym *loop_index, Sym *loop_index0, Sym *loop_first, Sym *loop_last)
+        Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0,
+        Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
 
@@ -1453,10 +1421,14 @@ resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
     result->stmt_for.else_stmts = else_stmts;
     result->stmt_for.num_else_stmts = num_else_stmts;
 
-    result->stmt_for.loop_index  = loop_index;
-    result->stmt_for.loop_index0 = loop_index0;
-    result->stmt_for.loop_first  = loop_first;
-    result->stmt_for.loop_last   = loop_last;
+    result->stmt_for.loop_index     = loop_index;
+    result->stmt_for.loop_index0    = loop_index0;
+    result->stmt_for.loop_revindex  = loop_revindex;
+    result->stmt_for.loop_revindex0 = loop_revindex0;
+    result->stmt_for.loop_first     = loop_first;
+    result->stmt_for.loop_last      = loop_last;
+    result->stmt_for.loop_length    = loop_length;
+    result->stmt_for.loop_cycle     = loop_cycle;
 
     return result;
 }
@@ -1496,10 +1468,6 @@ resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
     result->stmt_block.name = name;
     result->stmt_block.stmts = stmts;
     result->stmt_block.num_stmts = num_stmts;
-
-    for ( int i = 0; i < num_stmts; ++i ) {
-        stmts[i]->block = result;
-    }
 
     add_block(name, result);
 
@@ -1563,59 +1531,26 @@ resolved_stmt_import(Sym *sym) {
     return result;
 }
 /* }}} */
+/* resolved_templ {{{ */
+struct Resolved_Templ {
+    char *name;
+    Resolved_Stmt **stmts;
+    size_t num_stmts;
+    Map blocks;
+};
 
-internal_proc b32
-unify_arithmetic_operands(Resolved_Expr *left, Resolved_Expr *right) {
-    if ( is_arithmetic(left->type) && is_arithmetic(right->type) ) {
-        Type *type  = arithmetic_result_type_table[left->type->kind][right->type->kind];
-        left->type  = type;
-        right->type = type;
+internal_proc Resolved_Templ *
+resolved_templ() {
+    Resolved_Templ *result = ALLOC_STRUCT(&resolve_arena, Resolved_Templ);
 
-        return true;
-    }
-
-    return false;
-}
-
-internal_proc b32
-convert_operand(Resolved_Expr *op, Type *dest_type) {
-    b32 result = false;
-
-    if ( op->type == dest_type ) {
-        return true;
-    }
-
-    if ( op->type->kind == TYPE_INT ) {
-        if ( dest_type->kind == TYPE_FLOAT ) {
-            op->type = type_float;
-
-            return true;
-        } else if ( dest_type->kind == TYPE_BOOL ) {
-            return true;
-        }
-    }
+    result->name = 0;
+    result->stmts = 0;
+    result->num_stmts = 0;
+    result->blocks = {};
 
     return result;
 }
-
-internal_proc b32
-unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
-    if ( is_scalar(left->type) && is_scalar(right->type) ) {
-        Type *type  = scalar_result_type_table[left->type->kind][right->type->kind];
-
-        if ( type == type_void ) {
-            return false;
-        }
-
-        left->type  = type;
-        right->type = type;
-
-        return true;
-    }
-
-    return false;
-}
-
+/* }}} */
 /* filter {{{ */
 internal_proc FILTER_CALLBACK(filter_abs) {
     assert(val->kind == VAL_INT);
@@ -1785,23 +1720,94 @@ init_builtin_tests() {
 }
 /* }}} */
 
-struct Resolved_Templ {
-    char *name;
-    Resolved_Stmt **stmts;
-    size_t num_stmts;
-    Map blocks;
-};
+internal_proc Resolved_Expr *
+operand_new(Type *type, Val *val) {
+    Resolved_Expr *result = ALLOC_STRUCT(&resolve_arena, Resolved_Expr);
 
-internal_proc Resolved_Templ *
-resolved_templ() {
-    Resolved_Templ *result = ALLOC_STRUCT(&resolve_arena, Resolved_Templ);
-
-    result->name = 0;
-    result->stmts = 0;
-    result->num_stmts = 0;
-    result->blocks = {};
+    result->type      = type;
+    result->val       = val;
+    result->is_const  = false;
+    result->is_lvalue = false;
 
     return result;
+}
+
+internal_proc Resolved_Expr *
+operand_lvalue(Type *type, Sym *sym = NULL, Val *val = 0) {
+    Resolved_Expr *result = operand_new(type, val);
+
+    result->is_lvalue = true;
+    result->sym = sym;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+operand_rvalue(Type *type, Val *val = 0) {
+    Resolved_Expr *result = operand_new(type, val);
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+operand_const(Type *type, Val *val) {
+    Resolved_Expr *result = operand_new(type, val);
+
+    result->is_const = true;
+
+    return result;
+}
+
+internal_proc b32
+unify_arithmetic_operands(Resolved_Expr *left, Resolved_Expr *right) {
+    if ( is_arithmetic(left->type) && is_arithmetic(right->type) ) {
+        Type *type  = arithmetic_result_type_table[left->type->kind][right->type->kind];
+        left->type  = type;
+        right->type = type;
+
+        return true;
+    }
+
+    return false;
+}
+
+internal_proc b32
+convert_operand(Resolved_Expr *op, Type *dest_type) {
+    b32 result = false;
+
+    if ( op->type == dest_type ) {
+        return true;
+    }
+
+    if ( op->type->kind == TYPE_INT ) {
+        if ( dest_type->kind == TYPE_FLOAT ) {
+            op->type = type_float;
+
+            return true;
+        } else if ( dest_type->kind == TYPE_BOOL ) {
+            return true;
+        }
+    }
+
+    return result;
+}
+
+internal_proc b32
+unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
+    if ( is_scalar(left->type) && is_scalar(right->type) ) {
+        Type *type  = scalar_result_type_table[left->type->kind][right->type->kind];
+
+        if ( type == type_void ) {
+            return false;
+        }
+
+        left->type  = type;
+        right->type = type;
+
+        return true;
+    }
+
+    return false;
 }
 
 internal_proc Sym *
@@ -1809,13 +1815,6 @@ resolve_name(char *name) {
     Sym *result = sym_get(name);
 
     return result;
-}
-
-internal_proc void
-resolve_stmts(Stmt **stmts, size_t num_stmts) {
-    for ( int i = 0; i < num_stmts; ++i ) {
-        resolve_stmt(stmts[i]);
-    }
 }
 
 internal_proc Resolved_Stmt *
@@ -1826,6 +1825,7 @@ resolve_stmt(Stmt *stmt) {
         case STMT_VAR: {
             Resolved_Expr *expr = resolve_expr(stmt->stmt_var.expr);
             Resolved_Expr *if_expr = 0;
+
             if ( stmt->stmt_var.if_expr ) {
                 if_expr = resolve_expr(stmt->stmt_var.if_expr);
             }
@@ -1844,10 +1844,16 @@ resolve_stmt(Stmt *stmt) {
             Sym *loop = sym_push_var("loop", type_dict);
             loop->scope = scope_enter();
 
-            Sym *loop_index  = sym_push_var("index",  type_int,  val_int(1));
-            Sym *loop_index0 = sym_push_var("index0", type_int,  val_int(0));
-            Sym *loop_first  = sym_push_var("first",  type_bool, val_bool(true));
-            Sym *loop_last   = sym_push_var("last",   type_bool, val_bool(false));
+            Type_Field *any_type[] = { type_field("s", type_any) };
+
+            Sym *loop_index     = sym_push_var("index",     type_int,  val_int(1));
+            Sym *loop_index0    = sym_push_var("index0",    type_int,  val_int(0));
+            Sym *loop_revindex  = sym_push_var("revindex",  type_int,  val_int(0));
+            Sym *loop_revindex0 = sym_push_var("revindex0", type_int,  val_int(0));
+            Sym *loop_first     = sym_push_var("first",     type_bool, val_bool(true));
+            Sym *loop_last      = sym_push_var("last",      type_bool, val_bool(false));
+            Sym *loop_length    = sym_push_var("length",    type_int,  val_int(0));
+            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0, cycle, true));
 
             scope_leave();
             /* }}} */
@@ -1865,7 +1871,8 @@ resolve_stmt(Stmt *stmt) {
             scope_leave();
 
             result = resolved_stmt_for(it, expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts),
-                    loop_index, loop_index0, loop_first, loop_last);
+                    loop_index, loop_index0, loop_revindex, loop_revindex0, loop_first, loop_last,
+                    loop_length, loop_cycle);
         } break;
 
         case STMT_IF: {
@@ -2181,21 +2188,6 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
     return left;
 }
 
-
-internal_proc s64
-offset_from_base(Type *type, char *name) {
-    s64 result = 0;
-    for ( int i = 0; i < type->type_aggr.num_fields; ++i ) {
-        Type_Field *field = type->type_aggr.fields[i];
-        if ( field->name == name ) {
-            return result;
-        }
-        result += field->type->size;
-    }
-
-    return result;
-}
-
 internal_proc Resolved_Expr *
 resolve_expr(Expr *expr) {
     Resolved_Expr *result = 0;
@@ -2329,65 +2321,79 @@ resolve_expr(Expr *expr) {
                 fatal("aufruf einer nicht-prozedur");
             }
 
-            if ( type->type_proc.num_params < expr->expr_call.num_args ) {
-                fatal("zu viele argumente");
-            }
+            if ( type->type_proc.variadic ) {
+                Resolved_Arg **args = 0;
 
-            for ( int i = 0; i < type->type_proc.num_params; ++i ) {
-                Type_Field *param = type->type_proc.params[i];
+                for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
+                    Arg *arg = expr->expr_call.args[i];
 
-                if ( !param->default_value && (i >= expr->expr_call.num_args) ) {
-                    fatal("zu wenige parameter übergeben");
-                }
-            }
-
-            Resolved_Arg **args = 0;
-            b32 must_be_named = false;
-            char **params = 0;
-            for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
-                Arg *arg = expr->expr_call.args[i];
-
-                char *name = 0;
-                if ( arg->name ) {
-                    must_be_named = true;
-                    name = arg->name;
+                    Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
+                    Resolved_Arg *rarg = resolved_arg(0, arg_expr->val);
+                    buf_push(args, rarg);
                 }
 
-                if ( !arg->name && must_be_named ) {
-                    fatal("nach benamten parameter müssen alle folgende parameter benamt sein");
+                result = resolved_expr_call(call_expr, args, buf_len(args), type);
+            } else {
+                if ( type->type_proc.num_params < expr->expr_call.num_args ) {
+                    fatal("zu viele argumente");
                 }
 
-                b32 found = false;
-                for ( int j = 0; j < type->type_proc.num_params; ++j ) {
-                    Type_Field *param = type->type_proc.params[j];
+                for ( int i = 0; i < type->type_proc.num_params; ++i ) {
+                    Type_Field *param = type->type_proc.params[i];
 
-                    if ( !arg->name || arg->name && arg->name == param->name ) {
-                        found = true;
+                    if ( !param->default_value && (i >= expr->expr_call.num_args) ) {
+                        fatal("zu wenige parameter übergeben");
+                    }
+                }
 
-                        if ( !name ) {
-                            name = param->name;
+                Resolved_Arg **args = 0;
+                b32 must_be_named = false;
+                char **params = 0;
+                for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
+                    Arg *arg = expr->expr_call.args[i];
+
+                    char *name = 0;
+                    if ( arg->name ) {
+                        must_be_named = true;
+                        name = arg->name;
+                    }
+
+                    if ( !arg->name && must_be_named ) {
+                        fatal("nach benamten parameter müssen alle folgende parameter benamt sein");
+                    }
+
+                    b32 found = false;
+                    for ( int j = 0; j < type->type_proc.num_params; ++j ) {
+                        Type_Field *param = type->type_proc.params[j];
+
+                        if ( !arg->name || arg->name && arg->name == param->name ) {
+                            found = true;
+
+                            if ( !name ) {
+                                name = param->name;
+                            }
                         }
                     }
-                }
 
-                if ( !found ) {
-                    fatal("kein argument mit der bezeichnung %s gefunden", arg->name);
-                }
-
-                for ( int j = 0; j < buf_len(params); ++j ) {
-                    if ( name == params[j] ) {
-                        fatal("parameter %s wurde bereits gesetzt", name);
+                    if ( !found ) {
+                        fatal("kein argument mit der bezeichnung %s gefunden", arg->name);
                     }
+
+                    for ( int j = 0; j < buf_len(params); ++j ) {
+                        if ( name == params[j] ) {
+                            fatal("parameter %s wurde bereits gesetzt", name);
+                        }
+                    }
+
+                    buf_push(params, name);
+
+                    Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
+                    Resolved_Arg *rarg = resolved_arg(name, arg_expr->val);
+                    buf_push(args, rarg);
                 }
 
-                buf_push(params, name);
-
-                Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
-                Resolved_Arg *rarg = resolved_arg(name, arg_expr->val);
-                buf_push(args, rarg);
+                result = resolved_expr_call(call_expr, args, buf_len(args), type);
             }
-
-            result = resolved_expr_call(call_expr, args, buf_len(args), type);
         } break;
 
         case EXPR_INDEX: {
