@@ -126,7 +126,7 @@ exec_expr(Resolved_Expr *expr) {
 
                 case T_DIV_TRUNC: {
                     Val calc = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = val_int((int)*(float *)calc.ptr);
                 } break;
 
                 case T_PLUS: {

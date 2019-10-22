@@ -250,8 +250,13 @@ val_set(Val *val, bool value) {
 
 internal_proc void
 val_set(Val *val, f32 value) {
-    assert(val->kind == VAL_FLOAT);
-    *((f32 *)val->ptr) = value;
+    if ( val->kind == VAL_INT ) {
+        val->kind = VAL_FLOAT;
+        *((f32 *)val->ptr) = value;
+    } else {
+        assert(val->kind == VAL_FLOAT);
+        *((f32 *)val->ptr) = value;
+    }
 }
 
 internal_proc void
@@ -389,7 +394,12 @@ operator/(Val left, Val right) {
         assert(val_int(&right) != 0);
         result.size = sizeof(s32);
         result.ptr = ALLOC_SIZE(&resolve_arena, result.size);
-        val_set(&result, val_int(&left) / val_int(&right));
+
+        int a = val_int(&left);
+        int b = val_int(&right);
+        auto c = (float)a / b;
+
+        val_set(&result, c);
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
         val_set(&result, val_int(&left) / val_float(&right));
