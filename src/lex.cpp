@@ -28,6 +28,7 @@ enum Token_Kind {
     T_COLON,
     T_MUL,
     T_DIV,
+    T_DIV_TRUNC,
 
     T_BANG,
     T_UNARY_FIRST = T_BANG,
@@ -185,7 +186,6 @@ is_eql(Token_Kind kind) {
 
 internal_proc b32
 is_alpha(char c) {
-    // return ( c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || (u8)c >= 0xC0 );
     return ( c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' );
 }
 
@@ -299,6 +299,11 @@ next_raw_token(Lexer *lex) {
     } else if ( c == '/' ) {
         lex->token.kind = T_DIV;
         next(lex);
+
+        if ( at0(lex) == '/' ) {
+            lex->token.kind = T_DIV_TRUNC;
+            next(lex);
+        }
     } else if ( c == '?' ) {
         lex->token.kind = T_QMARK;
         next(lex);

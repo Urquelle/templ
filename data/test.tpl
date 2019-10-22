@@ -47,6 +47,7 @@
     {% endraw %}
 
     {{ -1*5%2 | abs }}
+    >>{{ 20//7 }}<<
     {{ "hallo" | capitalize }}
     <h2>test default</h2>
     {{ '' | default("bla") }}

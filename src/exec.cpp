@@ -124,6 +124,11 @@ exec_expr(Resolved_Expr *expr) {
                     result = val_copy(&calc);
                 } break;
 
+                case T_DIV_TRUNC: {
+                    Val calc = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
+                    result = val_copy(&calc);
+                } break;
+
                 case T_PLUS: {
                     Val calc = *exec_expr(expr->expr_binary.left) + *exec_expr(expr->expr_binary.right);
                     result = val_copy(&calc);
