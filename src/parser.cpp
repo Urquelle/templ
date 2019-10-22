@@ -346,7 +346,7 @@ internal_proc Expr *
 parse_expr_mul(Parser *p) {
     Expr *left = parse_expr_unary(p);
 
-    while ( is_token(p, T_MUL) || is_token(p, T_DIV) ) {
+    while ( is_token(p, T_MUL) || is_token(p, T_DIV) || is_token(p, T_PERCENT) ) {
         Token op = eat_token(&p->lex);
         left = expr_binary(op.kind, left, parse_expr_unary(p));
     }

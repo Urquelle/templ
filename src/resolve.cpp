@@ -387,6 +387,8 @@ operator/(Val left, Val right) {
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
         assert(val_int(&right) != 0);
+        result.size = sizeof(s32);
+        result.ptr = ALLOC_SIZE(&resolve_arena, result.size);
         val_set(&result, val_int(&left) / val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result.kind = VAL_FLOAT;
@@ -402,6 +404,22 @@ operator/(Val left, Val right) {
         result.kind = VAL_RANGE;
         assert(val_range0(&right) != 0 && val_range1(&right) != 0);
         val_set(&result, val_range0(&left) * val_range0(&right), val_range1(&left) * val_range1(&right));
+    } else {
+        illegal_path();
+    }
+
+    return result;
+}
+
+internal_proc Val
+operator%(Val left, Val right) {
+    Val result = {};
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        result.kind = VAL_INT;
+        result.size = sizeof(s32);
+        result.ptr = ALLOC_SIZE(&resolve_arena, result.size);
+        val_set(&result, val_int(&left) % val_int(&right));
     } else {
         illegal_path();
     }

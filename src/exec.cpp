@@ -149,6 +149,11 @@ exec_expr(Resolved_Expr *expr) {
                     result = val_bool(calc);
                 } break;
 
+                case T_PERCENT: {
+                    Val calc = *exec_expr(expr->expr_binary.left) % *exec_expr(expr->expr_binary.right);
+                    result = val_copy(&calc);
+                } break;
+
                 default: {
                     illegal_path();
                 } break;

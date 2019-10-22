@@ -46,7 +46,7 @@
         und dann
     {% endraw %}
 
-    {{ -1*5 | abs }}
+    {{ -1*5%2 | abs }}
     {{ "hallo" | capitalize }}
     <h2>test default</h2>
     {{ '' | default("bla") }}
