@@ -173,7 +173,7 @@ exec_expr(Resolved_Expr *expr) {
             if ( type->kind == TYPE_MACRO ) {
                 result = exec_macro(expr);
             } else {
-                result = type->type_proc.callback(0, expr->expr_call.args, expr->expr_call.num_args);
+                result = type->type_proc.callback(expr->expr_call.args, expr->expr_call.num_args);
             }
         } break;
 

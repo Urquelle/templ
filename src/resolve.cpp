@@ -9,7 +9,7 @@ struct Resolved_Arg;
 
 global_var Arena resolve_arena;
 
-#define PROC_CALLBACK(name) Val * name(Resolved_Stmt *stmt, Resolved_Arg **args, size_t num_args)
+#define PROC_CALLBACK(name) Val * name(Resolved_Arg **args, size_t num_args)
 typedef PROC_CALLBACK(Proc_Callback);
 
 PROC_CALLBACK(super);
@@ -603,13 +603,14 @@ enum Type_Kind {
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_STR,
-    TYPE_ARRAY,
+    TYPE_LIST,
+    TYPE_DICT,
+    TYPE_TUPLE,
     TYPE_PROC,
     TYPE_MACRO,
     TYPE_FILTER,
     TYPE_TEST,
     TYPE_MODULE,
-    TYPE_DICT,
 
     TYPE_COUNT,
 };
@@ -656,11 +657,6 @@ struct Type {
         } type_test;
 
         struct {
-            Type *base;
-            int num_elems;
-        } type_array;
-
-        struct {
             char *name;
             Scope *scope;
         } type_module;
@@ -675,6 +671,8 @@ global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
 global_var Type *type_dict;
+global_var Type *type_tuple;
+global_var Type *type_list;
 global_var Type *type_any;
 
 global_var Type *arithmetic_result_type_table[TYPE_COUNT][TYPE_COUNT];
@@ -744,17 +742,6 @@ type_test(Type_Field **params, size_t num_params, Test_Callback *callback) {
 }
 
 internal_proc Type *
-type_array(Type *base, int num_elems) {
-    Type *result = type_new(TYPE_ARRAY);
-
-    result->size = base->size * num_elems;
-    result->type_array.base = base;
-    result->type_array.num_elems = num_elems;
-
-    return result;
-}
-
-internal_proc Type *
 type_module(char *name, Scope *scope) {
     Type *result = type_new(TYPE_MODULE);
 
@@ -783,6 +770,12 @@ init_builtin_types() {
 
     type_dict  = type_new(TYPE_DICT);
     type_dict->size = sizeof(Map);
+
+    type_tuple = type_new(TYPE_TUPLE);
+    type_tuple->size = 0;
+
+    type_list  = type_new(TYPE_LIST);
+    type_list->size = 0;
 
     type_any   = type_new(TYPE_ANY);
     type_any->size = PTR_SIZE;
@@ -1037,6 +1030,8 @@ struct Resolved_Expr {
             Resolved_Expr *expr;
             Resolved_Arg **args;
             size_t num_args;
+            Resolved_Arg **varargs;
+            size_t num_varargs;
         } expr_call;
 
         struct {
@@ -1196,12 +1191,16 @@ resolved_expr_in(Resolved_Expr *expr, Resolved_Expr *set) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_call(Resolved_Expr *expr, Resolved_Arg **args, size_t num_args, Type *type) {
+resolved_expr_call(Resolved_Expr *expr, Resolved_Arg **args, size_t num_args,
+        Resolved_Arg **varargs, size_t num_varargs, Type *type)
+{
     Resolved_Expr *result = resolved_expr_new(EXPR_CALL, type);
 
-    result->expr_call.expr = expr;
-    result->expr_call.args = (Resolved_Arg **)AST_DUP(args);
-    result->expr_call.num_args = num_args;
+    result->expr_call.expr        = expr;
+    result->expr_call.args        = (Resolved_Arg **)AST_DUP(args);
+    result->expr_call.num_args    = num_args;
+    result->expr_call.varargs     = (Resolved_Arg **)AST_DUP(varargs);
+    result->expr_call.num_varargs = num_varargs;
 
     return result;
 }
@@ -2032,11 +2031,19 @@ resolve_stmt(Stmt *stmt) {
             char *macro_name = ( stmt->stmt_macro.alias ) ? stmt->stmt_macro.alias : stmt->stmt_macro.name;
             Sym *sym = sym_push_proc(macro_name, type);
 
-            Scope *scope = scope_enter();
+            sym->scope = scope_enter(macro_name);
 
+            Val **param_names = 0;
             for ( int i = 0; i < buf_len(params); ++i ) {
                 params[i]->sym = sym_push_var(params[i]->name, params[i]->type);
+                buf_push(param_names, val_str(params[i]->name));
             }
+
+            /* macro variablen {{{ */
+            sym_push_var("name",      type_str,   val_str(macro_name));
+            sym_push_var("arguments", type_tuple, val_tuple(param_names, buf_len(param_names)));
+            sym_push_var("varargs",   type_list,  &val_none);
+            /* }}} */
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_macro.num_stmts; ++i ) {
@@ -2266,8 +2273,9 @@ resolve_expr(Expr *expr) {
             assert(base->type);
             Type *type = base->type;
 
-            if ( type->kind == TYPE_DICT ) {
+            if ( type->kind == TYPE_DICT || type->kind == TYPE_MACRO ) {
                 assert(base->sym);
+
                 Scope *prev_scope = scope_set(base->sym->scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
                 assert(sym);
@@ -2276,6 +2284,7 @@ resolve_expr(Expr *expr) {
                 result = resolved_expr_field(base, sym, sym->type, sym->val);
             } else {
                 assert(type->kind == TYPE_MODULE);
+
                 Scope *prev_scope = scope_set(type->type_module.scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
                 assert(sym);
@@ -2332,10 +2341,14 @@ resolve_expr(Expr *expr) {
                     buf_push(args, rarg);
                 }
 
-                result = resolved_expr_call(call_expr, args, buf_len(args), type);
+                result = resolved_expr_call(call_expr, args, buf_len(args), 0, 0, type);
             } else {
-                if ( type->type_proc.num_params < expr->expr_call.num_args ) {
-                    fatal("zu viele argumente");
+                Resolved_Arg **varargs = 0;
+                for ( size_t i = type->type_proc.num_params; i < expr->expr_call.num_args; ++i ) {
+                    Arg *arg = expr->expr_call.args[i];
+                    Resolved_Expr *arg_expr = resolve_expr(arg->expr);
+                    Resolved_Arg *rarg = resolved_arg(0, arg_expr->val);
+                    buf_push(varargs, rarg);
                 }
 
                 for ( int i = 0; i < type->type_proc.num_params; ++i ) {
@@ -2387,16 +2400,19 @@ resolve_expr(Expr *expr) {
 
                     buf_push(params, name);
 
-                    Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
+                    Resolved_Expr *arg_expr = resolve_expr(arg->expr);
                     Resolved_Arg *rarg = resolved_arg(name, arg_expr->val);
                     buf_push(args, rarg);
                 }
 
-                result = resolved_expr_call(call_expr, args, buf_len(args), type);
+                result = resolved_expr_call(call_expr, args, buf_len(args), varargs, buf_len(varargs), type);
             }
         } break;
 
         case EXPR_INDEX: {
+            implement_me();
+
+            /*
             Resolved_Expr *resolved_expr = resolve_expr(expr->expr_index.expr);
             if (resolved_expr->type->kind != TYPE_ARRAY) {
                 fatal("indizierung auf einem nicht-array");
@@ -2408,6 +2424,7 @@ resolve_expr(Expr *expr) {
             }
 
             result = resolved_expr_index(resolved_expr, index, buf_len(index));
+            */
         } break;
 
         case EXPR_IS: {

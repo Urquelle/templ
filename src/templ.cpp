@@ -1,36 +1,47 @@
-struct Templ_Vars {
-    char **keys;
-    Map map;
+global_var Arena templ_arena;
+
+struct Templ_Var {
+    char *name;
+    Scope *scope;
 };
 
-internal_proc Templ_Vars *
-templ_vars_new() {
-    Templ_Vars *result = (Templ_Vars *)xcalloc(1, sizeof(Templ_Vars));
+internal_proc Templ_Var *
+templ_var(char *name) {
+    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
 
-    result->keys = 0;
+    result->name  = name;
+    result->scope = scope_new(0, name);
 
     return result;
 }
 
 internal_proc void
-templ_vars_add(Templ_Vars *vars, char *key, char *value) {
-    map_put(&vars->map, key, value);
-    buf_push(vars->keys, key);
+templ_var_set(Templ_Var *var, char *key, char *value) {
+    Scope *prev_scope = scope_set(var->scope);
+    sym_push_var(key, type_str, val_str(value));
+    scope_set(prev_scope);
 }
 
-internal_proc char *
-templ_vars_get(Templ_Vars *vars, char *key) {
-    return (vars) ? (char *)map_get(&vars->map, key) : 0;
+internal_proc void
+templ_var_set(Templ_Var *var, char *key, int value) {
+    Scope *prev_scope = scope_set(var->scope);
+    sym_push_var(key, type_int, val_int(value));
+    scope_set(prev_scope);
 }
 
-internal_proc size_t
-templ_vars_len(Templ_Vars *vars) {
-    return (vars) ? buf_len(vars->keys) : 0;
+internal_proc void
+templ_var_set(Templ_Var *var, char *key, float value) {
+    Scope *prev_scope = scope_set(var->scope);
+    sym_push_var(key, type_float, val_float(value));
+    scope_set(prev_scope);
 }
 
-internal_proc char *
-templ_vars_get_key(Templ_Vars *vars, int index) {
-    return (vars) ? vars->keys[index] : 0;
+internal_proc void
+templ_var_set(Templ_Var *var, char *key, Templ_Var *value) {
+    Scope *prev_scope = scope_set(var->scope);
+    Sym *sym = sym_push_var(key, type_dict);
+    sym->scope = value->scope;
+    scope_set(prev_scope);
 }
 
 internal_proc void
@@ -46,12 +57,11 @@ templ_compile(char *filename) {
 }
 
 internal_proc void
-templ_render(Parsed_Templ *templ, Templ_Vars *vars = 0) {
-    for ( int i = 0; i < templ_vars_len(vars); ++i ) {
-        char *key = templ_vars_get_key(vars, i);
-        char *value = templ_vars_get(vars, key);
-
-        sym_push_var(key, type_str, val_str(value));
+templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
+    for ( int i = 0; i < num_vars; ++i ) {
+        Templ_Var *var = vars[i];
+        Sym *sym = sym_push_var(var->name, type_dict);
+        sym->scope = var->scope;
     }
 
     Resolved_Templ *result = resolve(templ);
@@ -64,12 +74,24 @@ templ_main(int argc, char **argv) {
         printf("templ.exe <filename>\n");
     }
 
-    Templ_Vars *vars = templ_vars_new();
-    templ_vars_add(vars, "name", "fooname");
-
+    arena_init(&templ_arena, MB(100));
     init();
+
+    Templ_Var **vars = 0;
+
+    Templ_Var *address = templ_var("address");
+    templ_var_set(address, "city", "berlin");
+    templ_var_set(address, "street", "siegerstr. 2");
+
+    Templ_Var *user = templ_var("user");
+    templ_var_set(user, "name", "Noob");
+    templ_var_set(user, "age", 25);
+    templ_var_set(user, "address", address);
+
+    buf_push(vars, user);
+
     Parsed_Templ *templ = templ_compile(argv[1]);
-    templ_render(templ, vars);
+    templ_render(templ, vars, buf_len(vars));
 
     file_write("test.html", gen_result, strlen(gen_result));
 }

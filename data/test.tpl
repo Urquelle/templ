@@ -12,10 +12,15 @@
     {{ super() }}
 
     <h2>templ vars</h2>
-    {{ name }}
+    {{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}
 
     <h2>import macros</h2>
     {{ macros.test1() }}
+    macro name: {{ macros.test1.name }}
+    macro parameter:
+    {% for param in macros.printf.arguments %}
+        *{{ param }}*
+    {% endfor %}
 
     <h2>import variablen</h2>
     {{ macros.macro_name }}
@@ -76,7 +81,7 @@
     <h2>if anweisung</h2>
     {% set b = 1 %}
     {% if true %}
-        {{ name if b is eq 2 else "rumpelstilzchen" }}
+        {{ user.name if b is eq 2 else "rumpelstilzchen" }}
     {% else %}
         else-zweig
     {% endif %}
