@@ -25,6 +25,11 @@
     <h2>import variablen</h2>
     {{ macros.macro_name }}
 
+    {% set foo = 10 %}
+    {% if foo <= 5 %}
+        {{ foo }}
+    {% endif %}
+
     <h2>tuple test</h2>
     {% set tuple = ("europa" | upper, "asien", "amerika") %}
     {% for kontinent in tuple %}

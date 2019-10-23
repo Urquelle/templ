@@ -552,6 +552,9 @@ operator<(Val left, Val right) {
     Val result = {};
     result.kind = VAL_BOOL;
 
+    /* @AUFGABE: an dieser stelle die exec_arena verwenden */
+    result.ptr = ALLOC_SIZE(&resolve_arena, sizeof(b32));
+
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         val_set(&result, val_int(&left) < val_int(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
@@ -569,8 +572,83 @@ operator<(Val left, Val right) {
     return result;
 }
 
+internal_proc Val
+operator<=(Val left, Val right) {
+    Val result = {};
+    result.kind = VAL_BOOL;
+
+    /* @AUFGABE: an dieser stelle die exec_arena verwenden */
+    result.ptr = ALLOC_SIZE(&resolve_arena, sizeof(b32));
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        val_set(&result, val_int(&left) <= val_int(&right));
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        val_set(&result, val_int(&left) <= val_float(&right));
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        val_set(&result, val_int(&left) <= val_range0(&right));
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        val_set(&result, val_float(&left) <= val_float(&right));
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        val_set(&result, val_range0(&left) <= val_range0(&right) && val_range1(&left) <= val_range1(&right));
+    } else {
+        illegal_path();
+    }
+
+    return result;
+}
+
+internal_proc Val
+operator>(Val &left, Val &right) {
+    Val result = {};
+    result.kind = VAL_BOOL;
+
+    /* @AUFGABE: an dieser stelle die exec_arena verwenden */
+    result.ptr = ALLOC_SIZE(&resolve_arena, sizeof(b32));
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        val_set(&result, val_int(&left) > val_int(&right));
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        val_set(&result, val_int(&left) > val_float(&right));
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        val_set(&result, val_int(&left) > val_range0(&right));
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        val_set(&result, val_float(&left) > val_float(&right));
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        val_set(&result, val_range0(&left) > val_range0(&right) && val_range1(&left) > val_range1(&right));
+    } else {
+        illegal_path();
+    }
+
+    return result;
+}
+
+internal_proc Val
+operator>=(Val &left, Val &right) {
+    Val result = {};
+    result.kind = VAL_BOOL;
+
+    /* @AUFGABE: an dieser stelle die exec_arena verwenden */
+    result.ptr = ALLOC_SIZE(&resolve_arena, sizeof(b32));
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        val_set(&result, val_int(&left) >= val_int(&right));
+    } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
+        val_set(&result, val_int(&left) >= val_float(&right));
+    } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
+        val_set(&result, val_int(&left) >= val_range0(&right));
+    } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
+        val_set(&result, val_float(&left) >= val_float(&right));
+    } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
+        val_set(&result, val_range0(&left) >= val_range0(&right) && val_range1(&left) >= val_range1(&right));
+    } else {
+        illegal_path();
+    }
+
+    return result;
+}
+
 internal_proc b32
-operator==(Val left, Val right) {
+operator==(Val &left, Val &right) {
     if ( left.kind != right.kind ) {
         return false;
     }
@@ -602,6 +680,13 @@ operator==(Val left, Val right) {
     }
 
     return false;
+}
+
+internal_proc b32
+operator!=(Val &left, Val &right) {
+    b32 result = !(left == right);
+
+    return result;
 }
 
 internal_proc b32

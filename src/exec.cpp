@@ -144,6 +144,21 @@ exec_expr(Resolved_Expr *expr) {
                     result = val_copy(&calc);
                 } break;
 
+                case T_LEQ: {
+                    Val calc = *exec_expr(expr->expr_binary.left) <= *exec_expr(expr->expr_binary.right);
+                    result = val_copy(&calc);
+                } break;
+
+                case T_GT: {
+                    Val calc = *exec_expr(expr->expr_binary.left) > *exec_expr(expr->expr_binary.right);
+                    result = val_copy(&calc);
+                } break;
+
+                case T_GEQ: {
+                    Val calc = *exec_expr(expr->expr_binary.left) >= *exec_expr(expr->expr_binary.right);
+                    result = val_copy(&calc);
+                } break;
+
                 case T_AND: {
                     b32 calc = *exec_expr(expr->expr_binary.left) && *exec_expr(expr->expr_binary.right);
                     result = val_bool(calc);
@@ -162,6 +177,16 @@ exec_expr(Resolved_Expr *expr) {
                 case T_POT: {
                     Val calc = *exec_expr(expr->expr_binary.left) ^ *exec_expr(expr->expr_binary.right);
                     result = val_copy(&calc);
+                } break;
+
+                case T_EQL: {
+                    b32 calc = *exec_expr(expr->expr_binary.left) == *exec_expr(expr->expr_binary.right);
+                    result = val_bool(calc);
+                } break;
+
+                case T_NEQ: {
+                    b32 calc = *exec_expr(expr->expr_binary.left) != *exec_expr(expr->expr_binary.right);
+                    result = val_bool(!calc);
                 } break;
 
                 default: {
