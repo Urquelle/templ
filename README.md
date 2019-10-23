@@ -55,43 +55,69 @@ folgende anweisungen werden derzeit unterstützt.
 
 ### if
 
-    {% if <bedingung> %}
-        <anweisungen>
-    {% endif %}
+```jinja2
+{% if <bedingung> %}
+    <anweisungen>
+{% elif <bedingung> %}
+    <anweisungen>
+{% else %}
+    <anweisungen>
+{% endif %}
+```
 
 ### for
 
-    {% for <iterator> in <menge> %}
-    {% endfor %}
+```jinja2
+{% for <iterator> in <menge> %}
+    <anweisungen>
+{% else %}
+    <anweisungen>
+{% endfor %}
+```
 
 ### block
 
-    {% block <name> %}
-    {% endblock %}
+```jinja2
+{% block <name> %}
+{% endblock %}
+```
 
 ### include
 
-    {% include "<template>" %}
+```jinja2
+{% include "<template>" %}
+```
 
 ### import
 
-    {% import "<template>" as <sym> %}
-    {% from "<template>" import <sym1> as <alias1> %}
+```jinja2
+{% import "<template>" as <sym> %}
+{% from "<template>" import <sym1> as <alias1> %}
+```
 
 ### extends
 
-    {% extends "<template>" %}
+```jinja2
+{% extends "<template>" %}
+```
 
 ### filter
 
-    {% filter %}
-    {% endfilter %}
+```jinja2
+{% filter %}
+{% endfilter %}
+```
 
 ### macro
 
-    {% macro <name>(parameter, ...) %}
-    {% endmarcro %}
+```jinja2
+{% macro <name>(parameter, ...) %}
+{% endmarcro %}
+```
 
 ### raw
 
-    {% raw %}
+```jinja2
+{% raw %}
+{% endraw %}
+```

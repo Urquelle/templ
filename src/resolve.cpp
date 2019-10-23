@@ -119,27 +119,29 @@ val_copy(Val *val) {
 
     result->len = val->len;
 
-    if ( val->kind != VAL_STR ) {
-        memcpy(result->ptr, val->ptr, val->size);
-    } else {
+    if ( val->kind == VAL_STR ) {
         result->ptr = val->ptr;
+    } else if ( val->kind == VAL_BOOL ) {
+        *(bool *)result->ptr = *(bool *)val->ptr;
+    } else {
+        memcpy(result->ptr, val->ptr, val->size);
     }
 
     return result;
 }
 
 internal_proc Val *
-val_bool(b32 val) {
+val_bool(bool val) {
     Val *result = val_new(VAL_BOOL, sizeof(bool));
 
-    *((b32 *)result->ptr) = val;
+    *((bool *)result->ptr) = val;
 
     return result;
 }
 
-internal_proc b32
+internal_proc bool
 val_bool(Val *val) {
-    return *(b32 *)val->ptr;
+    return *(bool *)val->ptr;
 }
 
 internal_proc Val *
@@ -2088,8 +2090,9 @@ resolve_stmt(Stmt *stmt) {
                     Resolved_Expr *elseif_expr = resolve_expr_cond(elseif->stmt_if.cond);
 
                     Resolved_Stmt **elseif_stmts = 0;
-                    for ( int j = 0; i < elseif->stmt_if.num_stmts; ++j ) {
-                        buf_push(elseif_stmts, resolve_stmt(elseif->stmt_if.stmts[j]));
+                    for ( int j = 0; j < elseif->stmt_if.num_stmts; ++j ) {
+                        Resolved_Stmt *resolved_elseif = resolve_stmt(elseif->stmt_if.stmts[j]);
+                        buf_push(elseif_stmts, resolved_elseif);
                     }
                     scope_leave();
 

@@ -26,6 +26,7 @@ global_var char *keyword_or;
 global_var char *keyword_true;
 global_var char *keyword_false;
 global_var char *keyword_if;
+global_var char *keyword_elif;
 global_var char *keyword_else;
 global_var char *keyword_for;
 global_var char *keyword_from;
@@ -57,6 +58,7 @@ init_keywords() {
     ADD_KEYWORD(true);
     ADD_KEYWORD(false);
     ADD_KEYWORD(if);
+    ADD_KEYWORD(elif);
     ADD_KEYWORD(else);
     ADD_KEYWORD(for);
     ADD_KEYWORD(from);
@@ -928,11 +930,9 @@ parse_stmt(Parser *p) {
         } else if ( match_keyword(p, keyword_endmacro) ) {
             result = parse_stmt_endmacro(p);
         } else if ( match_keyword(p, keyword_else) ) {
-            if ( match_keyword(p, keyword_if) ) {
-                result = parse_stmt_elseif(p);
-            } else {
-                result = parse_stmt_else(p);
-            }
+            result = parse_stmt_else(p);
+        } else if ( match_keyword(p, keyword_elif) ) {
+            result = parse_stmt_elseif(p);
         } else if ( match_keyword(p, keyword_block) ) {
             result = parse_stmt_block(p);
         } else if ( match_keyword(p, keyword_extends) ) {

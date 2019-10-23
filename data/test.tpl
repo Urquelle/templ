@@ -27,7 +27,9 @@
 
     {% set foo = 10 %}
     {% if foo <= 5 %}
-        {{ foo }}
+        ###{{ foo }}###
+    {% elif foo > 5 %}
+        {{ foo * 10 }}
     {% endif %}
 
     <h2>tuple test</h2>
