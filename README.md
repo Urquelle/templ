@@ -75,7 +75,7 @@ folgende anweisungen werden derzeit unterstützt.
 
 ### import
 
-    {% import "<template>" %}
+    {% import "<template>" as <sym> %}
     {% from "<template>" import <sym1> as <alias1> %}
 
 ### extends

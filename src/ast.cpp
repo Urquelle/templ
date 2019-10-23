@@ -757,3 +757,12 @@ struct Parsed_Templ {
     size_t num_stmts;
 };
 
+internal_proc Parsed_Templ *
+parsed_templ(char *name) {
+    Parsed_Templ *result = (Parsed_Templ *)xcalloc(1, sizeof(Parsed_Templ));
+
+    result->name = name;
+
+    return result;
+}
+

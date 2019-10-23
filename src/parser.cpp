@@ -7,6 +7,8 @@ valid(Parser *p) {
     return p->lex.input != 0;
 }
 
+global_var Arena parse_arena;
+
 global_var Stmt **parsed_stmts;
 
 internal_proc Expr * parse_expr(Parser *p);
@@ -998,18 +1000,15 @@ parse_stmt_lit(Parser *p) {
 
 internal_proc Parsed_Templ *
 parse_file(char *filename) {
+    Parsed_Templ *templ = parsed_templ(path_file(filename));
+
     char *content = 0;
-    Parsed_Templ *templ = (Parsed_Templ *)xcalloc(1, sizeof(Parsed_Templ));
-
-    /* @AUFGABE: nur den dateinamen ohne dateierweiterung übernehmen */
-    templ->name = filename;
-
     if ( file_read(filename, &content) ) {
         Parser parser = {};
         Parser *p = &parser;
         init_parser(p, content, filename);
 
-        while (p->lex.token.kind != T_EOF) {
+        while ( !match_token(p, T_EOF) ) {
             if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
                 Stmt *stmt = parse_code(p);
                 buf_push(templ->stmts, stmt);
