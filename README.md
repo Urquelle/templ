@@ -48,3 +48,50 @@ folgende mathematische operatoren können verwendet werden.
     /
     //
     %
+
+## anweisungen
+
+folgende anweisungen werden derzeit unterstützt.
+
+### if
+
+    {% if <bedingung> %}
+        <anweisungen>
+    {% endif %}
+
+### for
+
+    {% for <iterator> in <menge> %}
+    {% endfor %}
+
+### block
+
+    {% block <name> %}
+    {% endblock %}
+
+### include
+
+    {% include "<template>" %}
+
+### import
+
+    {% import "<template>" %}
+    {% from "<template>" import <sym1> as <alias1> %}
+
+### extends
+
+    {% extends "<template>" %}
+
+### filter
+
+    {% filter %}
+    {% endfilter %}
+
+### macro
+
+    {% macro <name>(parameter, ...) %}
+    {% endmarcro %}
+
+### raw
+
+    {% raw %}
