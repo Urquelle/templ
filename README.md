@@ -1,4 +1,4 @@
-![templ logo](https://bitbucket.org/noobsaibot/templ/raw/665976606e85874106590250c140b90a61e67f37/logo.png)
+![templ logo](https://bitbucket.org/noobsaibot/templ/raw/a6fd032ee4f57703fa59cde6eaaefc44569d4b60/logo.png)
 # Jinja2 C++
 
 ## ausdrücke
