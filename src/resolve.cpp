@@ -386,29 +386,35 @@ operator*(Val left, Val right) {
     } else if ( left.kind == VAL_STR && right.kind == VAL_INT ) {
         result.kind = VAL_STR;
 
+        int len = val_int(&right);
+        size_t size = len * sizeof(char);
+
         result.ptr = "";
-        int size = val_int(&right);
         char *str_to_repeat = val_str(&left);
 
-        for ( int i = 0; i < size; ++i ) {
+        for ( int i = 0; i < len; ++i ) {
             result.ptr = strf("%s%s", result.ptr, str_to_repeat);
         }
 
-        result.ptr = result.ptr;
+        result.ptr  = result.ptr;
         result.size = size;
+        result.len  = len;
     } else if ( left.kind == VAL_INT && right.kind == VAL_STR ) {
         result.kind = VAL_STR;
 
+        int len = val_int(&left);
+        size_t size = len * sizeof(char);
+
         result.ptr = "";
-        int size = val_int(&left);
         char *str_to_repeat = val_str(&right);
 
-        for ( int i = 0; i < size; ++i ) {
+        for ( int i = 0; i < len; ++i ) {
             result.ptr = strf("%s%s", result.ptr, str_to_repeat);
         }
 
-        result.ptr = result.ptr;
+        result.ptr  = result.ptr;
         result.size = size;
+        result.len  = len;
     } else {
         illegal_path();
     }
