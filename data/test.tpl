@@ -50,6 +50,7 @@
     {{ 20/7 }}--{{ 20//7 }}
     {{ "hallo" | capitalize }}
     {{ "xy" * 10 }}
+    {{ 3 ** 2 }}
     <h2>test default</h2>
     {{ '' | default("bla") }}
     {{ '<div>escape</div>' | e }}

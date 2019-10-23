@@ -27,6 +27,7 @@ enum Token_Kind {
     T_ASSIGN,
     T_COLON,
     T_MUL,
+    T_POT,
     T_DIV,
     T_DIV_TRUNC,
 
@@ -296,6 +297,11 @@ next_raw_token(Lexer *lex) {
     } else if ( c == '*' ) {
         lex->token.kind = T_MUL;
         next(lex);
+
+        if ( at0(lex) == '*' ) {
+            lex->token.kind = T_POT;
+            next(lex);
+        }
     } else if ( c == '/' ) {
         lex->token.kind = T_DIV;
         next(lex);

@@ -343,14 +343,25 @@ parse_expr_unary(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_mul(Parser *p) {
+parse_expr_exponent(Parser *p) {
     Expr *left = parse_expr_unary(p);
+
+    while ( match_token(p, T_POT) ) {
+        left = expr_binary(T_POT, left, parse_expr_unary(p));
+    }
+
+    return left;
+}
+
+internal_proc Expr *
+parse_expr_mul(Parser *p) {
+    Expr *left = parse_expr_exponent(p);
 
     while ( is_token(p, T_MUL) || is_token(p, T_DIV) || is_token(p, T_DIV_TRUNC) ||
             is_token(p, T_PERCENT) )
     {
         Token op = eat_token(&p->lex);
-        left = expr_binary(op.kind, left, parse_expr_unary(p));
+        left = expr_binary(op.kind, left, parse_expr_exponent(p));
     }
 
     return left;

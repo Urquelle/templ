@@ -423,6 +423,27 @@ operator*(Val left, Val right) {
 }
 
 internal_proc Val
+operator^(Val left, Val right) {
+    Val result = {};
+
+    if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
+        result.kind = VAL_INT;
+        result.size = sizeof(s32);
+        result.ptr = ALLOC_SIZE(&resolve_arena, result.size);
+
+        int a = val_int(&left);
+        int b = val_int(&right);
+        double c = pow(a, b);
+
+        val_set(&result, (int)c);
+    } else {
+        illegal_path();
+    }
+
+    return result;
+}
+
+internal_proc Val
 operator/(Val left, Val right) {
     Val result = {};
 

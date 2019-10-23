@@ -8,6 +8,7 @@
 #include <locale.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include "common.cpp"
 #include "os.cpp"

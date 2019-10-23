@@ -44,5 +44,7 @@ folgende mathematische operatoren können verwendet werden.
     +
     -
     *
+    **
     /
+    //
     %
