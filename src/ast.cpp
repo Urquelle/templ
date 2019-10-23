@@ -63,6 +63,7 @@ enum Expr_Kind {
     EXPR_RANGE,
     EXPR_CALL,
     EXPR_IS,
+    EXPR_NOT,
     EXPR_IN,
     EXPR_IF,
     EXPR_TUPLE,
@@ -146,6 +147,10 @@ struct Expr {
             Expr **args;
             size_t num_args;
         } expr_is;
+
+        struct {
+            Expr *expr;
+        } expr_not;
 
         struct {
             Expr *expr;
@@ -313,13 +318,23 @@ expr_call(Expr *expr, Arg **args, size_t num_args) {
 }
 
 internal_proc Expr *
-expr_is(Expr *var, Expr *test, Expr **args = 0, size_t num_args = 0) {
+expr_is(Expr *var, Expr *test, Expr **args = 0, size_t num_args = 0)
+{
     Expr *result = expr_new(EXPR_IS);
 
     result->expr_is.var = var;
     result->expr_is.test = test;
-    result->expr_is.args = args;
+    result->expr_is.args = (Expr **)AST_DUP(args);
     result->expr_is.num_args = num_args;
+
+    return result;
+}
+
+internal_proc Expr *
+expr_not(Expr *expr) {
+    Expr *result = expr_new(EXPR_NOT);
+
+    result->expr_not.expr = expr;
 
     return result;
 }

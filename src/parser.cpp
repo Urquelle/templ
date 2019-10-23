@@ -44,6 +44,7 @@ global_var char *keyword_include;
 global_var char *keyword_macro;
 global_var char *keyword_import;
 global_var char *keyword_raw;
+global_var char *keyword_not;
 
 internal_proc void
 init_keywords() {
@@ -74,6 +75,7 @@ init_keywords() {
     ADD_KEYWORD(macro);
     ADD_KEYWORD(import);
     ADD_KEYWORD(raw);
+    ADD_KEYWORD(not);
 
 #undef ADD_KEYWORD
 }
@@ -395,6 +397,11 @@ parse_expr_is(Parser *p) {
     Expr *left = parse_expr_range(p);
 
     if ( match_keyword(p, keyword_is) ) {
+        b32 not = false;
+        if ( match_keyword(p, keyword_not) ) {
+            not = true;
+        }
+
         Expr *expr = parse_expr_range(p);
         Expr **args = 0;
 
@@ -405,6 +412,23 @@ parse_expr_is(Parser *p) {
         }
 
         left = expr_is(left, expr, args, buf_len(args));
+
+        if ( not ) {
+            left = expr_not(left);
+        }
+    }
+
+    return left;
+}
+
+internal_proc Expr *
+parse_expr_not(Parser *p) {
+    Expr *left = 0;
+
+    if ( match_keyword(p, keyword_not) ) {
+        left = expr_not(parse_expr(p));
+    } else {
+        left = parse_expr_is(p);
     }
 
     return left;
@@ -412,10 +436,10 @@ parse_expr_is(Parser *p) {
 
 internal_proc Expr *
 parse_expr_in(Parser *p) {
-    Expr *left = parse_expr_is(p);
+    Expr *left = parse_expr_not(p);
 
     if ( match_keyword(p, keyword_in) ) {
-        left = expr_in(left, parse_expr_is(p));
+        left = expr_in(left, parse_expr_not(p));
     }
 
     return left;

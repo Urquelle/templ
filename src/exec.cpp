@@ -241,6 +241,10 @@ exec_expr(Resolved_Expr *expr) {
             result = expr->val;
         } break;
 
+        case EXPR_NOT: {
+            result = val_neg(exec_expr(expr->expr_not.expr));
+        } break;
+
         default: {
             illegal_path();
         } break;

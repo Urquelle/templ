@@ -142,6 +142,16 @@ val_bool(Val *val) {
     return *(b32 *)val->ptr;
 }
 
+internal_proc Val *
+val_neg(Val *val) {
+    assert(val->kind == VAL_BOOL);
+
+    Val *result = val_new(VAL_BOOL, sizeof(bool));
+    *((b32 *)result->ptr) = !val_bool(val);
+
+    return result;
+}
+
 internal_proc char
 val_char(Val *val) {
     return *(char *)val->ptr;
@@ -1194,6 +1204,10 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *expr;
+        } expr_not;
+
+        struct {
+            Resolved_Expr *expr;
             Resolved_Expr *set;
         } expr_in;
 
@@ -1340,13 +1354,24 @@ resolved_expr_binary(Token_Kind op, Type *type, Resolved_Expr *left, Resolved_Ex
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_is(Resolved_Expr *expr, Resolved_Expr *test, Resolved_Expr **args, size_t num_args) {
+resolved_expr_is(Resolved_Expr *expr, Resolved_Expr *test, Resolved_Expr **args,
+        size_t num_args)
+{
     Resolved_Expr *result = resolved_expr_new(EXPR_IS, type_bool);
 
     result->expr_is.expr = expr;
     result->expr_is.test = test;
     result->expr_is.args = args;
     result->expr_is.num_args = num_args;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_not(Resolved_Expr *expr) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_NOT, type_bool);
+
+    result->expr_not.expr = expr;
 
     return result;
 }
@@ -2669,6 +2694,12 @@ resolve_expr(Expr *expr) {
             }
 
             result = resolved_expr_tuple(exprs, buf_len(exprs), val_tuple(vals, buf_len(vals)));
+        } break;
+
+        case EXPR_NOT: {
+            Resolved_Expr *resolved_expr = resolve_expr(expr->expr_not.expr);
+
+            result = resolved_expr_not(resolved_expr);
         } break;
 
         case EXPR_DICT: {

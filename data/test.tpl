@@ -86,12 +86,14 @@
     {% set A = "blub" %}
     <div>{{ A }}</div>
 
+    {#{ a in ["blub", "blab", "blob"] }#}
+
     <h2>if anweisung</h2>
     {% set b = 1 %}
-    {% if true %}
-        {{ user.name if b is eq 2 else "rumpelstilzchen" }}
+    {% if not true %}
+        {{ user.name if b is not eq 2 else "rumpelstilzchen" }}
     {% else %}
-        else-zweig
+        {{ "rumpelstilzchen" }}
     {% endif %}
 
     <h2>array literal</h2>

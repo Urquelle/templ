@@ -45,7 +45,8 @@ templ_var_set(Templ_Var *var, char *key, Templ_Var *value) {
 }
 
 internal_proc void
-init() {
+init(size_t parse_arena_size, size_t resolve_arena_size, size_t exec_arena_size) {
+    arena_init(&templ_arena, MB(100));
     init_resolver();
 }
 
@@ -74,8 +75,7 @@ templ_main(int argc, char **argv) {
         printf("templ.exe <filename>\n");
     }
 
-    arena_init(&templ_arena, MB(100));
-    init();
+    init(MB(100), MB(100), MB(100));
 
     Templ_Var **vars = 0;
 
