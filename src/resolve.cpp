@@ -118,7 +118,12 @@ val_copy(Val *val) {
     Val *result = val_new(val->kind, val->size);
 
     result->len = val->len;
-    memcpy(result->ptr, val->ptr, val->size);
+
+    if ( val->kind != VAL_STR ) {
+        memcpy(result->ptr, val->ptr, val->size);
+    } else {
+        result->ptr = val->ptr;
+    }
 
     return result;
 }
@@ -175,14 +180,14 @@ val_str(char *val) {
     Val *result = val_new(VAL_STR, sizeof(char*));
 
     result->len = strlen(val);
-    *((char **)result->ptr) = val;
+    result->ptr = val;
 
     return result;
 }
 
 internal_proc char *
 val_str(Val *val) {
-    return *(char **)val->ptr;
+    return (char *)val->ptr;
 }
 
 internal_proc Val *
@@ -378,6 +383,32 @@ operator*(Val left, Val right) {
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
         val_set(&result, val_range0(&left) * val_range0(&right), val_range1(&left) * val_range1(&right));
+    } else if ( left.kind == VAL_STR && right.kind == VAL_INT ) {
+        result.kind = VAL_STR;
+
+        result.ptr = "";
+        int size = val_int(&right);
+        char *str_to_repeat = val_str(&left);
+
+        for ( int i = 0; i < size; ++i ) {
+            result.ptr = strf("%s%s", result.ptr, str_to_repeat);
+        }
+
+        result.ptr = result.ptr;
+        result.size = size;
+    } else if ( left.kind == VAL_INT && right.kind == VAL_STR ) {
+        result.kind = VAL_STR;
+
+        result.ptr = "";
+        int size = val_int(&left);
+        char *str_to_repeat = val_str(&right);
+
+        for ( int i = 0; i < size; ++i ) {
+            result.ptr = strf("%s%s", result.ptr, str_to_repeat);
+        }
+
+        result.ptr = result.ptr;
+        result.size = size;
     } else {
         illegal_path();
     }
@@ -1589,9 +1620,9 @@ internal_proc FILTER_CALLBACK(filter_abs) {
 internal_proc FILTER_CALLBACK(filter_capitalize) {
     assert(val->kind == VAL_STR);
 
-    char first_letter = (*(char **)val->ptr)[0];
+    char first_letter = ((char *)val->ptr)[0];
     if ( first_letter >= 'a' && first_letter <= 'z' ) {
-        (*(char **)val->ptr)[0] = first_letter - 32;
+        ((char *)val->ptr)[0] = first_letter - 32;
     }
 
     return val_str( val_str(val) );
@@ -1624,7 +1655,7 @@ internal_proc FILTER_CALLBACK(filter_escape) {
     char *result = "";
 
     for ( int i = 0; i < val->len; ++i ) {
-        char c = (*(char **)val->ptr)[i];
+        char c = ((char *)val->ptr)[i];
 
         if        ( c == '<' ) {
             result = strf("%s%s", result, "&lt;");

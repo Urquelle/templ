@@ -47,11 +47,12 @@
     {% endraw %}
 
     {{ -1*5%2 | abs }}
-    >>{{ 20/7 }}<<>>{{ 20//7 }}<<
+    {{ 20/7 }}--{{ 20//7 }}
     {{ "hallo" | capitalize }}
+    {{ "xy" * 10 }}
     <h2>test default</h2>
     {{ '' | default("bla") }}
-    {{ '<div>©oel</div>' | e }}
+    {{ '<div>escape</div>' | e }}
 
     <h2>from import macro</h2>
     {{ test_1() }}
