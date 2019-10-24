@@ -1,4 +1,4 @@
-![templ logo](https://bitbucket.org/noobsaibot/templ/raw/a6fd032ee4f57703fa59cde6eaaefc44569d4b60/logo.png)
+![templ logo](https://bitbucket.org/noobsaibot/templ/raw/3d7db509c259cff149cd30f9e7c18057f2246c8f/logo_500.png)
 # Jinja2 C++
 
 ## ausstehende aufgaben
