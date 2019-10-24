@@ -1,7 +1,7 @@
 #define internal_proc static
 #define global_var    static
 
-typedef int32_t b32;
+typedef bool    b32;
 
 typedef int8_t  s8;
 typedef int16_t s16;

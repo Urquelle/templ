@@ -122,7 +122,7 @@ val_copy(Val *val) {
     if ( val->kind == VAL_STR ) {
         result->ptr = val->ptr;
     } else if ( val->kind == VAL_BOOL ) {
-        *(bool *)result->ptr = *(bool *)val->ptr;
+        *(b32 *)result->ptr = *(b32 *)val->ptr;
     } else {
         memcpy(result->ptr, val->ptr, val->size);
     }
@@ -131,24 +131,24 @@ val_copy(Val *val) {
 }
 
 internal_proc Val *
-val_bool(bool val) {
-    Val *result = val_new(VAL_BOOL, sizeof(bool));
+val_bool(b32 val) {
+    Val *result = val_new(VAL_BOOL, sizeof(b32));
 
-    *((bool *)result->ptr) = val;
+    *((b32 *)result->ptr) = val;
 
     return result;
 }
 
-internal_proc bool
+internal_proc b32
 val_bool(Val *val) {
-    return *(bool *)val->ptr;
+    return *(b32 *)val->ptr;
 }
 
 internal_proc Val *
 val_neg(Val *val) {
     assert(val->kind == VAL_BOOL);
 
-    Val *result = val_new(VAL_BOOL, sizeof(bool));
+    Val *result = val_new(VAL_BOOL, sizeof(b32));
     *((b32 *)result->ptr) = !val_bool(val);
 
     return result;
@@ -260,7 +260,7 @@ val_set(Val *val, s32 value) {
 }
 
 internal_proc void
-val_set(Val *val, bool value) {
+val_set(Val *val, b32 value) {
     assert(val->kind == VAL_BOOL);
     *((b32 *)val->ptr) = value;
 }

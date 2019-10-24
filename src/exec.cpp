@@ -348,7 +348,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                 for ( Iterator it = init(list); valid(&it); next(&it) ) {
                     stmt->stmt_for.it->val = it.val;
 
-                    val_set(stmt->stmt_for.loop_last->val, (bool)is_last(&it));
+                    val_set(stmt->stmt_for.loop_last->val, is_last(&it));
 
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                         exec_stmt(stmt->stmt_for.stmts[j]);

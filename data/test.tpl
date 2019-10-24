@@ -92,8 +92,8 @@
 
     <h2>if anweisung</h2>
     {% set b = 1 %}
-    {% if not true %}
-        {{ user.name if b is not eq 2 else "rumpelstilzchen" }}
+    {% if not not true %}
+        {{ user.name if b is not eq 2 else "heinrich" }}
     {% else %}
         {{ "rumpelstilzchen" }}
     {% endif %}
