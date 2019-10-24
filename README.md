@@ -1,6 +1,11 @@
 ![templ logo](https://bitbucket.org/noobsaibot/templ/raw/a6fd032ee4f57703fa59cde6eaaefc44569d4b60/logo.png)
 # Jinja2 C++
 
+## ausstehende aufgaben
+
+### unicode
+### schleifen rekursion
+
 ## ausdrücke
 
 nachfolgend ist eine liste der ausdrücke (expressions), die soweit unterstützt werden
