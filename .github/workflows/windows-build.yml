@@ -50,8 +50,7 @@ jobs:
             extra_flags: -A Win64
 
     steps:
-    - uses: actions/setup-node@dev
-    - name: Build
+    - name: build
       shell: cmd
       env:
         INPUT_COMPILER: ${{ matrix.compiler }}
