@@ -3,8 +3,17 @@ struct Parser {
 };
 
 internal_proc b32
-valid(Parser *p) {
-    return p->lex.input != 0;
+parser_valid(Parser *p) {
+    b32 result = p->lex.at[0] != 0;
+
+    return result;
+}
+
+internal_proc char *
+parser_input(Parser *p) {
+    char *result = p->lex.input;
+
+    return result;
 }
 
 global_var Arena parse_arena;
@@ -85,7 +94,7 @@ init_keywords() {
 }
 
 internal_proc void
-init_parser(Parser *p, char *input, char *name) {
+init_parser(Parser *p, char *input, char *name = "<from string>") {
     p->lex.input = input;
     p->lex.pos.name = name;
     p->lex.pos.row = 1;
@@ -98,13 +107,6 @@ init_parser(Parser *p, char *input, char *name) {
 internal_proc b32
 is_token(Parser *p, Token_Kind kind) {
     return p->lex.token.kind == kind;
-}
-
-internal_proc b32
-is_valid(Parser *p) {
-    b32 result = p->lex.at[0] != 0;
-
-    return result;
 }
 
 internal_proc b32
@@ -866,7 +868,7 @@ parse_stmt_raw(Parser *p) {
     expect_token(p, T_CODE_END);
 
     for (;; ) {
-        while ( valid(p) && !match_token(p, T_CODE_BEGIN) ) {
+        while ( parser_valid(p) && !match_token(p, T_CODE_BEGIN) ) {
             end = p->lex.input;
             next_token(&p->lex);
         }
@@ -987,8 +989,8 @@ parse_stmt_lit(Parser *p) {
     char *lit = 0;
 
     buf_printf(lit, "%s", p->lex.token.literal);
-    while ( is_valid(p) && is_lit(&p->lex) ) {
-        buf_printf(lit, "%.*s", utf8_char_size(p->lex.input), p->lex.input);
+    while ( parser_valid(p) && is_lit(&p->lex) ) {
+        buf_printf(lit, "%.*s", utf8_char_size(parser_input(p)), parser_input(p));
         next(&p->lex);
     }
 
@@ -996,6 +998,29 @@ parse_stmt_lit(Parser *p) {
     next_token(&p->lex);
 
     return result;
+}
+
+internal_proc Parsed_Templ *
+parse_string(char *content) {
+    Parsed_Templ *templ = parsed_templ("<from string>");
+
+    Parser parser = {};
+    Parser *p = &parser;
+    init_parser(p, content);
+
+    while ( !match_token(p, T_EOF) ) {
+        if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
+            Stmt *stmt = parse_code(p);
+            buf_push(templ->stmts, stmt);
+        } else if ( is_token(p, T_COMMENT) ) {
+            next_token(&p->lex);
+        } else {
+            buf_push(templ->stmts, parse_stmt_lit(p));
+        }
+    }
+
+    templ->num_stmts = buf_len(templ->stmts);
+    return templ;
 }
 
 internal_proc Parsed_Templ *

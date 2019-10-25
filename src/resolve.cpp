@@ -1810,12 +1810,16 @@ internal_proc FILTER_CALLBACK(filter_escape) {
     return val_str(result);
 }
 
-internal_proc FILTER_CALLBACK(filter_e) {
-    return filter_escape(val, args, num_args);
+internal_proc FILTER_CALLBACK(filter_format) {
+    assert(val->kind == VAL_STR);
+
+    return val_str("<!-- @AUFGABE: format implementieren -->");
 }
 
 internal_proc FILTER_CALLBACK(filter_truncate) {
-    return val_str("<!-- @AUFGABE: implementiere filter truncate -->");
+    assert(val->kind == VAL_STR);
+
+    return val_str("<!-- @AUFGABE: truncate implementieren -->");
 }
 
 internal_proc void
@@ -1837,6 +1841,7 @@ init_builtin_filter() {
     aliases = 0;
     buf_push(aliases, "e");
     sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliases, buf_len(aliases));
+    sym_push_filter("format",     type_filter(str_type,  1, type_str, filter_format));
 
     Type_Field *trunc_type[] = {
         type_field("s", type_str),

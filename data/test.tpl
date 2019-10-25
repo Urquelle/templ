@@ -11,8 +11,11 @@
     <h2>super()</h2>
     {{ super() }}
 
+    <h2>unicode</h2>
     {% set ö个l = "fisch" %}
     {{ ö个l }}
+    {% set приветствие = "здравствуйте" %}
+    {{ приветствие }}
 
     <h2>literale</h2>
     {{ "string literal" }}

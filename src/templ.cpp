@@ -1,3 +1,25 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <windows.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdarg.h>
+#include <math.h>
+#include <locale>
+
+#include "common.cpp"
+#include "utf8.cpp"
+#include "os.cpp"
+#include "lex.cpp"
+#include "ast.cpp"
+#include "parser.cpp"
+#include "resolve.cpp"
+#include "exec.cpp"
+
 global_var Arena templ_arena;
 
 struct Templ_Var {
@@ -23,16 +45,23 @@ templ_var_set(Templ_Var *var, char *key, char *value) {
 }
 
 internal_proc void
-templ_var_set(Templ_Var *var, char *key, int value) {
+templ_var_set(Templ_Var *var, char *key, s32 value) {
     Scope *prev_scope = scope_set(var->scope);
     sym_push_var(key, type_int, val_int(value));
     scope_set(prev_scope);
 }
 
 internal_proc void
-templ_var_set(Templ_Var *var, char *key, float value) {
+templ_var_set(Templ_Var *var, char *key, f32 value) {
     Scope *prev_scope = scope_set(var->scope);
     sym_push_var(key, type_float, val_float(value));
+    scope_set(prev_scope);
+}
+
+internal_proc void
+templ_var_set(Templ_Var *var, char *key, b32 value) {
+    Scope *prev_scope = scope_set(var->scope);
+    sym_push_var(key, type_bool, val_bool(value));
     scope_set(prev_scope);
 }
 
@@ -44,15 +73,16 @@ templ_var_set(Templ_Var *var, char *key, Templ_Var *value) {
     scope_set(prev_scope);
 }
 
-internal_proc void
-init(size_t parse_arena_size, size_t resolve_arena_size, size_t exec_arena_size) {
-    arena_init(&templ_arena, MB(100));
-    init_resolver();
+internal_proc Parsed_Templ *
+templ_compile_file(char *filename) {
+    Parsed_Templ *result = parse_file(filename);
+
+    return result;
 }
 
 internal_proc Parsed_Templ *
-templ_compile(char *filename) {
-    Parsed_Templ *result = parse_file(filename);
+templ_compile_string(char *content) {
+    Parsed_Templ *result = parse_string(content);
 
     return result;
 }
@@ -70,29 +100,10 @@ templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
 }
 
 internal_proc void
-templ_main(int argc, char **argv) {
-    if ( argc < 2 ) {
-        printf("templ.exe <filename>\n");
-    }
-
-    init(MB(100), MB(100), MB(100));
-
-    Templ_Var **vars = 0;
-
-    Templ_Var *address = templ_var("address");
-    templ_var_set(address, "city", "berlin");
-    templ_var_set(address, "street", "siegerstr. 2");
-
-    Templ_Var *user = templ_var("user");
-    templ_var_set(user, "name", "Noob");
-    templ_var_set(user, "age", 25);
-    templ_var_set(user, "address", address);
-
-    buf_push(vars, user);
-
-    Parsed_Templ *templ = templ_compile(argv[1]);
-    templ_render(templ, vars, buf_len(vars));
-
-    file_write("test.html", gen_result, strlen(gen_result));
+templ_init(size_t parse_arena_size, size_t resolve_arena_size,
+        size_t exec_arena_size)
+{
+    arena_init(&templ_arena, MB(100));
+    init_resolver();
 }
 
