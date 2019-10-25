@@ -39,9 +39,9 @@ file_write(char *filename, char *data, size_t len) {
 
 internal_proc b32
 file_exists(char *filename) {
-    b32 result = PathFileExistsA(filename);
+    BOOL result = PathFileExistsA(filename);
 
-    return result;
+    return (b32)result;
 }
 
 internal_proc void
