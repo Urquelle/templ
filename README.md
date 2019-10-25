@@ -1,6 +1,6 @@
 # Jinja2 C++
 
-[![Sprache](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Github Aufgaben](https://img.shields.io/github/issues/NoobSaibot/templ)](https://github.com/NoobSaibot/templ/issues) [![Lizinz](https://img.shields.io/github/license/NoobSaibot/templ)](https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE)
+[![Sprache](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Github Aufgaben](https://img.shields.io/github/issues/NoobSaibot/templ)](https://github.com/NoobSaibot/templ/issues) [![Lizinz](https://img.shields.io/github/license/NoobSaibot/templ)](https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE) [![Travis Status](https://travis-ci.org/NoobSaibot/templ.svg?branch=dev)](https://travis-ci.org/NoobSaibot/templ)
 
 ![templ logo](https://bitbucket.org/noobsaibot/templ/raw/f8c13a9fb030b3fe6f93570943f319b9616c6818/logo_500.png)
 
