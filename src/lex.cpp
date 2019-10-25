@@ -91,39 +91,44 @@ at1(Lexer *lex) {
     return lex->at[1];
 }
 
+internal_proc char
+utf8(Lexer *lex, size_t count) {
+    char *result = lex->input;
+
+    for ( int i = 0; i < count; ++i ) {
+        if ( (*result & 0x80) == 0 ) {
+            result += 1;
+        } else if ( (*result & 0xE0) == 0xc0 ) {
+            result += 2;
+        } else if ( (*result & 0xF0) == 0xE0 ) {
+            result += 3;
+        } else if ( (*result & 0xF0) == 0xF0 ) {
+            result += 4;
+        } else {
+            illegal_path();
+        }
+    }
+
+    return *result;
+}
+
 internal_proc void
 refill(Lexer *lex) {
-    if ( lex->input[0] == 0 ) {
+    char pos0 = *lex->input;
+    char pos1 = utf8(lex, 1);
+
+    if ( pos0 == 0 ) {
         lex->at[0] = 0;
         lex->at[1] = 0;
-    } else if ( lex->input[1] == 0 ) {
-        lex->at[0] = lex->input[0];
+    } else if ( pos1 == 0 ) {
+        lex->at[0] = pos0;
         lex->at[1] = 0;
     } else {
-        lex->at[0] = lex->input[0];
-        lex->at[1] = lex->input[1];
+        lex->at[0] = pos0;
+        lex->at[1] = pos1;
     }
 }
 
-#if 0
-internal_proc Char_Utf8
-next_utf8(Lexer *lex) {
-    char *utf8_byte1 = lex->input;
-
-    if ( (*utf8_byte1 & 0x80) == 0 ) {
-        return char_utf8(1, *utf8_byte1);
-    } else if ( (*utf8_byte1 & 0xE0) == 0xc0 ) {
-        return char_utf8(2, *utf8_byte1, *(utf8_byte1+1));
-    } else if ( (*utf8_byte1 & 0xF0) == 0xE0 ) {
-        return char_utf8(3, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2));
-    } else if ( (*utf8_byte1 & 0xF0) == 0xF0 ) {
-        return char_utf8(4, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2), *(utf8_byte1+3));
-    } else {
-        illegal_path();
-    }
-
-}
-#else
 internal_proc void
 next(Lexer *lex, int count = 1) {
     for ( int i = 0; i < count; ++i ) {
@@ -132,11 +137,22 @@ next(Lexer *lex, int count = 1) {
         }
 
         if (lex->input == 0) break;
-        lex->input++;
+
+        if ( (*lex->input & 0x80) == 0 ) {
+            lex->input = lex->input + 1;
+        } else if ( (*lex->input & 0xE0) == 0xc0 ) {
+            lex->input = lex->input + 2;
+        } else if ( (*lex->input & 0xF0) == 0xE0 ) {
+            lex->input = lex->input + 3;
+        } else if ( (*lex->input & 0xF0) == 0xF0 ) {
+            lex->input = lex->input + 4;
+        } else {
+            illegal_path();
+        }
     }
+
     refill(lex);
 }
-#endif
 
 internal_proc void
 skip_comment(Lexer *lex) {
@@ -205,15 +221,29 @@ is_eql(Token_Kind kind) {
     return result;
 }
 
+internal_proc Char_Utf8
+next_utf8(Lexer *lex) {
+    char *utf8_byte1 = lex->input;
+
+    if ( (*utf8_byte1 & 0x80) == 0 ) {
+        return char_utf8(1, *utf8_byte1);
+    } else if ( (*utf8_byte1 & 0xE0) == 0xc0 ) {
+        return char_utf8(2, *utf8_byte1, *(utf8_byte1+1));
+    } else if ( (*utf8_byte1 & 0xF0) == 0xE0 ) {
+        return char_utf8(3, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2));
+    } else if ( (*utf8_byte1 & 0xF0) == 0xF0 ) {
+        return char_utf8(4, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2), *(utf8_byte1+3));
+    } else {
+        illegal_path();
+    }
+
+    return char_utf8(1, *utf8_byte1);
+}
+
 internal_proc b32
-#if 0
-is_alpha(Char_Utf8 c) {
-    wchar_t z = to_wchar(c);
+is_alpha(Lexer *lex) {
+    wchar_t z = to_wchar(next_utf8(lex));
     b32 result = std::isalpha(z, std::locale());
-#else
-is_alpha(char c) {
-    b32 result = ( c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' );
-#endif
 
     return result;
 }
@@ -410,10 +440,10 @@ next_raw_token(Lexer *lex) {
         } else {
             lex->token.int_value = int_value;
         }
-    } else if ( c == '_' || is_alpha(c) ) {
+    } else if ( c == '_' || is_alpha(lex) ) {
         lex->token.kind = T_NAME;
 
-        while ( is_alpha(at0(lex)) || is_numeric(at0(lex)) || at0(lex) == '_' ) {
+        while ( is_alpha(lex) || is_numeric(at0(lex)) || at0(lex) == '_' ) {
             next(lex);
         }
 

@@ -1,4 +1,3 @@
-{#% set ö个l = "fisch" %#}
 {% extends "main.tpl" %}
 
 {% import "macros.tpl" as macros %}
@@ -11,6 +10,9 @@
 {% block main %}
     <h2>super()</h2>
     {{ super() }}
+
+    {% set ö个l = "fisch" %}
+    {{ ö个l }}
 
     <h2>templ vars</h2>
     {{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}
