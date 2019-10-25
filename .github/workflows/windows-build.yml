@@ -50,8 +50,7 @@ jobs:
             extra_flags: -A Win64
 
     steps:
-    - uses: actions/checkout@dev
-
+    - uses: actions/setup-node@dev
     - name: Build
       shell: cmd
       env:
