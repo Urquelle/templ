@@ -307,12 +307,12 @@ exec_stmt(Resolved_Stmt *stmt) {
             if ( !if_expr || if_expr_cond(if_expr) ) {
                 Val *value = exec_expr(stmt->stmt_var.expr);
 
-                genf("%s", to_char(value));
+                genf("%s", val_to_char(value));
             } else {
                 if ( if_expr->expr_if.else_expr ) {
                     Val *else_val = exec_expr(if_expr->expr_if.else_expr);
 
-                    genf("%s", to_char(else_val));
+                    genf("%s", val_to_char(else_val));
                 }
             }
         } break;
@@ -437,7 +437,7 @@ exec_stmt(Resolved_Stmt *stmt) {
             }
 
             gen_result = old_gen_result;
-            genf("%s", to_char(result));
+            genf("%s", val_to_char(result));
         } break;
 
         case STMT_RAW: {

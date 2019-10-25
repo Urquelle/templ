@@ -315,7 +315,7 @@ val_op(Token_Kind op, Val *val) {
 
 global_var char to_char_buf[1000];
 internal_proc char *
-to_char(Val *val) {
+val_to_char(Val *val) {
     switch ( val->kind ) {
         case VAL_STR: {
             return val_str(val);
@@ -327,7 +327,7 @@ to_char(Val *val) {
         } break;
 
         case VAL_FLOAT: {
-            sprintf(to_char_buf, "%f", val_float(val));
+            sprintf(to_char_buf, "%.9g", val_float(val));
             return to_char_buf;
         } break;
 

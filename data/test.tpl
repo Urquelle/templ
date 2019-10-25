@@ -14,6 +14,11 @@
     {% set ö个l = "fisch" %}
     {{ ö个l }}
 
+    <h2>literale</h2>
+    {{ "string literal" }}
+    {{ 10 }}
+    {{ 5.3 }}
+
     <h2>templ vars</h2>
     {{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}
 
