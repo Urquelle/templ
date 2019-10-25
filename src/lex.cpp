@@ -91,31 +91,10 @@ at1(Lexer *lex) {
     return lex->at[1];
 }
 
-internal_proc char
-utf8(Lexer *lex, size_t count) {
-    char *result = lex->input;
-
-    for ( int i = 0; i < count; ++i ) {
-        if ( (*result & 0x80) == 0 ) {
-            result += 1;
-        } else if ( (*result & 0xE0) == 0xc0 ) {
-            result += 2;
-        } else if ( (*result & 0xF0) == 0xE0 ) {
-            result += 3;
-        } else if ( (*result & 0xF0) == 0xF0 ) {
-            result += 4;
-        } else {
-            illegal_path();
-        }
-    }
-
-    return *result;
-}
-
 internal_proc void
 refill(Lexer *lex) {
     char pos0 = *lex->input;
-    char pos1 = utf8(lex, 1);
+    char pos1 = *(lex->input + utf8_size(lex->input));
 
     if ( pos0 == 0 ) {
         lex->at[0] = 0;
@@ -138,17 +117,7 @@ next(Lexer *lex, int count = 1) {
 
         if (lex->input == 0) break;
 
-        if ( (*lex->input & 0x80) == 0 ) {
-            lex->input = lex->input + 1;
-        } else if ( (*lex->input & 0xE0) == 0xc0 ) {
-            lex->input = lex->input + 2;
-        } else if ( (*lex->input & 0xF0) == 0xE0 ) {
-            lex->input = lex->input + 3;
-        } else if ( (*lex->input & 0xF0) == 0xF0 ) {
-            lex->input = lex->input + 4;
-        } else {
-            illegal_path();
-        }
+        lex->input = lex->input + utf8_size(lex->input);
     }
 
     refill(lex);
@@ -221,28 +190,9 @@ is_eql(Token_Kind kind) {
     return result;
 }
 
-internal_proc Char_Utf8
-next_utf8(Lexer *lex) {
-    char *utf8_byte1 = lex->input;
-
-    if ( (*utf8_byte1 & 0x80) == 0 ) {
-        return char_utf8(1, *utf8_byte1);
-    } else if ( (*utf8_byte1 & 0xE0) == 0xc0 ) {
-        return char_utf8(2, *utf8_byte1, *(utf8_byte1+1));
-    } else if ( (*utf8_byte1 & 0xF0) == 0xE0 ) {
-        return char_utf8(3, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2));
-    } else if ( (*utf8_byte1 & 0xF0) == 0xF0 ) {
-        return char_utf8(4, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2), *(utf8_byte1+3));
-    } else {
-        illegal_path();
-    }
-
-    return char_utf8(1, *utf8_byte1);
-}
-
 internal_proc b32
 is_alpha(Lexer *lex) {
-    wchar_t z = to_wchar(next_utf8(lex));
+    wchar_t z = to_wchar(char_utf8(lex->input));
     b32 result = std::isalpha(z, std::locale());
 
     return result;

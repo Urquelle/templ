@@ -371,18 +371,41 @@ struct Char_Utf8 {
     char  *bytes;
 };
 
+internal_proc size_t
+utf8_size(char *str) {
+    if ( (*str & 0x80) == 0 ) {
+        return 1;
+    } else if ( (*str & 0xE0) == 0xc0 ) {
+        return 2;
+    } else if ( (*str & 0xF0) == 0xE0 ) {
+        return 3;
+    } else if ( (*str & 0xF0) == 0xF0 ) {
+        return 4;
+    } else {
+        illegal_path();
+    }
+
+    return 0;
+}
+
 internal_proc Char_Utf8
-char_utf8(size_t size, char byte1, char byte2 = 0, char byte3 = 0, char byte4 = 0)
-{
+char_utf8(size_t size, char *ptr) {
     Char_Utf8 result = {};
 
     result.size  = size;
-
     result.bytes = (char *)xcalloc(1, size);
-    result.bytes[0] = byte1;
-    result.bytes[1] = byte2;
-    result.bytes[2] = byte3;
-    result.bytes[3] = byte4;
+
+    for ( int i = 0; i < size; ++i ) {
+        result.bytes[i] = *(ptr+i);
+    }
+
+    return result;
+}
+
+internal_proc Char_Utf8
+char_utf8(char *input) {
+    size_t size = utf8_size(input);
+    Char_Utf8 result = char_utf8(size, input);
 
     return result;
 }
