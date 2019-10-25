@@ -105,6 +105,25 @@ refill(Lexer *lex) {
     }
 }
 
+#if 0
+internal_proc Char_Utf8
+next_utf8(Lexer *lex) {
+    char *utf8_byte1 = lex->input;
+
+    if ( (*utf8_byte1 & 0x80) == 0 ) {
+        return char_utf8(1, *utf8_byte1);
+    } else if ( (*utf8_byte1 & 0xE0) == 0xc0 ) {
+        return char_utf8(2, *utf8_byte1, *(utf8_byte1+1));
+    } else if ( (*utf8_byte1 & 0xF0) == 0xE0 ) {
+        return char_utf8(3, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2));
+    } else if ( (*utf8_byte1 & 0xF0) == 0xF0 ) {
+        return char_utf8(4, *utf8_byte1, *(utf8_byte1+1), *(utf8_byte1+2), *(utf8_byte1+3));
+    } else {
+        illegal_path();
+    }
+
+}
+#else
 internal_proc void
 next(Lexer *lex, int count = 1) {
     for ( int i = 0; i < count; ++i ) {
@@ -117,6 +136,7 @@ next(Lexer *lex, int count = 1) {
     }
     refill(lex);
 }
+#endif
 
 internal_proc void
 skip_comment(Lexer *lex) {
@@ -186,8 +206,16 @@ is_eql(Token_Kind kind) {
 }
 
 internal_proc b32
+#if 0
+is_alpha(Char_Utf8 c) {
+    wchar_t z = to_wchar(c);
+    b32 result = std::isalpha(z, std::locale());
+#else
 is_alpha(char c) {
-    return ( c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' );
+    b32 result = ( c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' );
+#endif
+
+    return result;
 }
 
 internal_proc b32
@@ -382,7 +410,7 @@ next_raw_token(Lexer *lex) {
         } else {
             lex->token.int_value = int_value;
         }
-    } else if ( c == '_' || c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || (u8)c >= 0xC0 ) {
+    } else if ( c == '_' || is_alpha(c) ) {
         lex->token.kind = T_NAME;
 
         while ( is_alpha(at0(lex)) || is_numeric(at0(lex)) || at0(lex) == '_' ) {

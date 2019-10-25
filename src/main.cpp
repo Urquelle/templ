@@ -1,14 +1,15 @@
 #define _CRT_SECURE_NO_WARNINGS
+
 #include <windows.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <ctype.h>
-#include <locale.h>
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
+#include <locale>
 
 #include "common.cpp"
 #include "os.cpp"

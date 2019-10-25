@@ -366,3 +366,32 @@ intern_str(char *value) {
     return intern_str(value, value + len);
 }
 
+struct Char_Utf8 {
+    size_t size;
+    char  *bytes;
+};
+
+internal_proc Char_Utf8
+char_utf8(size_t size, char byte1, char byte2 = 0, char byte3 = 0, char byte4 = 0)
+{
+    Char_Utf8 result = {};
+
+    result.size  = size;
+
+    result.bytes = (char *)xcalloc(1, size);
+    result.bytes[0] = byte1;
+    result.bytes[1] = byte2;
+    result.bytes[2] = byte3;
+    result.bytes[3] = byte4;
+
+    return result;
+}
+
+internal_proc wchar_t
+to_wchar(Char_Utf8 c) {
+    wchar_t *result = (wchar_t *)xmalloc(sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, c.bytes, (int)c.size, result, 1);
+
+    return *result;
+}
+

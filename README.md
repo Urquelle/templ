@@ -1,10 +1,16 @@
 ![templ logo](https://bitbucket.org/noobsaibot/templ/raw/f8c13a9fb030b3fe6f93570943f319b9616c6818/logo_500.png)
 # Jinja2 C++
 
+[![Sprache](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Github Aufgaben](https://img.shields.io/github/issues/NoobSaibot/templ)](https://github.com/NoobSaibot/templ/issues) [![Lizinz](https://img.shields.io/github/license/NoobSaibot/templ)](https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE)
+
 ## ausstehende aufgaben
 
-### unicode
-### schleifen rekursion
+- unicode/utf-8
+- schleifen rekursion
+- leerzeichenkontrolle
+- filter
+- tests
+- schleifenrekursion
 
 ## ausdrücke
 
@@ -85,6 +91,14 @@ folgende anweisungen werden derzeit unterstützt.
     <anweisungen>
 {% endif %}
 ```
+
+als <bedingung> können ausdrücke verwendet werden, die als resultat einen boolischen wert ergeben.
+
+    true
+    false
+    1 < 2
+    a is eq "foo"
+    vorname == "arminius" and nachname == "der cherusker"
 
 ### for
 

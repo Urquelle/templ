@@ -1,3 +1,4 @@
+{#% set ö个l = "fisch" %#}
 {% extends "main.tpl" %}
 
 {% import "macros.tpl" as macros %}
