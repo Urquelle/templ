@@ -988,7 +988,7 @@ parse_stmt_lit(Parser *p) {
 
     buf_printf(lit, "%s", p->lex.token.literal);
     while ( is_valid(p) && is_lit(&p->lex) ) {
-        buf_printf(lit, "%c", p->lex.at[0]);
+        buf_printf(lit, "%.*s", utf8_char_size(p->lex.input), p->lex.input);
         next(&p->lex);
     }
 

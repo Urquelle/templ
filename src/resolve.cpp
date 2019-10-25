@@ -1760,9 +1760,7 @@ internal_proc FILTER_CALLBACK(filter_capitalize) {
     assert(val->kind == VAL_STR);
 
     char first_letter = ((char *)val->ptr)[0];
-    if ( first_letter >= 'a' && first_letter <= 'z' ) {
-        ((char *)val->ptr)[0] = first_letter - 32;
-    }
+    ((char *)val->ptr)[0] = std::toupper(first_letter, std::locale());
 
     return val_str( val_str(val) );
 }
@@ -1784,7 +1782,7 @@ internal_proc FILTER_CALLBACK(filter_upper) {
     char *result = "";
 
     for ( int i = 0; i < strlen(str); ++i ) {
-        result = strf("%s%c", result, toupper(str[i]));
+        result = strf("%s%c", result, std::toupper(str[i], std::locale()));
     }
 
     return val_str(result);
