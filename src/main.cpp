@@ -12,6 +12,7 @@
 #include <locale>
 
 #include "common.cpp"
+#include "utf8.cpp"
 #include "os.cpp"
 #include "lex.cpp"
 #include "ast.cpp"

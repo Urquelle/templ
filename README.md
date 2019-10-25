@@ -6,7 +6,7 @@
 
 ## ausstehende aufgaben
 
-- unicode/utf-8
+- unicode/utf-8 ausgabe
 - schleifen rekursion
 - leerzeichenkontrolle
 - filter

@@ -94,7 +94,7 @@ at1(Lexer *lex) {
 internal_proc void
 refill(Lexer *lex) {
     char pos0 = *lex->input;
-    char pos1 = *(lex->input + utf8_size(lex->input));
+    char pos1 = *(lex->input + utf8_char_size(lex->input));
 
     if ( pos0 == 0 ) {
         lex->at[0] = 0;
@@ -117,7 +117,7 @@ next(Lexer *lex, int count = 1) {
 
         if (lex->input == 0) break;
 
-        lex->input = lex->input + utf8_size(lex->input);
+        lex->input = lex->input + utf8_char_size(lex->input);
     }
 
     refill(lex);
@@ -144,14 +144,6 @@ internal_proc b32
 is_raw(Lexer *lex) {
     Token t = lex->token;
     b32 result = T_SPACE <= t.kind && t.kind <= T_COMMENT;
-
-    return result;
-}
-
-internal_proc b32
-is_space(Lexer *lex) {
-    Token t = lex->token;
-    b32 result = t.kind == T_SPACE || t.kind == T_TAB;
 
     return result;
 }
@@ -192,7 +184,7 @@ is_eql(Token_Kind kind) {
 
 internal_proc b32
 is_alpha(Lexer *lex) {
-    wchar_t z = to_wchar(char_utf8(lex->input));
+    wchar_t z = utf8_char_to_wchar(utf8_char(lex->input));
     b32 result = std::isalpha(z, std::locale());
 
     return result;
@@ -367,7 +359,7 @@ next_raw_token(Lexer *lex) {
             next(lex);
         }
 
-        lex->token.str_value = intern_str(start+1, lex->input);
+        lex->token.str_value = intern_str(start+utf8_char_size(start), utf8_char_end(lex->input));
         next(lex);
     } else if ( c == '#' ) {
         lex->token.kind = T_HASH;
@@ -397,7 +389,7 @@ next_raw_token(Lexer *lex) {
             next(lex);
         }
 
-        lex->token.name = intern_str(start, lex->input);
+        lex->token.name = intern_str(start, utf8_char_end(lex->input));
     } else if ( c == '|' ) {
         lex->token.kind = T_BAR;
         next(lex);
@@ -406,7 +398,7 @@ next_raw_token(Lexer *lex) {
         next(lex);
     }
 
-    lex->token.literal = intern_str(start, lex->input);
+    lex->token.literal = intern_str(start, utf8_char_end(lex->input));
 }
 
 internal_proc void
