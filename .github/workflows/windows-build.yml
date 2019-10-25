@@ -1,7 +1,9 @@
-name: CI-windows-build
+name: ci-windows-build
 
 on: 
   push:
+    branches:
+      - dev
     paths-igone:
       - 'data/*'
       - '*.md'
