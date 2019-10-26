@@ -20,7 +20,7 @@ global_var Arena parse_arena;
 
 global_var Stmt **parsed_stmts;
 
-internal_proc Expr * parse_expr(Parser *p);
+internal_proc Expr * parse_expr(Parser *p, b32 do_parse_filter = true);
 internal_proc char * parse_name(Parser *p);
 internal_proc Stmt * parse_stmt(Parser *p);
 internal_proc Stmt * parse_stmt_var(Parser *p);
@@ -503,11 +503,11 @@ parse_filter(Parser *p) {
     Filter **result = 0;
 
     do {
-        Expr *call = parse_expr(p);
+        Expr *call = parse_expr(p, false);
 
         Arg **args = 0;
         while ( !is_token(p, T_BAR) && !is_token(p, T_CODE_END) && !is_token(p, T_VAR_END) && !is_token(p, T_COMMA) ) {
-            buf_push(args, arg_new(0, parse_expr(p)));
+            buf_push(args, arg_new(0, parse_expr(p, false)));
         }
 
         size_t num_args = buf_len(args);
@@ -526,14 +526,16 @@ parse_filter(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr(Parser *p) {
+parse_expr(Parser *p, b32 do_parse_filter) {
     Pos pos = p->lex.token.pos;
     Expr *expr = parse_expr_ternary(p);
     expr->pos = pos;
 
     Filter **filters = 0;
-    if ( match_token(p, T_BAR) ) {
-        filters = parse_filter(p);
+    if ( do_parse_filter ) {
+        if ( match_token(p, T_BAR) ) {
+            filters = parse_filter(p);
+        }
     }
 
     expr->filters = filters;
