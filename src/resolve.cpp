@@ -7,17 +7,12 @@ struct Resolved_Filter;
 struct Resolved_Templ;
 struct Resolved_Arg;
 
-#define PROC_CALLBACK(name) Val * name(Resolved_Arg **args, size_t num_args)
 typedef PROC_CALLBACK(Proc_Callback);
+typedef FILTER_CALLBACK(Filter_Callback);
+typedef TEST_CALLBACK(Test_Callback);
 
 PROC_CALLBACK(super);
 PROC_CALLBACK(cycle);
-
-#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
-typedef FILTER_CALLBACK(Filter_Callback);
-
-#define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
-typedef TEST_CALLBACK(Test_Callback);
 
 internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
@@ -864,7 +859,7 @@ struct Type {
     };
 };
 
-#define PTR_SIZE 8
+enum { PTR_SIZE = 8 };
 
 global_var Type *type_void;
 global_var Type *type_bool;
@@ -2664,23 +2659,23 @@ init_builtin_filter() {
         type_field("killwords", type_bool, val_bool(false)),
         type_field("leeway", type_int, val_int(0)),
     };
-    sym_push_filter("truncate", type_filter(trunc_type, 5, type_str, filter_truncate));
+    sym_push_filter("truncate",   type_filter(trunc_type, 5, type_str, filter_truncate));
 }
 
 internal_proc void
 init_builtin_tests() {
-    Type_Field *str_type[]  = { type_field("s", type_str) };
-    Type_Field *int_type[]  = { type_field("s", type_int) };
+    Type_Field *str_type[]  = { type_field("s",    type_str) };
+    Type_Field *int_type[]  = { type_field("s",    type_int) };
     Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
 
-    sym_push_test("callable", type_test(str_type, 1, test_callable));
-    sym_push_test("defined", type_test(str_type, 1, test_defined));
+    sym_push_test("callable",    type_test(str_type,  1, test_callable));
+    sym_push_test("defined",     type_test(str_type,  1, test_defined));
     sym_push_test("divisibleby", type_test(int2_type, 2, test_divisibleby));
-    sym_push_test("eq", type_test(int2_type, 2, test_eq));
-    sym_push_test("escaped", type_test(str_type, 1, test_escaped));
-    sym_push_test("even", type_test(int_type, 1, test_even));
-    sym_push_test("ge", type_test(int2_type, 2, test_ge));
-    sym_push_test("gt", type_test(int2_type, 2, test_gt));
+    sym_push_test("eq",          type_test(int2_type, 2, test_eq));
+    sym_push_test("escaped",     type_test(str_type,  1, test_escaped));
+    sym_push_test("even",        type_test(int_type,  1, test_even));
+    sym_push_test("ge",          type_test(int2_type, 2, test_ge));
+    sym_push_test("gt",          type_test(int2_type, 2, test_gt));
 }
 
 internal_proc void

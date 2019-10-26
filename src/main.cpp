@@ -1,5 +1,7 @@
 #include "templ.cpp"
 
+using namespace templ;
+
 int
 main(int argc, char **argv) {
     templ_init(MB(100), MB(100), MB(100));

@@ -13,8 +13,6 @@ ast_dup(void *src, size_t size) {
     return ptr;
 }
 
-#define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
-
 struct Arg {
     char *name;
     Expr *expr;

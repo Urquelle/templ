@@ -11,6 +11,54 @@
 #include <math.h>
 #include <locale>
 
+#define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
+#define MIN(x, y) ((x) <= (y) ? (x) : (y))
+#define MAX(x, y) ((x) >= (y) ? (x) : (y))
+#define CLAMP_MAX(x, max) MIN(x, max)
+#define CLAMP_MIN(x, min) MAX(x, min)
+#define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
+#define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
+#define ALIGN_UP(n, a) ALIGN_DOWN((n) + (a) - 1, (a))
+#define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
+#define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
+
+#define KB(X) (  (X)*1024)
+#define MB(X) (KB(X)*1024)
+#define GB(X) (MB(X)*1024)
+
+#define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
+
+#define PROC_CALLBACK(name) Val * name(Resolved_Arg **args, size_t num_args)
+#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
+#define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
+
+#define genf(...)   gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
+#define genlnf(...) gen_result = strf("%s\n", gen_result); gen_indentation(); genf(__VA_ARGS__)
+#define genln()     gen_result = strf("%s\n", gen_result); gen_indentation()
+
+#define implement_me() assert(0)
+#define illegal_path() assert(0)
+
+#define erstes_if if
+
+#define internal_proc static
+#define global_var    static
+
+#define buf__hdr(b) ((BufHdr *)((char *)(b) - offsetof(BufHdr, buf)))
+
+#define buf_len(b) ((b) ? buf__hdr(b)->len : 0)
+#define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
+#define buf_end(b) ((b) + buf_len(b))
+#define buf_sizeof(b) ((b) ? buf_len(b)*sizeof(*b) : 0)
+
+#define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
+#define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : (*((void **)&(b)) = buf__grow((b), (n), sizeof(*(b)))))
+#define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
+#define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
+#define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
+
+namespace templ {
+
 #include "common.cpp"
 #include "utf8.cpp"
 #include "os.cpp"
@@ -130,3 +178,33 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
     init_resolver();
 }
 
+} /* namespace templ */
+
+#undef IS_POW2
+#undef MIN
+#undef MAX
+#undef CLAMP_MAX
+#undef CLAMP_MIN
+#undef IS_POW2
+#undef ALIGN_DOWN
+#undef ALIGN_UP
+#undef ALIGN_DOWN_PTR
+#undef ALIGN_UP_PTR
+#undef implement_me
+#undef illegal_path
+#undef erstes_if
+#undef internal_proc
+#undef global_var
+#undef ALLOC_SIZE
+#undef ALLOC_STRUCT
+#undef AST_DUP
+
+#undef PROC_CALLBACK
+#undef FILTER_CALLBACK
+#undef TEST_CALLBACK
+
+#undef genf
+#undef genlnf
+#undef genln
+
+#undef _CRT_SECURE_NO_WARNINGS

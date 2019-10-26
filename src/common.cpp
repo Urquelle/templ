@@ -1,6 +1,3 @@
-#define internal_proc static
-#define global_var    static
-
 typedef bool    b32;
 
 typedef int8_t  s8;
@@ -14,26 +11,6 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 typedef float    f32;
-
-#define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
-#define MIN(x, y) ((x) <= (y) ? (x) : (y))
-#define MAX(x, y) ((x) >= (y) ? (x) : (y))
-#define CLAMP_MAX(x, max) MIN(x, max)
-#define CLAMP_MIN(x, min) MAX(x, min)
-#define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
-#define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
-#define ALIGN_UP(n, a) ALIGN_DOWN((n) + (a) - 1, (a))
-#define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
-#define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
-
-#define KB(X) (  (X)*1024)
-#define MB(X) (KB(X)*1024)
-#define GB(X) (MB(X)*1024)
-
-#define implement_me() assert(0)
-#define illegal_path() assert(0)
-
-#define erstes_if if
 
 internal_proc void *
 xmalloc(size_t size) {
@@ -118,19 +95,6 @@ typedef struct BufHdr {
     size_t cap;
     char buf[1];
 } BufHdr;
-
-#define buf__hdr(b) ((BufHdr *)((char *)(b) - offsetof(BufHdr, buf)))
-
-#define buf_len(b) ((b) ? buf__hdr(b)->len : 0)
-#define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
-#define buf_end(b) ((b) + buf_len(b))
-#define buf_sizeof(b) ((b) ? buf_len(b)*sizeof(*b) : 0)
-
-#define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
-#define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : (*((void **)&(b)) = buf__grow((b), (n), sizeof(*(b)))))
-#define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
-#define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
-#define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
 
 internal_proc void *
 buf__grow(const void *buf, size_t new_len, size_t elem_size) {

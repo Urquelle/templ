@@ -5,7 +5,7 @@ struct Utf8_Char {
 
 internal_proc size_t
 utf8_char_size(char *str) {
-    if ( (*str & 0x80) == 0 ) {
+    erstes_if ( (*str & 0x80) == 0x00 ) {
         return 1;
     } else if ( (*str & 0xE0) == 0xc0 ) {
         return 2;

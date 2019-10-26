@@ -1,7 +1,3 @@
-#define genf(...)   gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
-#define genlnf(...) gen_result = strf("%s\n", gen_result); gen_indentation(); genf(__VA_ARGS__)
-#define genln()     gen_result = strf("%s\n", gen_result); gen_indentation()
-
 internal_proc void exec_stmt(Resolved_Stmt *stmt);
 internal_proc void exec(Resolved_Templ *templ);
 
