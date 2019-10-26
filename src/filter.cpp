@@ -69,8 +69,22 @@ internal_proc FILTER_CALLBACK(filter_format) {
     char *result = "";
 
     while ( format[0] ) {
+        int size = 6;
+
         if ( format[0] == '%' ) {
             format = utf8_char_next(format);
+
+            if ( format[0] == '.' ) {
+                size = 0;
+                format = utf8_char_next(format);
+
+                while ( is_numeric(format[0]) ) {
+                    size *= 10;
+                    size += format[0] - '0';
+
+                    format = utf8_char_next(format);
+                }
+            }
 
             if ( format[0] == 's' ) {
                 if ( num_arg < num_args ) {
@@ -110,7 +124,7 @@ internal_proc FILTER_CALLBACK(filter_format) {
                         fatal("der datentyp des übergebenen arguments %s muss float sein", arg->name);
                     }
 
-                    result = strf("%s%s", result, val_to_char(arg->val));
+                    result = strf("%s%.*f", result, size, val_float(arg->val));
                 } else {
                     warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
                     break;

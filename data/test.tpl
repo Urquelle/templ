@@ -73,7 +73,7 @@
     {{ '' | default("bla") }}
     {{ '<div>escape</div>' | e }}
 
-    {{ "name %s alter %d"|format(user.name, user.age) }}
+    {{ "name %s alter %d und %.2f"|format(user.name, user.age, 7.53) }}
 
     <h2>from import macro</h2>
     {{ test_1() }}

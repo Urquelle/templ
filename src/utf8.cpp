@@ -64,6 +64,14 @@ utf8_char_to_wchar(Utf8_Char c) {
     return *result;
 }
 
+internal_proc wchar_t
+utf8_char_to_wchar(char *c) {
+    Utf8_Char uc = utf8_char(c);
+    wchar_t result = utf8_char_to_wchar(uc);
+
+    return result;
+}
+
 internal_proc char *
 utf8_char_to_uppercase(char *c) {
     Utf8_Char utf8_c = utf8_char(c);

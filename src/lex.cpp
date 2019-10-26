@@ -94,7 +94,7 @@ at1(Lexer *lex) {
 internal_proc void
 refill(Lexer *lex) {
     char pos0 = *lex->input;
-    char pos1 = *(lex->input + utf8_char_size(lex->input));
+    char pos1 = *utf8_char_next(lex->input);
 
     if ( pos0 == 0 ) {
         lex->at[0] = 0;
@@ -117,7 +117,7 @@ next(Lexer *lex, int count = 1) {
 
         if (lex->input == 0) break;
 
-        lex->input = lex->input + utf8_char_size(lex->input);
+        lex->input = utf8_char_next(lex->input);
     }
 
     refill(lex);
@@ -184,7 +184,7 @@ is_eql(Token_Kind kind) {
 
 internal_proc b32
 is_alpha(Lexer *lex) {
-    wchar_t z = utf8_char_to_wchar(utf8_char(lex->input));
+    wchar_t z = utf8_char_to_wchar(lex->input);
     b32 result = std::isalpha(z, std::locale());
 
     return result;
