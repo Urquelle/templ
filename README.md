@@ -1,16 +1,29 @@
 # Jinja2 C++
 
-[![Sprache](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Github Aufgaben](https://img.shields.io/github/issues/NoobSaibot/templ)](https://github.com/NoobSaibot/templ/issues) [![Lizenz](https://img.shields.io/github/license/NoobSaibot/templ)](https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE) [![Travis Status](https://travis-ci.org/NoobSaibot/templ.svg?branch=dev)](https://travis-ci.org/NoobSaibot/templ) [![Codequalität](https://api.codacy.com/project/badge/Grade/f4e97144ea6d43b3a38fc34e9b5e50b7)](https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade)
+[![Templ](static/shield.svg)](https://github.com/NoobSaibot/templ) [![Sprache](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Github Aufgaben](https://img.shields.io/github/issues/NoobSaibot/templ)](https://github.com/NoobSaibot/templ/issues) [![Lizenz](https://img.shields.io/github/license/NoobSaibot/templ)](https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE) [![Travis Status](https://travis-ci.org/NoobSaibot/templ.svg?branch=dev)](https://travis-ci.org/NoobSaibot/templ) [![Codequalität](https://api.codacy.com/project/badge/Grade/f4e97144ea6d43b3a38fc34e9b5e50b7)](https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade)
 
-![templ logo](https://bitbucket.org/noobsaibot/templ/raw/f8c13a9fb030b3fe6f93570943f319b9616c6818/logo_500.png)
+![](static/logo_1000.png)
 
 ## ausstehende aufgaben
 
-- schleifen rekursion
 - leerzeichenkontrolle
 - filter
 - tests
 - schleifenrekursion
+
+# umgesetzte aufgaben
+
+## unicode
+
+templ unterstützt sowohl ascii als auch unicode in utf-8 kodierung sowohl für variablen namen, als auch
+für die string literale.
+
+```jinja2
+{% set シ个 = "原ラ掘聞" %}
+{{ シ个 }}
+{% set приветствие = "здравствуйте" %}
+{{ приветствие }}
+```
 
 ## ausdrücke
 
