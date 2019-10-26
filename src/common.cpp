@@ -105,6 +105,14 @@ fatal(char *msg, ...) {
     exit(EXIT_FAILURE);
 }
 
+internal_proc void
+warn(char *msg, ...) {
+    va_list args = NULL;
+    va_start(args, msg);
+    fprintf(stderr, msg, args);
+    va_end(args);
+}
+
 typedef struct BufHdr {
     size_t len;
     size_t cap;

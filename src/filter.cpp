@@ -64,7 +64,67 @@ internal_proc FILTER_CALLBACK(filter_escape) {
 internal_proc FILTER_CALLBACK(filter_format) {
     assert(val->kind == VAL_STR);
 
-    return val_str("<!-- @AUFGABE: format implementieren -->");
+    char *format = val_str(val);
+    int num_arg = 0;
+    char *result = "";
+
+    while ( format[0] ) {
+        if ( format[0] == '%' ) {
+            format = utf8_char_next(format);
+
+            if ( format[0] == 's' ) {
+                if ( num_arg < num_args ) {
+                    Resolved_Arg *arg = args[num_arg];
+
+                    if ( arg->val->kind != VAL_STR ) {
+                        fatal("der datentyp des übergebenen arguments %s muss string sein", arg->name);
+                    }
+
+                    result = strf("%s%s", result, val_to_char(arg->val));
+                } else {
+                    warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                }
+
+                num_arg++;
+            } else if ( format[0] == 'd' ) {
+                if ( num_arg < num_args ) {
+                    Resolved_Arg *arg = args[num_arg];
+
+                    if ( arg->val->kind != VAL_INT ) {
+                        fatal("der datentyp des übergebenen arguments %s muss int sein", arg->name);
+                    }
+
+                    result = strf("%s%s", result, val_to_char(arg->val));
+                } else {
+                    warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                }
+
+                num_arg++;
+            } else if ( format[0] == 'f' ) {
+                if ( num_arg < num_args ) {
+                    Resolved_Arg *arg = args[num_arg];
+
+                    if ( arg->val->kind != VAL_FLOAT ) {
+                        fatal("der datentyp des übergebenen arguments %s muss float sein", arg->name);
+                    }
+
+                    result = strf("%s%s", result, val_to_char(arg->val));
+                } else {
+                    warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                }
+
+                num_arg++;
+            } else {
+                illegal_path();
+            }
+        } else {
+            result = strf("%s%.*s", result, utf8_char_size(format), format);
+        }
+
+        format = utf8_char_next(format);
+    }
+
+    return val_str(result);
 }
 
 internal_proc FILTER_CALLBACK(filter_truncate) {

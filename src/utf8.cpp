@@ -43,6 +43,13 @@ utf8_char(char *input) {
 }
 
 internal_proc char *
+utf8_char_next(char *input) {
+    char *result = input + utf8_char_size(input);
+
+    return result;
+}
+
+internal_proc char *
 utf8_char_end(char *input) {
     char *result = input + utf8_char_size(input) - 1;
 

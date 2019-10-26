@@ -847,6 +847,7 @@ struct Type {
             size_t num_params;
             Type *ret;
             Filter_Callback *callback;
+            b32 variadic;
         } type_filter;
 
         struct {
@@ -916,7 +917,9 @@ type_macro(Type_Field **params, size_t num_params, Type *ret) {
 }
 
 internal_proc Type *
-type_filter(Type_Field **params, size_t num_params, Type *ret, Filter_Callback *callback) {
+type_filter(Type_Field **params, size_t num_params, Type *ret,
+        Filter_Callback *callback, b32 variadic = false)
+{
     Type *result = type_new(TYPE_FILTER);
 
     result->size = PTR_SIZE;
@@ -924,6 +927,7 @@ type_filter(Type_Field **params, size_t num_params, Type *ret, Filter_Callback *
     result->type_filter.num_params = num_params;
     result->type_filter.ret = ret;
     result->type_filter.callback = callback;
+    result->type_filter.variadic = variadic;
 
     return result;
 }
@@ -2588,25 +2592,33 @@ resolve_filter(Filter *filter) {
     assert(sym->type->kind == TYPE_FILTER);
     Type *type = sym->type;
 
-    if ( type->type_proc.num_params-1 < num_args ) {
-        fatal("zu viele argumente");
-    }
-
     Resolved_Arg **args = 0;
-    for ( int i = 1; i < type->type_proc.num_params; ++i ) {
-        Type_Field *param = type->type_proc.params[i];
-
-        if ( !param->default_value && (i-1 >= num_args) ) {
-            fatal("zu wenige parameter übergeben");
+    if ( type->type_filter.variadic ) {
+        for ( int i = 0; i < filter->num_args; ++i ) {
+            Arg *arg = filter->args[i];
+            Resolved_Expr *arg_expr = resolve_expr(arg->expr);
+            buf_push(args, resolved_arg(arg->name, arg_expr->val));
+        }
+    } else {
+        if ( type->type_filter.num_params-1 < num_args ) {
+            fatal("zu viele argumente");
         }
 
-        if ( i-1 < num_args ) {
-            Arg *arg = filter->args[i-1];
-            Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-            if (arg_expr->type != param->type) {
-                fatal("datentyp des arguments stimmt nicht");
+        for ( int i = 1; i < type->type_filter.num_params; ++i ) {
+            Type_Field *param = type->type_filter.params[i];
+
+            if ( !param->default_value && (i-1 >= num_args) ) {
+                fatal("zu wenige parameter übergeben");
             }
-            buf_push(args, resolved_arg(arg->name, arg_expr->val));
+
+            if ( i-1 < num_args ) {
+                Arg *arg = filter->args[i-1];
+                Resolved_Expr *arg_expr = resolve_expr(arg->expr);
+                if (arg_expr->type != param->type) {
+                    fatal("datentyp des arguments stimmt nicht");
+                }
+                buf_push(args, resolved_arg(arg->name, arg_expr->val));
+            }
         }
     }
 
@@ -2643,7 +2655,7 @@ init_builtin_filter() {
     aliases = 0;
     buf_push(aliases, "e");
     sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliases, buf_len(aliases));
-    sym_push_filter("format",     type_filter(str_type,  1, type_str, filter_format));
+    sym_push_filter("format",     type_filter(str_type,  1, type_str, filter_format, true));
 
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
