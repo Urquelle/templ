@@ -89,7 +89,7 @@ templ_compile_string(char *content) {
     return result;
 }
 
-internal_proc void
+internal_proc char *
 templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
     for ( int i = 0; i < num_vars; ++i ) {
         Templ_Var *var = vars[i];
@@ -99,6 +99,8 @@ templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
 
     Resolved_Templ *result = resolve(templ);
     exec(result);
+
+    return gen_result;
 }
 
 internal_proc void

@@ -37,7 +37,7 @@ struct Filter {
 };
 
 internal_proc Filter *
-filter(char *name, Arg **args, size_t num_args) {
+filter_new(char *name, Arg **args, size_t num_args) {
     Filter *result = (Filter *)xcalloc(1, sizeof(Filter));
 
     result->name = name;

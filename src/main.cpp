@@ -2,10 +2,6 @@
 
 int
 main(int argc, char **argv) {
-    if ( argc < 2 ) {
-        printf("templ.exe <filename>\n");
-    }
-
     templ_init(MB(100), MB(100), MB(100));
 
     Templ_Var **vars = 0;
@@ -21,10 +17,10 @@ main(int argc, char **argv) {
 
     buf_push(vars, user);
 
-    Parsed_Templ *templ = templ_compile_file(argv[1]);
-    templ_render(templ, vars, buf_len(vars));
+    Parsed_Templ *templ = templ_compile_string("hallo {{ user.name }}");
+    char *result = templ_render(templ, vars, buf_len(vars));
 
-    file_write("test.html", gen_result, strlen(gen_result));
+    file_write("test.html", result, strlen(result));
 
     return 0;
 }

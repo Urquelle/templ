@@ -519,7 +519,7 @@ parse_filter(Parser *p) {
         assert(call->kind == EXPR_CALL);
         assert(call->expr_call.expr->kind == EXPR_NAME);
 
-        buf_push(result, filter(call->expr_call.expr->expr_name.value, call->expr_call.args, call->expr_call.num_args));
+        buf_push(result, filter_new(call->expr_call.expr->expr_name.value, call->expr_call.args, call->expr_call.num_args));
     } while ( match_token(p, T_BAR) );
 
     return result;
