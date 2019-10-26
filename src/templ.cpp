@@ -18,6 +18,8 @@
 #include "ast.cpp"
 #include "parser.cpp"
 #include "resolve.cpp"
+#include "filter.cpp"
+#include "tests.cpp"
 #include "exec.cpp"
 
 global_var Arena templ_arena;

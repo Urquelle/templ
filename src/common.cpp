@@ -33,6 +33,8 @@ typedef float    f32;
 #define implement_me() assert(0)
 #define illegal_path() assert(0)
 
+#define erstes_if if
+
 internal_proc void *
 xmalloc(size_t size) {
     void *mem = malloc(size);

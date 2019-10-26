@@ -7,8 +7,6 @@ struct Resolved_Filter;
 struct Resolved_Templ;
 struct Resolved_Arg;
 
-global_var Arena resolve_arena;
-
 #define PROC_CALLBACK(name) Val * name(Resolved_Arg **args, size_t num_args)
 typedef PROC_CALLBACK(Proc_Callback);
 
@@ -29,7 +27,26 @@ internal_proc Resolved_Templ  * resolve(Parsed_Templ *d);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
 internal_proc void              add_block(char *name, Resolved_Stmt *block);
 
+internal_proc FILTER_CALLBACK(filter_abs);
+internal_proc FILTER_CALLBACK(filter_capitalize);
+internal_proc FILTER_CALLBACK(filter_default);
+internal_proc FILTER_CALLBACK(filter_upper);
+internal_proc FILTER_CALLBACK(filter_escape);
+internal_proc FILTER_CALLBACK(filter_format);
+internal_proc FILTER_CALLBACK(filter_truncate);
+
+internal_proc TEST_CALLBACK(test_callable);
+internal_proc TEST_CALLBACK(test_defined);
+internal_proc TEST_CALLBACK(test_divisibleby);
+internal_proc TEST_CALLBACK(test_eq);
+internal_proc TEST_CALLBACK(test_escaped);
+internal_proc TEST_CALLBACK(test_even);
+internal_proc TEST_CALLBACK(test_ge);
+internal_proc TEST_CALLBACK(test_gt);
+internal_proc TEST_CALLBACK(test_in);
+
 global_var Resolved_Templ *current_templ;
+global_var Arena           resolve_arena;
 
 /* scope {{{ */
 struct Scope {
@@ -1748,177 +1765,6 @@ resolved_templ() {
     return result;
 }
 /* }}} */
-/* filter {{{ */
-internal_proc FILTER_CALLBACK(filter_abs) {
-    assert(val->kind == VAL_INT);
-    s32 i = abs(val_int(val));
-
-    return val_int(i);
-}
-
-internal_proc FILTER_CALLBACK(filter_capitalize) {
-    assert(val->kind == VAL_STR);
-
-    char first_letter = ((char *)val->ptr)[0];
-    ((char *)val->ptr)[0] = std::toupper(first_letter, std::locale());
-
-    return val_str( val_str(val) );
-}
-
-internal_proc FILTER_CALLBACK(filter_default) {
-    assert(val->kind == VAL_STR);
-    assert(num_args > 0);
-
-    if ( !val->len ) {
-        return args[0]->val;
-    }
-
-    return val;
-}
-
-internal_proc FILTER_CALLBACK(filter_upper) {
-    assert(val->kind == VAL_STR);
-    char *str = val_str(val);
-    char *result = "";
-
-    for ( int i = 0; i < strlen(str); ++i ) {
-        result = strf("%s%c", result, std::toupper(str[i], std::locale()));
-    }
-
-    return val_str(result);
-}
-
-internal_proc FILTER_CALLBACK(filter_escape) {
-    char *result = "";
-
-    for ( int i = 0; i < val->len; ++i ) {
-        char c = ((char *)val->ptr)[i];
-
-        if        ( c == '<' ) {
-            result = strf("%s%s", result, "&lt;");
-        } else if ( c == '>' ) {
-            result = strf("%s%s", result, "&gt;");
-        } else if ( c == '&' ) {
-            result = strf("%s%s", result, "&amp;");
-        } else if ( c == ' ' ) {
-            result = strf("%s%s", result, "&nbsp;");
-        } else {
-            result = strf("%s%c", result, c);
-        }
-    }
-
-    return val_str(result);
-}
-
-internal_proc FILTER_CALLBACK(filter_format) {
-    assert(val->kind == VAL_STR);
-
-    return val_str("<!-- @AUFGABE: format implementieren -->");
-}
-
-internal_proc FILTER_CALLBACK(filter_truncate) {
-    assert(val->kind == VAL_STR);
-
-    return val_str("<!-- @AUFGABE: truncate implementieren -->");
-}
-
-internal_proc void
-init_builtin_filter() {
-    char **aliases = 0;
-
-    Type_Field *str_type[] = { type_field("s", type_str) };
-    Type_Field *int_type[] = { type_field("s", type_int) };
-    Type_Field *str2_type[] = { type_field("value", type_str), type_field("default_value", type_str) };
-
-    sym_push_filter("abs",        type_filter(int_type,  1, type_str, filter_abs));
-    sym_push_filter("capitalize", type_filter(str_type,  1, type_str, filter_capitalize));
-
-    aliases = 0;
-    buf_push(aliases, "d");
-    sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default), aliases, buf_len(aliases));
-    sym_push_filter("upper",      type_filter(str_type,  1, type_str, filter_upper));
-
-    aliases = 0;
-    buf_push(aliases, "e");
-    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliases, buf_len(aliases));
-    sym_push_filter("format",     type_filter(str_type,  1, type_str, filter_format));
-
-    Type_Field *trunc_type[] = {
-        type_field("s", type_str),
-        type_field("length", type_int, val_int(255)),
-        type_field("end", type_str, val_str("...")),
-        type_field("killwords", type_bool, val_bool(false)),
-        type_field("leeway", type_int, val_int(0)),
-    };
-    sym_push_filter("truncate", type_filter(trunc_type, 5, type_str, filter_truncate));
-}
-/* }}} */
-/* tests {{{ */
-TEST_CALLBACK(test_callable) {
-    implement_me();
-    return false;
-}
-
-TEST_CALLBACK(test_defined) {
-    implement_me();
-    return false;
-}
-
-TEST_CALLBACK(test_divisibleby) {
-    implement_me();
-    return false;
-}
-
-TEST_CALLBACK(test_eq) {
-    assert(val);
-    assert(num_args == 1);
-
-    Val *result = val_bool(*val == *args[0]->val);
-
-    return result;
-}
-
-TEST_CALLBACK(test_escaped) {
-    implement_me();
-    return false;
-}
-
-TEST_CALLBACK(test_even) {
-    implement_me();
-    return false;
-}
-
-TEST_CALLBACK(test_ge) {
-    implement_me();
-    return false;
-}
-
-TEST_CALLBACK(test_gt) {
-    implement_me();
-    return false;
-}
-
-TEST_CALLBACK(test_in) {
-    implement_me();
-    return false;
-}
-
-internal_proc void
-init_builtin_tests() {
-    Type_Field *str_type[]  = { type_field("s", type_str) };
-    Type_Field *int_type[]  = { type_field("s", type_int) };
-    Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
-
-    sym_push_test("callable", type_test(str_type, 1, test_callable));
-    sym_push_test("defined", type_test(str_type, 1, test_defined));
-    sym_push_test("divisibleby", type_test(int2_type, 2, test_divisibleby));
-    sym_push_test("eq", type_test(int2_type, 2, test_eq));
-    sym_push_test("escaped", type_test(str_type, 1, test_escaped));
-    sym_push_test("even", type_test(int_type, 1, test_even));
-    sym_push_test("ge", type_test(int2_type, 2, test_ge));
-    sym_push_test("gt", type_test(int2_type, 2, test_gt));
-}
-/* }}} */
 
 internal_proc Resolved_Expr *
 operand_new(Type *type, Val *val) {
@@ -2776,6 +2622,53 @@ add_block(char *name, Resolved_Stmt *block) {
     }
 
     map_put(&current_templ->blocks, name, block);
+}
+
+internal_proc void
+init_builtin_filter() {
+    char **aliases = 0;
+
+    Type_Field *str_type[] = { type_field("s", type_str) };
+    Type_Field *int_type[] = { type_field("s", type_int) };
+    Type_Field *str2_type[] = { type_field("value", type_str), type_field("default_value", type_str) };
+
+    sym_push_filter("abs",        type_filter(int_type,  1, type_str, filter_abs));
+    sym_push_filter("capitalize", type_filter(str_type,  1, type_str, filter_capitalize));
+
+    aliases = 0;
+    buf_push(aliases, "d");
+    sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default), aliases, buf_len(aliases));
+    sym_push_filter("upper",      type_filter(str_type,  1, type_str, filter_upper));
+
+    aliases = 0;
+    buf_push(aliases, "e");
+    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliases, buf_len(aliases));
+    sym_push_filter("format",     type_filter(str_type,  1, type_str, filter_format));
+
+    Type_Field *trunc_type[] = {
+        type_field("s", type_str),
+        type_field("length", type_int, val_int(255)),
+        type_field("end", type_str, val_str("...")),
+        type_field("killwords", type_bool, val_bool(false)),
+        type_field("leeway", type_int, val_int(0)),
+    };
+    sym_push_filter("truncate", type_filter(trunc_type, 5, type_str, filter_truncate));
+}
+
+internal_proc void
+init_builtin_tests() {
+    Type_Field *str_type[]  = { type_field("s", type_str) };
+    Type_Field *int_type[]  = { type_field("s", type_int) };
+    Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
+
+    sym_push_test("callable", type_test(str_type, 1, test_callable));
+    sym_push_test("defined", type_test(str_type, 1, test_defined));
+    sym_push_test("divisibleby", type_test(int2_type, 2, test_divisibleby));
+    sym_push_test("eq", type_test(int2_type, 2, test_eq));
+    sym_push_test("escaped", type_test(str_type, 1, test_escaped));
+    sym_push_test("even", type_test(int_type, 1, test_even));
+    sym_push_test("ge", type_test(int2_type, 2, test_ge));
+    sym_push_test("gt", type_test(int2_type, 2, test_gt));
 }
 
 internal_proc void

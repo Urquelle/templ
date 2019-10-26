@@ -56,3 +56,15 @@ utf8_char_to_wchar(Utf8_Char c) {
 
     return *result;
 }
+
+internal_proc char *
+utf8_char_to_uppercase(char *c) {
+    Utf8_Char utf8_c = utf8_char(c);
+    wchar_t wchar_lowercase = utf8_char_to_wchar(utf8_c);
+    wchar_t wchar_uppercase = std::toupper(wchar_lowercase, std::locale());
+
+    char *result = (char *)xcalloc(1, sizeof(char)*6);
+    WideCharToMultiByte(CP_UTF8, 0, &wchar_uppercase, 1, result, 6*sizeof(char), 0, 0);
+
+    return result;
+}
