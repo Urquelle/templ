@@ -83,6 +83,7 @@ internal_proc FILTER_CALLBACK(filter_format) {
                     result = strf("%s%s", result, val_to_char(arg->val));
                 } else {
                     warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    break;
                 }
 
                 num_arg++;
@@ -97,6 +98,7 @@ internal_proc FILTER_CALLBACK(filter_format) {
                     result = strf("%s%s", result, val_to_char(arg->val));
                 } else {
                     warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    break;
                 }
 
                 num_arg++;
@@ -111,6 +113,7 @@ internal_proc FILTER_CALLBACK(filter_format) {
                     result = strf("%s%s", result, val_to_char(arg->val));
                 } else {
                     warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    break;
                 }
 
                 num_arg++;
