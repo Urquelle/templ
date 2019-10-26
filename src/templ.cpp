@@ -26,6 +26,7 @@ global_var Arena templ_arena;
 
 struct Templ_Var {
     char *name;
+    Val *val;
     Scope *scope;
 };
 
@@ -34,7 +35,19 @@ templ_var(char *name) {
     Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
 
     result->name  = name;
+    result->val   = 0;
     result->scope = scope_new(0, name);
+
+    return result;
+}
+
+internal_proc Templ_Var *
+templ_var(char *name, Val *val) {
+    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+
+    result->name  = name;
+    result->val   = val;
+    result->scope = 0;
 
     return result;
 }
@@ -93,8 +106,14 @@ internal_proc char *
 templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
     for ( int i = 0; i < num_vars; ++i ) {
         Templ_Var *var = vars[i];
-        Sym *sym = sym_push_var(var->name, type_dict);
-        sym->scope = var->scope;
+
+        if ( var->scope ) {
+            Sym *sym = sym_push_var(var->name, type_dict);
+            sym->scope = var->scope;
+        } else {
+            assert(var->val);
+            Sym *sym = sym_push_var(var->name, type_any, var->val);
+        }
     }
 
     Resolved_Templ *result = resolve(templ);
