@@ -203,7 +203,7 @@ internal_proc Val *
 val_str(char *val) {
     Val *result = val_new(VAL_STR, sizeof(char*));
 
-    result->len = strlen(val);
+    result->len = _mbstrlen(val);
     result->ptr = val;
 
     return result;

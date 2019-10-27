@@ -1004,7 +1004,7 @@ parse_stmt_lit(Parser *p) {
         next(&p->lex);
     }
 
-    Stmt *result = stmt_lit(lit, strlen(lit));
+    Stmt *result = stmt_lit(lit, _mbstrlen(lit));
     next_token(&p->lex);
 
     return result;

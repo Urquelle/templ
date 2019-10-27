@@ -23,7 +23,7 @@ main(int argc, char **argv) {
     char *result1 = templ_render(templ1, vars, buf_len(vars));
 
     if ( !status_is_error() ) {
-        file_write("test1.html", result1, strlen(result1));
+        file_write("test1.html", result1, _mbstrlen(result1));
     } else {
         fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
         status_reset();
@@ -35,7 +35,7 @@ main(int argc, char **argv) {
     char *result2 = templ_render(templ2, vars, buf_len(vars));
 
     if ( !status_is_error() ) {
-        file_write("test2.html", result2, strlen(result2));
+        file_write("test2.html", result2, _mbstrlen(result2));
     } else {
         fprintf(stderr, "fehler im template %s zeile %lld aufgetreten: %s\n", status_filename(), status_line(), status_message());
         status_reset();

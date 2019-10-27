@@ -89,7 +89,7 @@ status_set(Status_Kind kind, char *filename, s64 line, char *message) {
     global_status.kind     = kind;
     global_status.filename = filename;
     global_status.line     = line;
-    memcpy(global_status.message, message, strlen(message));
+    memcpy(global_status.message, message, _mbstrlen(message));
 }
 
 internal_proc void
@@ -423,7 +423,7 @@ intern_str(char *start, char *end) {
 
 internal_proc char *
 intern_str(char *value) {
-    size_t len = strlen(value);
+    size_t len = _mbstrlen(value);
     return intern_str(value, value + len);
 }
 

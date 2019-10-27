@@ -31,7 +31,7 @@ internal_proc FILTER_CALLBACK(filter_upper) {
     char *result = "";
 
     size_t offset = 0;
-    for ( int i = 0; i < strlen(str); ++i ) {
+    for ( int i = 0; i < _mbstrlen(str); ++i ) {
         result = strf("%s%s", result, utf8_char_to_uppercase(str + offset));
         offset += utf8_char_size(str + offset);
     }
