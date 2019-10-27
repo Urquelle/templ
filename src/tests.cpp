@@ -7,12 +7,13 @@ internal_proc TEST_CALLBACK(test_callable) {
 internal_proc TEST_CALLBACK(test_defined) {
     b32 result = args[0]->sym != 0;
 
-    return false;
+    return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_divisibleby) {
     implement_me();
-    return false;
+
+    return val_bool(false);
 }
 
 internal_proc TEST_CALLBACK(test_eq) {
@@ -26,26 +27,31 @@ internal_proc TEST_CALLBACK(test_eq) {
 
 internal_proc TEST_CALLBACK(test_escaped) {
     implement_me();
-    return false;
+
+    return val_bool(false);
 }
 
 internal_proc TEST_CALLBACK(test_even) {
     implement_me();
-    return false;
+
+    return val_bool(false);
 }
 
 internal_proc TEST_CALLBACK(test_ge) {
     implement_me();
-    return false;
+
+    return val_bool(false);
 }
 
 internal_proc TEST_CALLBACK(test_gt) {
     implement_me();
-    return false;
+
+    return val_bool(false);
 }
 
 internal_proc TEST_CALLBACK(test_in) {
     implement_me();
-    return false;
+
+    return val_bool(false);
 }
 

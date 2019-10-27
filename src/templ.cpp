@@ -143,15 +143,17 @@ templ_compile_string(char *content) {
 
 user_api char *
 templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
-    for ( int i = 0; i < num_vars; ++i ) {
-        Templ_Var *var = vars[i];
+    if ( vars ) {
+        for ( int i = 0; i < num_vars; ++i ) {
+            Templ_Var *var = vars[i];
 
-        if ( var->scope ) {
-            Sym *sym = sym_push_var(var->name, type_dict);
-            sym->scope = var->scope;
-        } else {
-            assert(var->val);
-            Sym *sym = sym_push_var(var->name, type_any, var->val);
+            if ( var->scope ) {
+                Sym *sym = sym_push_var(var->name, type_dict);
+                sym->scope = var->scope;
+            } else {
+                assert(var->val);
+                Sym *sym = sym_push_var(var->name, type_any, var->val);
+            }
         }
     }
 

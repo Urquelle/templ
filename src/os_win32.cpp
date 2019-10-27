@@ -47,8 +47,7 @@ file_exists(char *filename) {
 internal_proc void
 path_canonical(char *dest, char *path) {
     path_normalize(path);
-    size_t size = strlen(path);
-    DWORD result = GetFullPathNameA(path, MAX_PATH, dest, NULL);
+    GetFullPathNameA(path, MAX_PATH, dest, NULL);
 }
 
 struct Dir_Iterator {

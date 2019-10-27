@@ -3,7 +3,7 @@ struct Expr;
 
 internal_proc void *
 ast_dup(void *src, size_t size) {
-    if (size == 0) {
+    if (size == 0 || src == 0) {
         return NULL;
     }
 

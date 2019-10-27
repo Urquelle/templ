@@ -210,13 +210,11 @@ parse_expr_base(Parser *p) {
     } else if ( match_token(p, T_LBRACE) ) {
         Map *map = (Map *)xcalloc(1, sizeof(Map));
         char **keys = 0;
-        char *key = 0;
-        char *value = 0;
 
         do {
-            key = parse_str(p);
+            char *key = parse_str(p);
             expect_token(p, T_COLON);
-            value = parse_str(p);
+            char *value = parse_str(p);
 
             map_put(map, key, value);
             buf_push(keys, key);

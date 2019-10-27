@@ -70,7 +70,6 @@ struct Token {
         char *name;
         int   int_value;
         float float_value;
-        int   char_value;
     };
 };
 

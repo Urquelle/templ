@@ -389,7 +389,6 @@ internal_proc Val
 operator*(Val left, Val right) {
     Val result = {};
 
-    /* @AUFGABE: val_set implementieren */
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
         result.kind = VAL_INT;
         result.size = sizeof(s32);
@@ -420,7 +419,6 @@ operator*(Val left, Val right) {
             result.ptr = strf("%s%s", result.ptr, str_to_repeat);
         }
 
-        result.ptr  = result.ptr;
         result.size = size;
         result.len  = len;
     } else if ( left.kind == VAL_INT && right.kind == VAL_STR ) {
@@ -436,7 +434,6 @@ operator*(Val left, Val right) {
             result.ptr = strf("%s%s", result.ptr, str_to_repeat);
         }
 
-        result.ptr  = result.ptr;
         result.size = size;
         result.len  = len;
     } else {
@@ -816,12 +813,6 @@ struct Type {
 
     union {
         struct {
-            Type_Field **fields;
-            size_t num_fields;
-            Scope *scope;
-        } type_aggr;
-
-        struct {
             Type_Field **params;
             size_t num_params;
             Type *ret;
@@ -1100,8 +1091,10 @@ sym_push_filter(char *name, Type *type, char **alias = 0,
 {
     Sym *result = sym_push(SYM_PROC, name, type);
 
-    for ( int i = 0; i < num_alias; ++i ) {
-        sym_push(SYM_PROC, alias[i], type);
+    if ( alias ) {
+        for ( int i = 0; i < num_alias; ++i ) {
+            sym_push(SYM_PROC, alias[i], type);
+        }
     }
 
     return result;
@@ -1964,11 +1957,11 @@ resolve_stmt(Stmt *stmt) {
             }
 
             Resolved_Stmt *else_resolved_stmt = 0;
-            Resolved_Stmt **else_stmts = 0;
             if ( stmt->stmt_if.else_stmt ) {
                 scope_enter();
                 Stmt *else_stmt = stmt->stmt_if.else_stmt;
 
+                Resolved_Stmt **else_stmts = 0;
                 for ( int i = 0; i < else_stmt->stmt_if.num_stmts; ++i ) {
                     buf_push(else_stmts, resolve_stmt(else_stmt->stmt_if.stmts[i]));
                 }
@@ -2449,7 +2442,7 @@ resolve_expr(Expr *expr) {
                     for ( int j = 0; j < type->type_proc.num_params; ++j ) {
                         Type_Field *param = type->type_proc.params[j];
 
-                        if ( !arg->name || arg->name && arg->name == param->name ) {
+                        if ( !arg->name || arg->name == param->name ) {
                             found = true;
 
                             if ( !name ) {

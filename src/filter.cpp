@@ -69,9 +69,8 @@ internal_proc FILTER_CALLBACK(filter_format) {
     char *result = "";
 
     while ( format[0] ) {
-        int size = 6;
-
         if ( format[0] == '%' ) {
+            int size = 6;
             format = utf8_char_next(format);
 
             if ( format[0] == '.' ) {

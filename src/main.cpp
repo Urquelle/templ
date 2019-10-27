@@ -23,13 +23,23 @@ main(int argc, char **argv) {
     char *result1 = templ_render(templ1, vars, buf_len(vars));
 
     if ( !status_is_error() ) {
-        file_write("test.html", result1, strlen(result1));
+        file_write("test1.html", result1, strlen(result1));
     } else {
         fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
         status_reset();
     }
 
     templ_reset();
+
+    Parsed_Templ *templ2 = templ_compile_file(argv[1]);
+    char *result2 = templ_render(templ2, vars, buf_len(vars));
+
+    if ( !status_is_error() ) {
+        file_write("test2.html", result2, strlen(result2));
+    } else {
+        fprintf(stderr, "fehler im template %s zeile %lld aufgetreten: %s\n", status_filename(), status_line(), status_message());
+        status_reset();
+    }
 
     return 0;
 }
