@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100" height="20" viewBox="0 0 100 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+<svg width="100px" height="20px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <path d="M100,3.955C100,1.771 98.229,0 96.045,0C80.035,0 20.122,0 4.011,0C1.796,0 0,1.796 0,4.011C0,7.503 0,12.538 0,16.021C0,18.219 1.781,20 3.979,20C20.016,20 79.826,20 95.965,20C97.035,20 98.062,19.575 98.818,18.818C99.575,18.062 100,17.035 100,15.965C100,12.466 100,7.431 100,3.955Z" style="fill:rgb(93,93,93);"/>
-    <g transform="matrix(1,0,0,1,2.78027,-4.55225)">
-        <text x="3px" y="19px" style="font-family:'OpenSans-Regular', 'Open Sans', sans-serif;font-size:12.5px;fill-opacity:0.55;">templ</text>
+    <g transform="matrix(1,0,0,1,3.78027,-3.55225)">
+        <text x="3px" y="19px" style="font-family:'DejaVuSans', 'DejaVu Sans', sans-serif;font-size:12.5px;fill-opacity:0.55;">templ</text>
     </g>
-    <g transform="matrix(1,0,0,1,2.78027,-2.48413)">
-        <text x="3px" y="16px" style="font-family:'OpenSans-Regular', 'Open Sans', sans-serif;font-size:12.5px;fill:white;">templ</text>
+    <g transform="matrix(1,0,0,1,3.78027,-1.48413)">
+        <text x="3px" y="16px" style="font-family:'DejaVuSans', 'DejaVu Sans', sans-serif;font-size:12.5px;fill:white;">templ</text>
     </g>
     <g transform="matrix(1.03704,0,0,1,-3.7037,0)">
         <path d="M100,4.003C100,2.941 99.593,1.923 98.869,1.172C98.146,0.422 97.164,0 96.14,0C88.678,0 73,0 73,0L73,20L96.171,20C98.286,20 100,18.222 100,16.029C100,12.543 100,7.498 100,4.003Z" style="fill:rgb(153,199,17);"/>
