@@ -20,7 +20,7 @@ internal_proc Resolved_Filter * resolve_filter(Filter *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
 internal_proc Resolved_Templ  * resolve(Parsed_Templ *d);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
-internal_proc void              add_block(char *name, Resolved_Stmt *block);
+internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
 
 internal_proc FILTER_CALLBACK(filter_abs);
 internal_proc FILTER_CALLBACK(filter_capitalize);
@@ -941,54 +941,6 @@ type_module(char *name, Scope *scope) {
     return result;
 }
 
-internal_proc void
-init_builtin_types() {
-    type_void  = type_new(TYPE_VOID);
-    type_void->size = 0;
-
-    type_bool  = type_new(TYPE_BOOL);
-    type_bool->size = 1;
-
-    type_int   = type_new(TYPE_INT);
-    type_int->size = 4;
-
-    type_float = type_new(TYPE_FLOAT);
-    type_float->size = 4;
-
-    type_str   = type_new(TYPE_STR);
-    type_str->size = PTR_SIZE;
-
-    type_dict  = type_new(TYPE_DICT);
-    type_dict->size = sizeof(Map);
-
-    type_tuple = type_new(TYPE_TUPLE);
-    type_tuple->size = 0;
-
-    type_list  = type_new(TYPE_LIST);
-    type_list->size = 0;
-
-    type_any   = type_new(TYPE_ANY);
-    type_any->size = PTR_SIZE;
-
-    arithmetic_result_type_table[TYPE_INT][TYPE_INT]     = type_int;
-    arithmetic_result_type_table[TYPE_INT][TYPE_FLOAT]   = type_float;
-
-    arithmetic_result_type_table[TYPE_FLOAT][TYPE_INT]   = type_float;
-    arithmetic_result_type_table[TYPE_FLOAT][TYPE_FLOAT] = type_float;
-
-    scalar_result_type_table[TYPE_INT][TYPE_BOOL]        = type_void;
-    scalar_result_type_table[TYPE_INT][TYPE_INT]         = type_int;
-    scalar_result_type_table[TYPE_INT][TYPE_FLOAT]       = type_float;
-
-    scalar_result_type_table[TYPE_FLOAT][TYPE_BOOL]      = type_void;
-    scalar_result_type_table[TYPE_FLOAT][TYPE_INT]       = type_float;
-    scalar_result_type_table[TYPE_FLOAT][TYPE_FLOAT]     = type_float;
-
-    scalar_result_type_table[TYPE_BOOL][TYPE_BOOL]      = type_bool;
-    scalar_result_type_table[TYPE_BOOL][TYPE_INT]       = type_void;
-    scalar_result_type_table[TYPE_BOOL][TYPE_FLOAT]     = type_void;
-}
-
 internal_proc b32
 is_int(Type *type) {
     b32 result = (type->kind == TYPE_INT);
@@ -1086,16 +1038,8 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
 }
 
 internal_proc Sym *
-sym_push_filter(char *name, Type *type, char **alias = 0,
-        size_t num_alias = 0)
-{
+sym_push_filter(char *name, Type *type) {
     Sym *result = sym_push(SYM_PROC, name, type);
-
-    if ( alias ) {
-        for ( int i = 0; i < num_alias; ++i ) {
-            sym_push(SYM_PROC, alias[i], type);
-        }
-    }
 
     return result;
 }
@@ -1689,7 +1633,7 @@ resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
     result->stmt_block.stmts = stmts;
     result->stmt_block.num_stmts = num_stmts;
 
-    add_block(name, result);
+    resolve_add_block(name, result);
 
     return result;
 }
@@ -2638,7 +2582,7 @@ resolve_filter(Filter *filter) {
 }
 
 internal_proc void
-add_block(char *name, Resolved_Stmt *block) {
+resolve_add_block(char *name, Resolved_Stmt *block) {
     Resolved_Stmt *entry = (Resolved_Stmt *)map_get(&current_templ->blocks, name);
 
     if ( entry ) {
@@ -2649,26 +2593,10 @@ add_block(char *name, Resolved_Stmt *block) {
 }
 
 internal_proc void
-init_builtin_filter() {
-    char **aliases = 0;
-
+resolve_init_builtin_filter() {
     Type_Field *str_type[] = { type_field("s", type_str) };
     Type_Field *int_type[] = { type_field("s", type_int) };
     Type_Field *str2_type[] = { type_field("value", type_str), type_field("default_value", type_str) };
-
-    sym_push_filter("abs",        type_filter(int_type,  1, type_str, filter_abs));
-    sym_push_filter("capitalize", type_filter(str_type,  1, type_str, filter_capitalize));
-
-    aliases = 0;
-    buf_push(aliases, "d");
-    sym_push_filter("default",    type_filter(str2_type, 2, type_str, filter_default), aliases, buf_len(aliases));
-    sym_push_filter("upper",      type_filter(str_type,  1, type_str, filter_upper));
-
-    aliases = 0;
-    buf_push(aliases, "e");
-    sym_push_filter("escape",     type_filter(str_type,  1, type_str, filter_escape), aliases, buf_len(aliases));
-    sym_push_filter("format",     type_filter(str_type,  1, type_str, filter_format, true));
-
     Type_Field *trunc_type[] = {
         type_field("s", type_str),
         type_field("length", type_int, val_int(255)),
@@ -2676,11 +2604,20 @@ init_builtin_filter() {
         type_field("killwords", type_bool, val_bool(false)),
         type_field("leeway", type_int, val_int(0)),
     };
+
+    sym_push_filter("abs",        type_filter(int_type,   1, type_str, filter_abs));
+    sym_push_filter("capitalize", type_filter(str_type,   1, type_str, filter_capitalize));
+    sym_push_filter("default",    type_filter(str2_type,  2, type_str, filter_default));
+    sym_push_filter("d",          type_filter(str2_type,  2, type_str, filter_default));
+    sym_push_filter("escape",     type_filter(str_type,   1, type_str, filter_escape));
+    sym_push_filter("e",          type_filter(str_type,   1, type_str, filter_escape));
+    sym_push_filter("format",     type_filter(str_type,   1, type_str, filter_format, true));
     sym_push_filter("truncate",   type_filter(trunc_type, 5, type_str, filter_truncate));
+    sym_push_filter("upper",      type_filter(str_type,   1, type_str, filter_upper));
 }
 
 internal_proc void
-init_builtin_tests() {
+resolve_init_builtin_tests() {
     Type_Field *str_type[]  = { type_field("s",    type_str) };
     Type_Field *int_type[]  = { type_field("s",    type_int) };
     Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
@@ -2696,21 +2633,69 @@ init_builtin_tests() {
 }
 
 internal_proc void
-init_arenas() {
+resolve_init_arenas() {
     arena_init(&resolve_arena, MB(100));
 }
 
 internal_proc void
-resolver_reset() {
+resolve_init_builtin_types() {
+    type_void  = type_new(TYPE_VOID);
+    type_void->size = 0;
+
+    type_bool  = type_new(TYPE_BOOL);
+    type_bool->size = 1;
+
+    type_int   = type_new(TYPE_INT);
+    type_int->size = 4;
+
+    type_float = type_new(TYPE_FLOAT);
+    type_float->size = 4;
+
+    type_str   = type_new(TYPE_STR);
+    type_str->size = PTR_SIZE;
+
+    type_dict  = type_new(TYPE_DICT);
+    type_dict->size = sizeof(Map);
+
+    type_tuple = type_new(TYPE_TUPLE);
+    type_tuple->size = 0;
+
+    type_list  = type_new(TYPE_LIST);
+    type_list->size = 0;
+
+    type_any   = type_new(TYPE_ANY);
+    type_any->size = PTR_SIZE;
+
+    arithmetic_result_type_table[TYPE_INT][TYPE_INT]     = type_int;
+    arithmetic_result_type_table[TYPE_INT][TYPE_FLOAT]   = type_float;
+
+    arithmetic_result_type_table[TYPE_FLOAT][TYPE_INT]   = type_float;
+    arithmetic_result_type_table[TYPE_FLOAT][TYPE_FLOAT] = type_float;
+
+    scalar_result_type_table[TYPE_INT][TYPE_BOOL]        = type_void;
+    scalar_result_type_table[TYPE_INT][TYPE_INT]         = type_int;
+    scalar_result_type_table[TYPE_INT][TYPE_FLOAT]       = type_float;
+
+    scalar_result_type_table[TYPE_FLOAT][TYPE_BOOL]      = type_void;
+    scalar_result_type_table[TYPE_FLOAT][TYPE_INT]       = type_float;
+    scalar_result_type_table[TYPE_FLOAT][TYPE_FLOAT]     = type_float;
+
+    scalar_result_type_table[TYPE_BOOL][TYPE_BOOL]      = type_bool;
+    scalar_result_type_table[TYPE_BOOL][TYPE_INT]       = type_void;
+    scalar_result_type_table[TYPE_BOOL][TYPE_FLOAT]     = type_void;
+}
+
+internal_proc void
+resolve_reset() {
     sym_clear();
 }
 
 internal_proc void
-resolver_init() {
-    init_arenas();
-    init_builtin_types();
-    init_builtin_filter();
-    init_builtin_tests();
+resolve_init() {
+    resolve_init_arenas();
+    resolve_init_builtin_types();
+    resolve_init_builtin_filter();
+    resolve_init_builtin_tests();
 }
 
 internal_proc Resolved_Templ *

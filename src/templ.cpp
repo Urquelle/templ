@@ -165,7 +165,7 @@ templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
 
 user_api void
 templ_reset() {
-    resolver_reset();
+    resolve_reset();
     exec_reset();
 }
 
@@ -174,7 +174,7 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
         size_t exec_arena_size)
 {
     arena_init(&templ_arena, MB(100));
-    resolver_init();
+    resolve_init();
 }
 
 namespace api {
