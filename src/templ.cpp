@@ -37,7 +37,7 @@
 #define GB(X) (MB(X)*1024)
 #define KB(X) (  (X)*1024)
 #define MB(X) (KB(X)*1024)
-#define buf__hdr(b) ((BufHdr *)((char *)(b) - offsetof(BufHdr, buf)))
+#define buf__hdr(b) ((Buf_Hdr *)((char *)(b) - offsetof(Buf_Hdr, buf)))
 #define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
 #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
 #define buf_end(b) ((b) + buf_len(b))
@@ -162,21 +162,33 @@ templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
 }
 
 user_api void
+templ_reset() {
+    resolver_reset();
+    exec_reset();
+}
+
+user_api void
 templ_init(size_t parse_arena_size, size_t resolve_arena_size,
         size_t exec_arena_size)
 {
     arena_init(&templ_arena, MB(100));
-    init_resolver();
+    resolver_init();
 }
 
 namespace api {
-    using templ::BufHdr;
+    using templ::Buf_Hdr;
     using templ::Parsed_Templ;
     using templ::Templ_Var;
     using templ::file_write;
+    using templ::status_is_error;
+    using templ::status_message;
+    using templ::status_filename;
+    using templ::status_line;
+    using templ::status_reset;
     using templ::templ_compile_file;
     using templ::templ_compile_string;
     using templ::templ_init;
+    using templ::templ_reset;
     using templ::templ_var;
 }
 

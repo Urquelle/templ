@@ -20,7 +20,7 @@ struct Iterator {
 };
 
 internal_proc Iterator
-init(Val *container) {
+iterator_init(Val *container) {
     Iterator result = {};
 
     assert(container->kind == VAL_RANGE || container->kind == VAL_LIST || container->kind == VAL_TUPLE);
@@ -33,21 +33,21 @@ init(Val *container) {
 }
 
 internal_proc b32
-valid(Iterator *it) {
+iterator_valid(Iterator *it) {
     b32 result = it->pos < it->container->len;
 
     return result;
 }
 
 internal_proc b32
-is_last(Iterator *it) {
+iterator_is_last(Iterator *it) {
     b32 result = (it->pos+1) == it->container->len;
 
     return result;
 }
 
 internal_proc void
-next(Iterator *it) {
+iterator_next(Iterator *it) {
     it->pos += 1;
     it->val = val_item(it->container, it->pos);
 }
@@ -242,7 +242,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         default: {
-            illegal_path();
+            fatal(expr->pos.name, expr->pos.row, "unerwarteter ausdruck");
         } break;
     }
 
@@ -341,10 +341,10 @@ exec_stmt(Resolved_Stmt *stmt) {
                 global_for_stmt = stmt;
                 val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
 
-                for ( Iterator it = init(list); valid(&it); next(&it) ) {
+                for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
                     stmt->stmt_for.it->val = it.val;
 
-                    val_set(stmt->stmt_for.loop_last->val, is_last(&it));
+                    val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));
 
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                         exec_stmt(stmt->stmt_for.stmts[j]);
@@ -443,7 +443,7 @@ exec_stmt(Resolved_Stmt *stmt) {
         case STMT_MACRO:
         case STMT_FROM_IMPORT:
         case STMT_IMPORT: {
-            /* @AUFGABE: nix tun */
+            /* @INFO: nix tun */
         } break;
 
         default: {
@@ -473,6 +473,12 @@ PROC_CALLBACK(cycle) {
 }
 
 internal_proc void
+exec_reset() {
+    free(gen_result);
+    gen_result = "";
+}
+
+internal_proc void
 exec(Resolved_Templ *templ) {
     global_current_tmpl = templ;
 
@@ -483,7 +489,7 @@ exec(Resolved_Templ *templ) {
         }
 
         if ( stmt->kind == STMT_EXTENDS && i > 0 ) {
-            fatal("extends anweisung muss die erste anweisung des templates sein");
+            fatal(stmt->pos.name, stmt->pos.row, "extends anweisung muss die erste anweisung des templates sein");
         }
 
         exec_stmt(stmt);

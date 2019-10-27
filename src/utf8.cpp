@@ -58,10 +58,9 @@ utf8_char_end(char *input) {
 
 internal_proc wchar_t
 utf8_char_to_wchar(Utf8_Char c) {
-    wchar_t *result = (wchar_t *)xmalloc(sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, c.bytes, (int)c.size, result, 1);
+    wchar_t result = os_utf8_char_to_wchar(c.bytes, c.size);
 
-    return *result;
+    return result;
 }
 
 internal_proc wchar_t
@@ -79,7 +78,7 @@ utf8_char_to_uppercase(char *c) {
     wchar_t wchar_uppercase = std::toupper(wchar_lowercase, std::locale());
 
     char *result = (char *)xcalloc(1, sizeof(char)*6);
-    WideCharToMultiByte(CP_UTF8, 0, &wchar_uppercase, 1, result, 6*sizeof(char), 0, 0);
+    os_utf8_wchar_to_char(wchar_uppercase, result, 6*sizeof(char));
 
     return result;
 }

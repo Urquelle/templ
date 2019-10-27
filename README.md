@@ -25,7 +25,14 @@ main(int argc, char **argv) {
     Parsed_Templ *templ = templ_compile_string("hallo {{ name }}");
     char *result = templ_render(templ, vars, buf_len(vars));
 
-    file_write("test.html", result, strlen(result));
+    if ( !status_is_error() ) {
+        file_write("test.html", result, strlen(result));
+    } else {
+        fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
+        status_reset();
+    }
+
+    templ_reset();
 
     return 0;
 }

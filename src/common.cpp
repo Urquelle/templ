@@ -55,6 +55,77 @@ memdup(void *mem, size_t size) {
     return result;
 }
 
+enum Status_Kind {
+    STATUS_OK,
+    STATUS_WARNING,
+    STATUS_ERROR,
+};
+struct Status {
+    Status_Kind kind;
+    char *filename;
+    s64   line;
+    char  message[1024];
+};
+
+global_var Status global_status = {STATUS_OK};
+
+internal_proc char *
+status_message() {
+    return global_status.message;
+}
+
+internal_proc char *
+status_filename() {
+    return global_status.filename;
+}
+
+internal_proc s64
+status_line() {
+    return global_status.line;
+}
+
+internal_proc void
+status_set(Status_Kind kind, char *filename, s64 line, char *message) {
+    global_status.kind     = kind;
+    global_status.filename = filename;
+    global_status.line     = line;
+    memcpy(global_status.message, message, strlen(message));
+}
+
+internal_proc void
+status_set_warning(char *file, s64 line, char *message) {
+    status_set(STATUS_WARNING, file, line, message);
+}
+
+internal_proc b32
+status_is_warning() {
+    b32 result = global_status.kind == STATUS_WARNING;
+
+    return result;
+}
+
+internal_proc void
+status_set_error(char *file, s64 line, char *message) {
+    status_set(STATUS_ERROR, file, line, message);
+}
+
+internal_proc b32
+status_is_error() {
+    b32 result = global_status.kind == STATUS_ERROR;
+
+    return result;
+}
+
+internal_proc void
+status_set_ok() {
+    status_set(STATUS_OK, 0, 0, "");
+}
+
+internal_proc void
+status_reset() {
+    status_set_ok();
+}
+
 internal_proc char *
 strf(char *fmt, ...) {
     va_list args = NULL;
@@ -72,42 +143,53 @@ strf(char *fmt, ...) {
 }
 
 internal_proc void
-fatal(char *msg, ...) {
-    va_list args = NULL;
-    va_start(args, msg);
-    fprintf(stderr, msg, args);
-    va_end(args);
+fatal(char *file, s64 line, char *msg, ...) {
+    if ( !status_is_error() ) {
+        va_list args = NULL;
+        va_start(args, msg);
 
-    assert(0);
-    exit(EXIT_FAILURE);
+        char buf[255];
+        vsnprintf(buf, 255, msg, args);
+
+        va_end(args);
+
+        status_set_error(file, line, buf);
+    }
 }
 
 internal_proc void
-warn(char *msg, ...) {
+warn(char *file, s64 line, char *msg, ...) {
     va_list args = NULL;
     va_start(args, msg);
-    fprintf(stderr, msg, args);
+
+    char buf[255];
+    vsnprintf(buf, 255, msg, args);
+
     va_end(args);
+
+    status_set_error(file, line, buf);
 }
 
-typedef struct BufHdr {
+struct Buf_Hdr {
     size_t len;
     size_t cap;
     char buf[1];
-} BufHdr;
+};
 
 internal_proc void *
 buf__grow(const void *buf, size_t new_len, size_t elem_size) {
     assert(buf_cap(buf) <= (SIZE_MAX - 1)/2);
+
     size_t new_cap = CLAMP_MIN(2*buf_cap(buf), MAX(new_len, 16));
     assert(new_len <= new_cap);
-    assert(new_cap <= (SIZE_MAX - offsetof(BufHdr, buf))/elem_size);
-    size_t new_size = offsetof(BufHdr, buf) + new_cap*elem_size;
-    BufHdr *new_hdr;
+    assert(new_cap <= (SIZE_MAX - offsetof(Buf_Hdr, buf))/elem_size);
+    size_t new_size = offsetof(Buf_Hdr, buf) + new_cap*elem_size;
+
+    Buf_Hdr *new_hdr;
     if (buf) {
-        new_hdr = (BufHdr *)xrealloc(buf__hdr(buf), new_size);
+        new_hdr = (Buf_Hdr *)xrealloc(buf__hdr(buf), new_size);
     } else {
-        new_hdr = (BufHdr *)xmalloc(new_size);
+        new_hdr = (Buf_Hdr *)xmalloc(new_size);
         new_hdr->len = 0;
     }
     new_hdr->cap = new_cap;
@@ -252,6 +334,11 @@ map_put(Map *map, void *key, void *val) {
 
         i++;
     }
+}
+
+internal_proc void
+map_reset(Map *map) {
+    map->len = 0;
 }
 
 enum { ARENA_SIZE = 1024*1024, ARENA_ALIGNMENT = 8 };

@@ -153,3 +153,17 @@ dir_list(char *filespec) {
 
     return result;
 }
+
+internal_proc wchar_t
+os_utf8_char_to_wchar(char *c, size_t size) {
+    wchar_t result = 0;
+    MultiByteToWideChar(CP_UTF8, 0, c, (int)size, &result, 1);
+
+    return result;
+}
+
+internal_proc void
+os_utf8_wchar_to_char(wchar_t wc, char *dest, size_t size) {
+    WideCharToMultiByte(CP_UTF8, 0, &wc, 1, dest, (int)size, 0, 0);
+}
+

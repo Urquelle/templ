@@ -125,7 +125,7 @@ expect_token(Parser *p, Token_Kind kind) {
     if ( is_token(p, kind) ) {
         next_token(&p->lex);
     } else {
-        assert(0);
+        fatal(p->lex.pos.name, p->lex.pos.row, "unerwartetes token. erwartet %s, erhalten %s", tokenkind_to_str(kind), tokenkind_to_str(p->lex.token.kind));
     }
 }
 
@@ -172,21 +172,22 @@ is_str(Parser *p, char *str) {
 internal_proc void
 expect_str(Parser *p, char *str) {
     if ( !match_str(p, str) ) {
-        assert(0);
+        fatal(p->lex.pos.name, p->lex.pos.row, "zeichenkette \"%s\" erwartet, stattdessen \"%s\" gefunden", str, p->lex.token.literal);
     }
 }
 
 internal_proc void
 expect_keyword(Parser *p, char *expected_keyword) {
     if ( !match_keyword(p, expected_keyword) ) {
-        assert(0);
+        fatal(p->lex.pos.name, p->lex.pos.row, "schlüsselwort \"%s\" erwartet, stattdessen \"%s\" gefunden", expected_keyword, p->lex.token.literal);
     }
 }
 
 internal_proc Expr *
 parse_expr_base(Parser *p) {
     Lexer *lex = &p->lex;
-    Expr *result = 0;
+    Expr *result = &expr_illegal;
+    result->pos = lex->pos;
 
     if ( is_token(p, T_INT) ) {
         result = expr_int(lex->token.int_value);
@@ -267,13 +268,14 @@ parse_expr_field_or_call_or_index(Parser *p) {
                 char *name = 0;
                 Expr *expr = parse_expr(p);
 
+                /* @AUFGABE: in ein do-while umformen */
                 if ( match_token(p, T_ASSIGN) ) {
                     assert(expr->kind == EXPR_NAME);
                     name = expr->expr_name.value;
                     expr = parse_expr(p);
                 }
 
-                buf_push(args, arg_new(name, expr));
+                buf_push(args, arg_new(expr->pos, name, expr));
 
                 while ( match_token(p, T_COMMA) ) {
                     name = 0;
@@ -285,7 +287,7 @@ parse_expr_field_or_call_or_index(Parser *p) {
                         expr = parse_expr(p);
                     }
 
-                    buf_push(args, arg_new(name, expr));
+                    buf_push(args, arg_new(expr->pos, name, expr));
                 }
             }
 
@@ -300,7 +302,7 @@ parse_expr_field_or_call_or_index(Parser *p) {
             }
 
             if ( !index ) {
-                assert(!"index darf nicht leer sein");
+                fatal(left->pos.name, left->pos.row, "index darf nicht leer sein");
             }
 
             left = expr_index(left, index, buf_len(index));
@@ -507,7 +509,8 @@ parse_filter(Parser *p) {
 
         Arg **args = 0;
         while ( !is_token(p, T_BAR) && !is_token(p, T_CODE_END) && !is_token(p, T_VAR_END) && !is_token(p, T_COMMA) ) {
-            buf_push(args, arg_new(0, parse_expr(p, false)));
+            Expr *expr = parse_expr(p, false);
+            buf_push(args, arg_new(expr->pos, 0, expr));
         }
 
         size_t num_args = buf_len(args);
@@ -519,7 +522,7 @@ parse_filter(Parser *p) {
         assert(call->kind == EXPR_CALL);
         assert(call->expr_call.expr->kind == EXPR_NAME);
 
-        buf_push(result, filter_new(call->expr_call.expr->expr_name.value, call->expr_call.args, call->expr_call.num_args));
+        buf_push(result, filter_new(call->pos, call->expr_call.expr->expr_name.value, call->expr_call.args, call->expr_call.num_args));
     } while ( match_token(p, T_BAR) );
 
     return result;
@@ -732,7 +735,7 @@ parse_stmt_include(Parser *p) {
 
             b32 success = file_exists(name_expr->expr_str.value);
             if ( !success && !ignore_missing ) {
-                fatal("konnte datei %s nicht finden", name_expr->expr_str.value);
+                fatal(p->lex.pos.name, p->lex.pos.row, "konnte datei %s nicht finden", name_expr->expr_str.value);
             }
 
             if ( success ) {
@@ -742,7 +745,7 @@ parse_stmt_include(Parser *p) {
     } else {
         b32 success = file_exists(expr->expr_str.value);
         if ( !success && !ignore_missing ) {
-            fatal("konnte datei %s nicht finden", expr->expr_str.value);
+            fatal(p->lex.pos.name, p->lex.pos.row, "konnte datei %s nicht finden", expr->expr_str.value);
         }
 
         if ( success ) {
@@ -917,6 +920,8 @@ parse_stmt_endmacro(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt(Parser *p) {
+    Pos pos = p->lex.pos;
+
     Stmt *result = 0;
     if ( match_token(p, T_CODE_BEGIN) ) {
         if ( match_keyword(p, keyword_for) ) {
@@ -956,12 +961,17 @@ parse_stmt(Parser *p) {
         } else if ( match_keyword(p, keyword_raw) ) {
             result = parse_stmt_raw(p);
         } else {
-            illegal_path();
+            result = &stmt_illegal;
+            fatal(p->lex.pos.name, p->lex.pos.row, "unbekanntes token aufgetreten: %s", tokenkind_to_str(p->lex.token.kind));
         }
     } else if ( match_token(p, T_VAR_BEGIN) ) {
         result = parse_stmt_var(p);
     } else {
         result = parse_stmt_lit(p);
+    }
+
+    if ( result ) {
+        result->pos = pos;
     }
 
     return result;
@@ -1046,7 +1056,7 @@ parse_file(char *filename) {
             }
         }
     } else {
-        fatal("konnte datei %s nicht lesen", filename);
+        fatal(0, 0, "konnte datei %s nicht lesen", filename);
     }
 
     templ->num_stmts = buf_len(templ->stmts);

@@ -13,16 +13,23 @@ main(int argc, char **argv) {
     templ_var_set(address, "street", "siegerstr. 2");
 
     Templ_Var *user = templ_var("user");
-    templ_var_set(user, "name", "Noob");
+    templ_var_set(user, "name", "noob");
     templ_var_set(user, "age", 25);
     templ_var_set(user, "address", address);
 
     buf_push(vars, user);
 
-    Parsed_Templ *templ = templ_compile_string("hallo {{ user.name }}");
-    char *result = templ_render(templ, vars, buf_len(vars));
+    Parsed_Templ *templ1 = templ_compile_string("servus {{ user.name }} in {{ user.address.city }}");
+    char *result1 = templ_render(templ1, vars, buf_len(vars));
 
-    file_write("test.html", result, strlen(result));
+    if ( !status_is_error() ) {
+        file_write("test.html", result1, strlen(result1));
+    } else {
+        fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
+        status_reset();
+    }
+
+    templ_reset();
 
     return 0;
 }

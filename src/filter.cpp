@@ -91,12 +91,17 @@ internal_proc FILTER_CALLBACK(filter_format) {
                     Resolved_Arg *arg = args[num_arg];
 
                     if ( arg->val->kind != VAL_STR ) {
-                        fatal("der datentyp des übergebenen arguments %s muss string sein", arg->name);
+                        fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss string sein", arg->name);
                     }
 
                     result = strf("%s%s", result, val_to_char(arg->val));
                 } else {
-                    warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    if ( num_args ) {
+                        Resolved_Arg *arg = args[0];
+                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_args);
+                    } else {
+                        warn(0, 0, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    }
                     break;
                 }
 
@@ -106,12 +111,17 @@ internal_proc FILTER_CALLBACK(filter_format) {
                     Resolved_Arg *arg = args[num_arg];
 
                     if ( arg->val->kind != VAL_INT ) {
-                        fatal("der datentyp des übergebenen arguments %s muss int sein", arg->name);
+                        fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss int sein", arg->name);
                     }
 
                     result = strf("%s%s", result, val_to_char(arg->val));
                 } else {
-                    warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    if ( num_args ) {
+                        Resolved_Arg *arg = args[0];
+                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_args);
+                    } else {
+                        warn(0, 0, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    }
                     break;
                 }
 
@@ -121,12 +131,17 @@ internal_proc FILTER_CALLBACK(filter_format) {
                     Resolved_Arg *arg = args[num_arg];
 
                     if ( arg->val->kind != VAL_FLOAT ) {
-                        fatal("der datentyp des übergebenen arguments %s muss float sein", arg->name);
+                        fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss float sein", arg->name);
                     }
 
                     result = strf("%s%.*f", result, size, val_float(arg->val));
                 } else {
-                    warn("anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    if ( num_args ) {
+                        Resolved_Arg *arg = args[0];
+                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_args);
+                    } else {
+                        warn(0, 0, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
+                    }
                     break;
                 }
 

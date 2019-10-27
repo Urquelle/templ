@@ -1068,15 +1068,24 @@ sym_get(char *name) {
     return 0;
 }
 
+internal_proc void
+sym_clear() {
+    for ( Scope *scope = current_scope; scope; scope = scope->parent ) {
+        map_reset(&scope->syms);
+    }
+}
+
 internal_proc Sym *
 sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
     name = intern_str(name);
 
     Sym *sym = (Sym *)map_get(&current_scope->syms, name);
     if ( sym && sym->scope == current_scope ) {
-        fatal("symbol existiert bereits");
+        /* @AUFGABE: datei und zeile */
+        fatal(0, 0, "symbol %s existiert bereits", name);
     } else if ( sym ) {
-        fatal("warnung: symbol wird überschattet");
+        /* @AUFGABE: datei und zeile */
+        warn(0, 0, "symbol %s wird überschattet", name);
     }
 
     Sym *result = sym_new(kind, name, type, val);
@@ -1120,12 +1129,13 @@ sym_push_module(char *name, Type *type) {
 /* }}} */
 /* resolved_arg {{{ */
 struct Resolved_Arg {
+    Pos pos;
     char *name;
     Val *val;
 };
 
 internal_proc Resolved_Arg *
-resolved_arg(char *name, Val *val) {
+resolved_arg(Pos pos, char *name, Val *val) {
     Resolved_Arg *result = ALLOC_STRUCT(&resolve_arena, Resolved_Arg);
 
     result->name = name;
@@ -1155,6 +1165,7 @@ resolved_filter(Resolved_Arg **args, size_t num_args, Filter_Callback *proc) {
 /* resolved_expr {{{ */
 struct Resolved_Expr {
     Expr_Kind kind;
+    Pos pos;
     Type *type;
     Sym *sym;
     Val *val;
@@ -1259,6 +1270,8 @@ struct Resolved_Expr {
         } expr_dict;
     };
 };
+
+global_var Resolved_Expr resolved_expr_illegal = { EXPR_NONE };
 
 internal_proc Resolved_Expr *
 resolved_expr_new(Expr_Kind kind, Type *type = 0) {
@@ -1477,6 +1490,7 @@ resolved_expr_dict(Map *map, char **keys, size_t num_keys, Val *val) {
 /* resolved_stmt {{{ */
 struct Resolved_Stmt {
     Stmt_Kind kind;
+    Pos pos;
 
     union {
         struct {
@@ -1865,6 +1879,7 @@ resolve_name(char *name) {
 internal_proc Resolved_Stmt *
 resolve_stmt(Stmt *stmt) {
     Resolved_Stmt *result = 0;
+    Pos pos = stmt->pos;
 
     switch (stmt->kind) {
         case STMT_VAR: {
@@ -2026,7 +2041,7 @@ resolve_stmt(Stmt *stmt) {
                 sym = sym_push_var(stmt->stmt_set.name, expr->type, val_copy(expr->val));
             } else {
                 if ( !convert_operand(expr, sym->type) ) {
-                    fatal("datentyp des operanden passt nicht");
+                    fatal(stmt->pos.name, stmt->pos.row, "datentyp des operanden passt nicht");
                 }
             }
 
@@ -2142,10 +2157,18 @@ resolve_stmt(Stmt *stmt) {
             }
         } break;
 
+        case STMT_NONE: {
+            /* nichts tun */
+        } break;
+
         default: {
             illegal_path();
             return result;
         } break;
+    }
+
+    if ( result ) {
+        result->pos = pos;
     }
 
     return result;
@@ -2157,7 +2180,7 @@ resolve_expr_cond(Expr *expr) {
 
     /* @AUFGABE: int, str akzeptieren */
     if ( result->type != type_bool ) {
-        fatal("boolischen ausdruck erwartet");
+        fatal(expr->pos.name, expr->pos.row, "boolischen ausdruck erwartet");
     }
 
     return result;
@@ -2179,7 +2202,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    fatal("nicht unterstützer datentyp");
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -2197,7 +2220,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    fatal("nicht unterstützer datentyp");
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -2215,7 +2238,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    fatal("nicht unterstützer datentyp");
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -2233,7 +2256,7 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
                 } break;
 
                 default: {
-                    fatal("nicht unterstützer datentyp");
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
                 } break;
             }
         } break;
@@ -2244,13 +2267,13 @@ eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
 
 internal_proc Resolved_Expr *
 resolve_expr(Expr *expr) {
-    Resolved_Expr *result = 0;
+    Resolved_Expr *result = &resolved_expr_illegal;
 
     switch (expr->kind) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
             if ( !sym ) {
-                fatal("konnte symbol %s nicht auflösen", expr->expr_name.value);
+                fatal(expr->pos.name, expr->pos.row, "konnte symbol %s nicht auflösen", expr->expr_name.value);
             }
 
             result = resolved_expr_name(sym, sym->type, sym->val);
@@ -2308,7 +2331,7 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *right  = resolve_expr(expr->expr_ternary.right);
 
             if ( middle->type != right->type ) {
-                fatal("beide datentypen der zuweisung müssen gleich sein");
+                fatal(left->pos.name, left->pos.row, "beide datentypen der zuweisung müssen gleich sein");
             }
 
             result = operand_rvalue(middle->type);
@@ -2349,11 +2372,11 @@ resolve_expr(Expr *expr) {
                 unify_arithmetic_operands(left, right);
 
                 if ( !is_int(left->type) ) {
-                    fatal("range typ muss vom typ int sein");
+                    fatal(left->pos.name, left->pos.row, "range typ muss vom typ int sein");
                 }
 
                 if ( !is_int(right->type) ) {
-                    fatal("range typ muss vom typ int sein");
+                    fatal(right->pos.name, right->pos.row, "range typ muss vom typ int sein");
                 }
 
                 int min = val_int(left->val);
@@ -2374,7 +2397,7 @@ resolve_expr(Expr *expr) {
             Type *type = call_expr->type;
 
             if ( !is_callable(type) ) {
-                fatal("aufruf einer nicht-prozedur");
+                fatal(call_expr->pos.name, call_expr->pos.row, "aufruf einer nicht-prozedur");
             }
 
             if ( type->type_proc.variadic ) {
@@ -2384,7 +2407,7 @@ resolve_expr(Expr *expr) {
                     Arg *arg = expr->expr_call.args[i];
 
                     Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
-                    Resolved_Arg *rarg = resolved_arg(0, arg_expr->val);
+                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->val);
                     buf_push(args, rarg);
                 }
 
@@ -2394,7 +2417,7 @@ resolve_expr(Expr *expr) {
                 for ( size_t i = type->type_proc.num_params; i < expr->expr_call.num_args; ++i ) {
                     Arg *arg = expr->expr_call.args[i];
                     Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-                    Resolved_Arg *rarg = resolved_arg(0, arg_expr->val);
+                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->val);
                     buf_push(varargs, rarg);
                 }
 
@@ -2402,7 +2425,7 @@ resolve_expr(Expr *expr) {
                     Type_Field *param = type->type_proc.params[i];
 
                     if ( !param->default_value && (i >= expr->expr_call.num_args) ) {
-                        fatal("zu wenige parameter übergeben");
+                        fatal(expr->pos.name, expr->pos.row, "zu wenige parameter übergeben");
                     }
                 }
 
@@ -2419,7 +2442,7 @@ resolve_expr(Expr *expr) {
                     }
 
                     if ( !arg->name && must_be_named ) {
-                        fatal("nach benamten parameter müssen alle folgende parameter benamt sein");
+                        fatal(expr->pos.name, expr->pos.row, "nach benamten parameter müssen alle folgende parameter benamt sein");
                     }
 
                     b32 found = false;
@@ -2436,19 +2459,19 @@ resolve_expr(Expr *expr) {
                     }
 
                     if ( !found ) {
-                        fatal("kein argument mit der bezeichnung %s gefunden", arg->name);
+                        fatal(expr->pos.name, expr->pos.row, "kein argument mit der bezeichnung %s gefunden", arg->name);
                     }
 
                     for ( int j = 0; j < buf_len(params); ++j ) {
                         if ( name == params[j] ) {
-                            fatal("parameter %s wurde bereits gesetzt", name);
+                            fatal(expr->pos.name, expr->pos.row, "parameter %s wurde bereits gesetzt", name);
                         }
                     }
 
                     buf_push(params, name);
 
                     Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-                    Resolved_Arg *rarg = resolved_arg(name, arg_expr->val);
+                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, name, arg_expr->val);
                     buf_push(args, rarg);
                 }
 
@@ -2484,13 +2507,13 @@ resolve_expr(Expr *expr) {
             assert(type->kind == TYPE_TEST);
 
             if ( type->type_test.num_params != expr->expr_is.num_args+1 ) {
-                fatal("falsche anzahl übergebener parameter");
+                fatal(test_proc->pos.name, test_proc->pos.row, "falsche anzahl übergebener parameter");
             }
 
             Resolved_Expr **args = 0;
             Type_Field *param = type->type_test.params[0];
             if ( test_expr->type != param->type ) {
-                fatal("datentyp des arguments ist falsch");
+                fatal(test_expr->pos.name, test_expr->pos.row, "datentyp des arguments ist falsch");
             }
 
             for ( int i = 1; i < type->type_test.num_params; ++i ) {
@@ -2498,7 +2521,7 @@ resolve_expr(Expr *expr) {
 
                 Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
                 if (arg->type != param->type) {
-                    fatal("datentyp des arguments ist falsch");
+                    fatal(arg->pos.name, arg->pos.row, "datentyp des arguments ist falsch");
                 }
                 buf_push(args, arg);
             }
@@ -2558,7 +2581,7 @@ resolve_expr(Expr *expr) {
         } break;
 
         default: {
-            illegal_path();
+            fatal(expr->pos.name, expr->pos.row, "nicht unterstützter ausdruck");
         } break;
     }
 
@@ -2569,6 +2592,7 @@ resolve_expr(Expr *expr) {
 
     result->filters = filters;
     result->num_filters = buf_len(filters);
+    result->pos = expr->pos;
 
     return result;
 }
@@ -2578,7 +2602,7 @@ resolve_filter(Filter *filter) {
     Sym *sym = resolve_name(filter->name);
 
     if ( !sym ) {
-        fatal("symbol konnte nicht gefunden werden!");
+        fatal(filter->pos.name, filter->pos.row, "symbol %s konnte nicht gefunden werden!", filter->name);
     }
 
     size_t num_args = filter->num_args;
@@ -2592,27 +2616,27 @@ resolve_filter(Filter *filter) {
         for ( int i = 0; i < filter->num_args; ++i ) {
             Arg *arg = filter->args[i];
             Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-            buf_push(args, resolved_arg(arg->name, arg_expr->val));
+            buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->val));
         }
     } else {
         if ( type->type_filter.num_params-1 < num_args ) {
-            fatal("zu viele argumente");
+            fatal(filter->pos.name, filter->pos.row, "zu viele argumente: erwartet %d, bekommen %d", type->type_filter.num_params-1, num_args);
         }
 
         for ( int i = 1; i < type->type_filter.num_params; ++i ) {
             Type_Field *param = type->type_filter.params[i];
 
             if ( !param->default_value && (i-1 >= num_args) ) {
-                fatal("zu wenige parameter übergeben");
+                fatal(filter->pos.name, filter->pos.row, "zu wenige parameter übergeben");
             }
 
             if ( i-1 < num_args ) {
                 Arg *arg = filter->args[i-1];
                 Resolved_Expr *arg_expr = resolve_expr(arg->expr);
                 if (arg_expr->type != param->type) {
-                    fatal("datentyp des arguments stimmt nicht");
+                    fatal(arg_expr->pos.name, arg_expr->pos.row, "datentyp des arguments stimmt nicht");
                 }
-                buf_push(args, resolved_arg(arg->name, arg_expr->val));
+                buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->val));
             }
         }
     }
@@ -2625,7 +2649,7 @@ add_block(char *name, Resolved_Stmt *block) {
     Resolved_Stmt *entry = (Resolved_Stmt *)map_get(&current_templ->blocks, name);
 
     if ( entry ) {
-        fatal("block %s existiert bereits", name);
+        fatal(block->pos.name, block->pos.row, "block %s existiert bereits in %s zeile %lld", name, entry->pos.name, entry->pos.row);
     }
 
     map_put(&current_templ->blocks, name, block);
@@ -2684,7 +2708,12 @@ init_arenas() {
 }
 
 internal_proc void
-init_resolver() {
+resolver_reset() {
+    sym_clear();
+}
+
+internal_proc void
+resolver_init() {
     init_arenas();
     init_builtin_types();
     init_builtin_filter();

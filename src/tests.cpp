@@ -1,10 +1,12 @@
 internal_proc TEST_CALLBACK(test_callable) {
-    implement_me();
-    return false;
+    b32 result = is_callable(args[0]->type);
+
+    return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_defined) {
-    implement_me();
+    b32 result = args[0]->sym != 0;
+
     return false;
 }
 

@@ -14,14 +14,16 @@ ast_dup(void *src, size_t size) {
 }
 
 struct Arg {
+    Pos pos;
     char *name;
     Expr *expr;
 };
 
 internal_proc Arg *
-arg_new(char *name, Expr *expr) {
+arg_new(Pos pos, char *name, Expr *expr) {
     Arg *result = (Arg *)xcalloc(1, sizeof(Arg));
 
+    result->pos  = pos;
     result->name = name;
     result->expr = expr;
 
@@ -29,15 +31,17 @@ arg_new(char *name, Expr *expr) {
 }
 
 struct Filter {
+    Pos pos;
     char*  name;
     Arg **args;
     size_t num_args;
 };
 
 internal_proc Filter *
-filter_new(char *name, Arg **args, size_t num_args) {
+filter_new(Pos pos, char *name, Arg **args, size_t num_args) {
     Filter *result = (Filter *)xcalloc(1, sizeof(Filter));
 
+    result->pos  = pos;
     result->name = name;
     result->args = args;
     result->num_args = num_args;
@@ -70,8 +74,8 @@ enum Expr_Kind {
 };
 
 struct Expr {
-    Pos pos;
     Expr_Kind kind;
+    Pos pos;
     Filter **filters;
     size_t num_filters;
 
@@ -177,6 +181,8 @@ struct Expr {
         } expr_dict;
     };
 };
+
+global_var Expr expr_illegal = {EXPR_NONE};
 
 internal_proc Expr *
 expr_new(Expr_Kind kind) {
@@ -444,6 +450,7 @@ enum Stmt_Kind {
 
 struct Stmt {
     Stmt_Kind kind;
+    Pos pos;
 
     union {
         struct {
@@ -530,6 +537,8 @@ struct Stmt {
         } stmt_raw;
     };
 };
+
+global_var Stmt stmt_illegal = { STMT_NONE };
 
 internal_proc Stmt *
 stmt_new(Stmt_Kind kind) {
