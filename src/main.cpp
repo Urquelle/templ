@@ -1,9 +1,9 @@
 #include "templ.cpp"
 
-using namespace templ;
-
 int
 main(int argc, char **argv) {
+    using namespace templ::api;
+
     templ_init(MB(100), MB(100), MB(100));
 
     Templ_Var **vars = 0;
