@@ -1406,6 +1406,7 @@ resolved_expr_list(Resolved_Expr **expr, size_t num_expr, Val *val) {
     Resolved_Expr *result = resolved_expr_new(EXPR_LIST);
 
     result->val = val;
+    result->type = type_list;
     result->expr_list.expr = expr;
     result->expr_list.num_expr = num_expr;
 
@@ -2449,7 +2450,7 @@ resolve_expr(Expr *expr) {
 
             Resolved_Expr **args = 0;
             Type_Field *param = type->type_test.params[0];
-            if ( test_expr->type != param->type ) {
+            if ( param->type != type_any && test_expr->type != param->type ) {
                 fatal(test_expr->pos.name, test_expr->pos.row, "datentyp des arguments ist falsch");
             }
 
@@ -2457,9 +2458,15 @@ resolve_expr(Expr *expr) {
                 param = type->type_test.params[i];
 
                 Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
+
+                /* @ACHTUNG: 'in ...' sollte als eigene expr geparst werden anstelle von
+                             aktueller version, in der x in ... geparst wird
+
                 if (arg->type != param->type) {
                     fatal(arg->pos.name, arg->pos.row, "datentyp des arguments ist falsch");
                 }
+                */
+
                 buf_push(args, arg);
             }
 
@@ -2621,6 +2628,7 @@ resolve_init_builtin_tests() {
     Type_Field *str_type[]  = { type_field("s",    type_str) };
     Type_Field *int_type[]  = { type_field("s",    type_int) };
     Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
+    Type_Field *any_type[]  = { type_field("s",    type_any) };
 
     sym_push_test("callable",    type_test(str_type,  1, test_callable));
     sym_push_test("defined",     type_test(str_type,  1, test_defined));
@@ -2630,6 +2638,7 @@ resolve_init_builtin_tests() {
     sym_push_test("even",        type_test(int_type,  1, test_even));
     sym_push_test("ge",          type_test(int2_type, 2, test_ge));
     sym_push_test("gt",          type_test(int2_type, 2, test_gt));
+    sym_push_test("in",          type_test(any_type,  2, test_in));
 }
 
 internal_proc void

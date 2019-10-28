@@ -50,8 +50,21 @@ internal_proc TEST_CALLBACK(test_gt) {
 }
 
 internal_proc TEST_CALLBACK(test_in) {
-    implement_me();
+    Val *set = args[0]->val;
 
-    return val_bool(false);
+    if ( !set || set->kind != VAL_LIST ) {
+        return val_bool(false);
+    }
+
+    b32 found = false;
+    for ( int i = 0; i < set->len; ++i ) {
+        Val *it = val_item(set, i);
+
+        if ( *it == *val ) {
+            found = true;
+            break;
+        }
+    }
+
+    return val_bool(found);
 }
-

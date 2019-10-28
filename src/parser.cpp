@@ -255,10 +255,10 @@ parse_expr_base(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_field_or_call_or_index(Parser *p) {
+parse_expr_field_or_call(Parser *p) {
     Expr *left = parse_expr_base(p);
 
-    while ( is_token(p, T_LPAREN) || is_token(p, T_LBRACKET) || is_token(p, T_DOT) ) {
+    while ( is_token(p, T_LPAREN) || is_token(p, T_DOT) ) {
         if ( match_token(p, T_LPAREN) ) {
             Arg **args = 0;
 
@@ -291,20 +291,6 @@ parse_expr_field_or_call_or_index(Parser *p) {
 
             expect_token(p, T_RPAREN);
             left = expr_call(left, args, buf_len(args));
-        } else if ( match_token(p, T_LBRACKET) ) {
-            Expr **index = 0;
-
-            buf_push(index, parse_expr(p));
-            while ( match_token(p, T_COMMA) ) {
-                buf_push(index, parse_expr(p));
-            }
-
-            if ( !index ) {
-                fatal(left->pos.name, left->pos.row, "index darf nicht leer sein");
-            }
-
-            left = expr_index(left, index, buf_len(index));
-            expect_token(p, T_RBRACKET);
         } else if ( match_token(p, T_DOT) ) {
             char *field = p->lex.token.name;
             expect_token(p, T_NAME);
@@ -336,7 +322,7 @@ parse_expr_list(Parser *p) {
 
         return result;
     } else {
-        return parse_expr_field_or_call_or_index(p);
+        return parse_expr_field_or_call(p);
     }
 }
 

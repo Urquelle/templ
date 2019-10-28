@@ -93,6 +93,9 @@
         <li>{{ it }}</li>
     {% endfor %}
 
+    {% if "a" is in ["c", "b", "a"] %}
+    {% endif %}
+
     <h2>set anweisung</h2>
     {% set a = "test" %}
     <div class="bla">{{ a }}</div>
