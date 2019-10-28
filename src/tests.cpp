@@ -75,3 +75,9 @@ internal_proc TEST_CALLBACK(test_iterable) {
     return val_bool(result);
 }
 
+internal_proc TEST_CALLBACK(test_le) {
+    b32 result = val_int(val) <= val_int(args[0]->val);
+
+    return val_bool(result);
+}
+

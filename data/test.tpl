@@ -99,6 +99,9 @@
     {% if シ个 is iterable %}
     {% endif %}
 
+    {% if 5 is le 3 %}
+    {% endif %}
+
     <h2>set anweisung</h2>
     {% set a = "test" %}
     <div class="bla">{{ a }}</div>
