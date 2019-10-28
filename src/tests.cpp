@@ -11,9 +11,9 @@ internal_proc TEST_CALLBACK(test_defined) {
 }
 
 internal_proc TEST_CALLBACK(test_divisibleby) {
-    implement_me();
+    b32 result = (val_int(val) % val_int(args[0]->val)) == 0;
 
-    return val_bool(false);
+    return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_eq) {
