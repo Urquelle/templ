@@ -474,8 +474,10 @@ PROC_CALLBACK(cycle) {
 
 internal_proc void
 exec_reset() {
-    free(gen_result);
-    gen_result = "";
+    if ( gen_result && _mbstrlen(gen_result) ) {
+        free(gen_result);
+        gen_result = "";
+    }
 }
 
 internal_proc void

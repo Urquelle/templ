@@ -370,8 +370,7 @@ is_eql(Token_Kind kind) {
 
 internal_proc b32
 is_alpha(Lexer *lex) {
-    wchar_t z = utf8_char_to_wchar(lex->input);
-    b32 result = std::isalpha(z, std::locale());
+    b32 result = ( at0(lex) >= 'a' && at0(lex) <= 'z' || at0(lex) >= 'A' && at0(lex) <= 'Z' || (uint8_t)at0(lex) >= 0xC0 );
 
     return result;
 }
