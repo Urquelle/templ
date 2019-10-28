@@ -32,9 +32,9 @@ internal_proc TEST_CALLBACK(test_escaped) {
 }
 
 internal_proc TEST_CALLBACK(test_even) {
-    implement_me();
+    b32 result = (val_int(val) & 0x1) != 0x1;
 
-    return val_bool(false);
+    return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_ge) {
