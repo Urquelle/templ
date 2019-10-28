@@ -38,9 +38,9 @@ internal_proc TEST_CALLBACK(test_even) {
 }
 
 internal_proc TEST_CALLBACK(test_ge) {
-    implement_me();
+    b32 result = val_int(val) >= val_int(args[0]->val);
 
-    return val_bool(false);
+    return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_gt) {
