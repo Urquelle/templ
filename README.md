@@ -93,7 +93,7 @@ verwendung in `for` schleifen direkt angegeben werden.
 tupel werden unterstützt. überflüssiges komma nach dem letzten element wird geschluckt.
 
 ```jinja2
-['name': 'adam', 'alter': '30']
+{'name': 'adam', 'alter': '30'}
 ```
 
 dictionaries werden noch nicht in vollem umfang unterstützt.
@@ -161,13 +161,13 @@ als *bedingung* können ausdrücke verwendet werden, die als resultat einen bool
 
 ```jinja2
 {% block <name> %}
-{% endblock %}
+{% endblock <name> %}
 ```
 
 ### include
 
 ```jinja2
-{% include "<template>" %}
+{% include "<template>" <if ausdruck> %}
 ```
 
 ### import
@@ -186,7 +186,8 @@ als *bedingung* können ausdrücke verwendet werden, die als resultat einen bool
 ### filter
 
 ```jinja2
-{% filter %}
+{% filter <name1> | <name2> %}
+    <anweisungen>
 {% endfilter %}
 ```
 
