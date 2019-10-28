@@ -2419,6 +2419,7 @@ resolve_expr(Expr *expr) {
 
         case EXPR_INDEX: {
             implement_me();
+            /* @AUFGABE: index zu subscript umbenennen und wieder aktivieren */
 
             /*
             Resolved_Expr *resolved_expr = resolve_expr(expr->expr_index.expr);
@@ -2455,17 +2456,22 @@ resolve_expr(Expr *expr) {
             }
 
             for ( int i = 1; i < type->type_test.num_params; ++i ) {
+                /* @ACHTUNG: 'in ...' sollte als eigene expr geparst werden anstelle von
+                             aktueller version, in der x in ... geparst wird
+                 */
+#if 1
+                Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
+#else
                 param = type->type_test.params[i];
 
                 Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
 
-                /* @ACHTUNG: 'in ...' sollte als eigene expr geparst werden anstelle von
-                             aktueller version, in der x in ... geparst wird
 
                 if (arg->type != param->type) {
                     fatal(arg->pos.name, arg->pos.row, "datentyp des arguments ist falsch");
                 }
                 */
+#endif
 
                 buf_push(args, arg);
             }
