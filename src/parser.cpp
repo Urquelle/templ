@@ -1,3 +1,5 @@
+#define SUBSCRIPT_ACTIVE 0
+
 struct Parser {
     Lexer lex;
 };
@@ -255,53 +257,6 @@ parse_expr_base(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_field_or_call(Parser *p) {
-    Expr *left = parse_expr_base(p);
-
-    while ( is_token(p, T_LPAREN) || is_token(p, T_DOT) ) {
-        if ( match_token(p, T_LPAREN) ) {
-            Arg **args = 0;
-
-            if ( !is_token(p, T_RPAREN) ) {
-                char *name = 0;
-                Expr *expr = parse_expr(p);
-
-                /* @AUFGABE: in ein do-while umformen */
-                if ( match_token(p, T_ASSIGN) ) {
-                    assert(expr->kind == EXPR_NAME);
-                    name = expr->expr_name.value;
-                    expr = parse_expr(p);
-                }
-
-                buf_push(args, arg_new(expr->pos, name, expr));
-
-                while ( match_token(p, T_COMMA) ) {
-                    name = 0;
-                    expr = parse_expr(p);
-
-                    if ( match_token(p, T_ASSIGN) ) {
-                        assert(expr->kind == EXPR_NAME);
-                        name = expr->expr_name.value;
-                        expr = parse_expr(p);
-                    }
-
-                    buf_push(args, arg_new(expr->pos, name, expr));
-                }
-            }
-
-            expect_token(p, T_RPAREN);
-            left = expr_call(left, args, buf_len(args));
-        } else if ( match_token(p, T_DOT) ) {
-            char *field = p->lex.token.name;
-            expect_token(p, T_NAME);
-            left = expr_field(left, field);
-        }
-    }
-
-    return left;
-}
-
-internal_proc Expr *
 parse_expr_list(Parser *p) {
     if ( match_token(p, T_LBRACKET) ) {
         Expr **expr = 0;
@@ -322,8 +277,54 @@ parse_expr_list(Parser *p) {
 
         return result;
     } else {
-        return parse_expr_field_or_call(p);
+        return parse_expr_base(p);
     }
+}
+
+internal_proc Expr *
+parse_expr_field_or_call_or_subscript(Parser *p) {
+    Expr *left = parse_expr_list(p);
+
+#if SUBSCRIPT_ACTIVE
+    while ( is_token(p, T_LPAREN) || is_token(p, T_LBRACKET) ||
+            is_token(p, T_DOT) )
+#else
+    while ( is_token(p, T_LPAREN) || is_token(p, T_DOT) )
+#endif
+    {
+        if ( match_token(p, T_LPAREN) ) {
+            Arg **args = 0;
+
+            if ( !is_token(p, T_RPAREN) ) {
+                do {
+                    char *name = 0;
+                    Expr *expr = parse_expr(p);
+
+                    if ( match_token(p, T_ASSIGN) ) {
+                        assert(expr->kind == EXPR_NAME);
+                        name = expr->expr_name.value;
+                        expr = parse_expr(p);
+                    }
+
+                    buf_push(args, arg_new(expr->pos, name, expr));
+                } while ( match_token(p, T_COMMA) );
+            }
+
+            expect_token(p, T_RPAREN);
+            left = expr_call(left, args, buf_len(args));
+#if SUBSCRIPT_ACTIVE
+        } else if ( match_token(p, T_LBRACKET ) ) {
+            left = expr_subscript(left, parse_expr(p));
+            expect_token(p, T_RBRACKET);
+#endif
+        } else if ( match_token(p, T_DOT) ) {
+            char *field = p->lex.token.name;
+            expect_token(p, T_NAME);
+            left = expr_field(left, field);
+        }
+    }
+
+    return left;
 }
 
 internal_proc Expr *
@@ -332,7 +333,7 @@ parse_expr_unary(Parser *p) {
         Token op = eat_token(&p->lex);
         return expr_unary(op.kind, parse_expr_unary(p));
     } else {
-        return parse_expr_list(p);
+        return parse_expr_field_or_call_or_subscript(p);
     }
 }
 

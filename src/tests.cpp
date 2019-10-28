@@ -68,3 +68,10 @@ internal_proc TEST_CALLBACK(test_in) {
 
     return val_bool(found);
 }
+
+internal_proc TEST_CALLBACK(test_iterable) {
+    b32 result = VAL_ITERABLE_START <= val->kind && val->kind <= VAL_ITERABLE_END;
+
+    return val_bool(result);
+}
+

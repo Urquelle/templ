@@ -61,7 +61,7 @@ enum Expr_Kind {
     EXPR_BINARY,
     EXPR_TERNARY,
     EXPR_FIELD,
-    EXPR_INDEX,
+    EXPR_SUBSCRIPT,
     EXPR_RANGE,
     EXPR_CALL,
     EXPR_IS,
@@ -128,9 +128,8 @@ struct Expr {
 
         struct {
             Expr *expr;
-            Expr **index;
-            size_t num_index;
-        } expr_index;
+            Expr *index;
+        } expr_subscript;
 
         struct {
             Expr *left;
@@ -290,12 +289,11 @@ expr_field(Expr *expr, char *field) {
 }
 
 internal_proc Expr *
-expr_index(Expr *expr, Expr **index, size_t num_index) {
-    Expr *result = expr_new(EXPR_INDEX);
+expr_subscript(Expr *expr, Expr *index) {
+    Expr *result = expr_new(EXPR_SUBSCRIPT);
 
-    result->expr_index.expr = expr;
-    result->expr_index.index = index;
-    result->expr_index.num_index = num_index;
+    result->expr_subscript.expr  = expr;
+    result->expr_subscript.index = index;
 
     return result;
 }

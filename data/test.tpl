@@ -96,6 +96,9 @@
     {% if "a" is in ["c", "b", "a"] %}
     {% endif %}
 
+    {% if シ个 is iterable %}
+    {% endif %}
+
     <h2>set anweisung</h2>
     {% set a = "test" %}
     <div class="bla">{{ a }}</div>

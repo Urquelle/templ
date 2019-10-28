@@ -39,6 +39,7 @@ internal_proc TEST_CALLBACK(test_even);
 internal_proc TEST_CALLBACK(test_ge);
 internal_proc TEST_CALLBACK(test_gt);
 internal_proc TEST_CALLBACK(test_in);
+internal_proc TEST_CALLBACK(test_iterable);
 
 global_var Resolved_Templ *current_templ;
 global_var Arena           resolve_arena;
@@ -96,9 +97,11 @@ enum Val_Kind {
     VAL_INT,
     VAL_FLOAT,
     VAL_STR,
+    VAL_ITERABLE_START = VAL_STR,
     VAL_RANGE,
     VAL_TUPLE,
     VAL_LIST,
+    VAL_ITERABLE_END = VAL_LIST,
 };
 
 struct Val {
@@ -1146,9 +1149,8 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *expr;
-            Resolved_Expr **index;
-            size_t num_index;
-        } expr_index;
+            Resolved_Expr *index;
+        } expr_subscript;
 
         struct {
             Token_Kind op;
@@ -1380,12 +1382,11 @@ resolved_expr_if(Resolved_Expr *cond, Resolved_Expr *else_expr) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_index(Resolved_Expr *expr, Resolved_Expr **index, size_t num_index) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_INDEX);
+resolved_expr_subscript(Resolved_Expr *expr, Resolved_Expr *index) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_SUBSCRIPT);
 
-    result->expr_index.expr = expr;
-    result->expr_index.index = index;
-    result->expr_index.num_index = num_index;
+    result->expr_subscript.expr  = expr;
+    result->expr_subscript.index = index;
 
     return result;
 }
@@ -2417,11 +2418,16 @@ resolve_expr(Expr *expr) {
             }
         } break;
 
-        case EXPR_INDEX: {
-            implement_me();
-            /* @AUFGABE: index zu subscript umbenennen und wieder aktivieren */
-
+        case EXPR_SUBSCRIPT: {
             /*
+               @AUFGABE: index zu subscript umbenennen und wieder aktivieren
+             */
+#if 1
+            Resolved_Expr *resolved_expr  = resolve_expr(expr->expr_subscript.expr);
+            Resolved_Expr *resolved_index = resolve_expr(expr->expr_subscript.index);
+
+            result = resolved_expr_subscript(resolved_expr, resolved_index);
+#else
             Resolved_Expr *resolved_expr = resolve_expr(expr->expr_index.expr);
             if (resolved_expr->type->kind != TYPE_ARRAY) {
                 fatal("indizierung auf einem nicht-array");
@@ -2433,7 +2439,7 @@ resolve_expr(Expr *expr) {
             }
 
             result = resolved_expr_index(resolved_expr, index, buf_len(index));
-            */
+#endif
         } break;
 
         case EXPR_IS: {
@@ -2645,6 +2651,7 @@ resolve_init_builtin_tests() {
     sym_push_test("ge",          type_test(int2_type, 2, test_ge));
     sym_push_test("gt",          type_test(int2_type, 2, test_gt));
     sym_push_test("in",          type_test(any_type,  2, test_in));
+    sym_push_test("iterable",    type_test(any_type,  1, test_iterable));
 }
 
 internal_proc void
