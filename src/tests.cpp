@@ -1,5 +1,5 @@
 internal_proc TEST_CALLBACK(test_callable) {
-    b32 result = is_callable(args[0]->type);
+    b32 result = type_is_callable(args[0]->type);
 
     return val_bool(result);
 }

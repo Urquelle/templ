@@ -326,12 +326,10 @@ exec_stmt(Resolved_Stmt *stmt) {
             Resolved_Stmt *block = (Resolved_Stmt *)map_get(&global_current_tmpl->blocks, stmt->stmt_block.name);
             if ( block ) {
                 global_super_block = stmt;
-                genf("<!-- kindtemplate inhalt -->");
             } else {
                 block = stmt;
             }
 
-            genlnf("<!-- %s -->", block->stmt_block.name);
             genln();
 
             for ( int i = 0; i < block->stmt_block.num_stmts; ++i ) {
@@ -351,9 +349,8 @@ exec_stmt(Resolved_Stmt *stmt) {
                 val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
 
                 for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
-                    /* @ACHTUNG: vorerst nur unterstützung für eine iterationsvariable */
                     for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
-                        stmt->stmt_for.vars[i]->val = it.val;
+                        stmt->stmt_for.vars[i]->val = val_field(it.val, i);
                     }
 
                     val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));

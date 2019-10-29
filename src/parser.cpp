@@ -140,7 +140,7 @@ expect_token(Parser *p, Token_Kind kind) {
 
 internal_proc b32
 is_keyword(Parser *p, char *expected_keyword) {
-    if ( p->lex.token.name == expected_keyword ) {
+    if ( is_token(p, T_NAME) && p->lex.token.name == expected_keyword ) {
         return true;
     }
 

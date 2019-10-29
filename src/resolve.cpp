@@ -50,6 +50,8 @@ struct Scope {
     char*  name;
     Scope* parent;
     Map    syms;
+    Sym  **sym_list;
+    size_t num_syms;
 };
 
 global_var Scope global_scope;
@@ -59,6 +61,7 @@ internal_proc Scope *
 scope_new(Scope *parent, char *name = NULL) {
     Scope *result = ALLOC_STRUCT(&resolve_arena, Scope);
 
+    result->sym_list = 0;
     result->name   = name;
     result->parent = parent;
     result->syms   = {};
@@ -394,6 +397,22 @@ val_item(Val *val, int idx) {
     }
 
     return 0;
+}
+
+internal_proc Val *
+val_field(Val *val, int idx) {
+    switch ( val->kind ) {
+        case VAL_RANGE:
+        case VAL_LIST:
+        case VAL_TUPLE:
+        case VAL_STR: {
+            return val_item(val, idx);
+        } break;
+
+        default: {
+            return val;
+        } break;
+    }
 }
 
 internal_proc Val
@@ -817,12 +836,21 @@ enum Type_Kind {
 
     TYPE_COUNT,
 };
-
+enum Type_Flags {
+    TYPE_FLAGS_NONE     = 0x0,
+    TYPE_FLAGS_CALLABLE = 0x1,
+    TYPE_FLAGS_CONST    = 0x2,
+};
 struct Type {
     Type_Kind kind;
     s64 size;
+    u32 flags;
 
     union {
+        struct {
+            size_t num_elems;
+        } type_tuple;
+
         struct {
             Type_Field **params;
             size_t num_params;
@@ -858,6 +886,10 @@ struct Type {
             char *name;
             Scope *scope;
         } type_module;
+
+        struct {
+            Scope *scope;
+        } type_dict;
     };
 };
 
@@ -868,8 +900,6 @@ global_var Type *type_bool;
 global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
-global_var Type *type_dict;
-global_var Type *type_tuple;
 global_var Type *type_list;
 global_var Type *type_any;
 
@@ -886,10 +916,23 @@ type_new(Type_Kind kind) {
 }
 
 internal_proc Type *
+type_tuple(size_t num_elems) {
+    Type *result = type_new(TYPE_TUPLE);
+
+    result->flags = TYPE_FLAGS_CONST;
+
+    result->type_tuple.num_elems = num_elems;
+
+    return result;
+}
+
+internal_proc Type *
 type_proc(Type_Field **params, size_t num_params, Type *ret,
         Proc_Callback *callback = 0, b32 variadic = false)
 {
     Type *result = type_new(TYPE_PROC);
+
+    result->flags = TYPE_FLAGS_CALLABLE|TYPE_FLAGS_CONST;
 
     result->size = PTR_SIZE;
     result->type_proc.params = (Type_Field **)AST_DUP(params);
@@ -905,6 +948,8 @@ internal_proc Type *
 type_macro(Type_Field **params, size_t num_params, Type *ret) {
     Type *result = type_new(TYPE_MACRO);
 
+    result->flags = TYPE_FLAGS_CALLABLE|TYPE_FLAGS_CONST;
+
     result->size = PTR_SIZE;
     result->type_macro.params = (Type_Field **)AST_DUP(params);
     result->type_macro.num_params = num_params;
@@ -918,6 +963,8 @@ type_filter(Type_Field **params, size_t num_params, Type *ret,
         Filter_Callback *callback, b32 variadic = false)
 {
     Type *result = type_new(TYPE_FILTER);
+
+    result->flags = TYPE_FLAGS_CALLABLE|TYPE_FLAGS_CONST;
 
     result->size = PTR_SIZE;
     result->type_filter.params = (Type_Field **)AST_DUP(params);
@@ -933,6 +980,8 @@ internal_proc Type *
 type_test(Type_Field **params, size_t num_params, Test_Callback *callback) {
     Type *result = type_new(TYPE_TEST);
 
+    result->flags = TYPE_FLAGS_CALLABLE|TYPE_FLAGS_CONST;
+
     result->size = PTR_SIZE;
     result->type_test.params = (Type_Field **)AST_DUP(params);
     result->type_test.num_params = num_params;
@@ -946,36 +995,69 @@ internal_proc Type *
 type_module(char *name, Scope *scope) {
     Type *result = type_new(TYPE_MODULE);
 
+    result->flags = TYPE_FLAGS_CONST;
+
     result->type_module.name = name;
     result->type_module.scope = scope;
 
     return result;
 }
 
+internal_proc Type *
+type_dict(Scope *scope, u32 flags = TYPE_FLAGS_NONE) {
+    Type *result = type_new(TYPE_DICT);
+
+    result->flags = flags;
+
+    result->type_dict.scope = scope;
+
+    return result;
+}
+
 internal_proc b32
-is_int(Type *type) {
+type_is_int(Type *type) {
     b32 result = (type->kind == TYPE_INT);
 
     return result;
 }
 
 internal_proc b32
-is_arithmetic(Type *type) {
+type_is_arithmetic(Type *type) {
     b32 result = TYPE_INT <= type->kind && type->kind <= TYPE_FLOAT;
 
     return result;
 }
 
 internal_proc b32
-is_scalar(Type *type) {
+type_is_scalar(Type *type) {
     b32 result = TYPE_BOOL <= type->kind && type->kind <= TYPE_FLOAT;
 
     return result;
 }
 
 internal_proc b32
-is_callable(Type *type) {
-    b32 result = ( type->kind == TYPE_PROC || type->kind == TYPE_FILTER || type->kind == TYPE_MACRO );
+type_is_callable(Type *type) {
+    b32 result = type->flags & TYPE_FLAGS_CALLABLE;
+
+    return result;
+}
+
+internal_proc size_t
+type_num_elems(Type *type) {
+    size_t result = 1;
+
+    switch ( type->kind ) {
+        case TYPE_TUPLE: {
+            result = type->type_tuple.num_elems;
+        } break;
+
+        case TYPE_LIST: {
+        } break;
+
+        case TYPE_DICT: {
+            result = type->type_dict.scope->num_syms;
+        } break;
+    }
 
     return result;
 }
@@ -1044,6 +1126,9 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
 
     Sym *result = sym_new(kind, name, type, val);
     map_put(&current_scope->syms, name, result);
+
+    buf_push(current_scope->sym_list, result);
+    current_scope->num_syms = buf_len(current_scope->sym_list);
 
     return result;
 }
@@ -1398,8 +1483,8 @@ resolved_expr_subscript(Resolved_Expr *expr, Resolved_Expr *index) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_tuple(Resolved_Expr **exprs, size_t num_exprs, Val *val) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_TUPLE);
+resolved_expr_tuple(Resolved_Expr **exprs, size_t num_exprs, Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_TUPLE, type);
 
     result->val = val;
     result->expr_tuple.exprs     = (Resolved_Expr **)AST_DUP(exprs);
@@ -1769,7 +1854,7 @@ operand_const(Type *type, Val *val) {
 
 internal_proc b32
 unify_arithmetic_operands(Resolved_Expr *left, Resolved_Expr *right) {
-    if ( is_arithmetic(left->type) && is_arithmetic(right->type) ) {
+    if ( type_is_arithmetic(left->type) && type_is_arithmetic(right->type) ) {
         Type *type  = arithmetic_result_type_table[left->type->kind][right->type->kind];
         left->type  = type;
         right->type = type;
@@ -1803,7 +1888,7 @@ convert_operand(Resolved_Expr *op, Type *dest_type) {
 
 internal_proc b32
 unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
-    if ( is_scalar(left->type) && is_scalar(right->type) ) {
+    if ( type_is_scalar(left->type) && type_is_scalar(right->type) ) {
         Type *type  = scalar_result_type_table[left->type->kind][right->type->kind];
 
         if ( type == type_void ) {
@@ -1856,15 +1941,13 @@ resolve_stmt(Stmt *stmt) {
             num_vars = buf_len(vars);
             Resolved_Expr *set = resolve_expr(stmt->stmt_for.set);
 
-#if 0
-            if ( num_vars > set->num_fields ) {
-                fatal(stmt->pos.name, stmt->pos.row, "zu viele iterationsvariablen: angegeben %d, aber nur %d stehen zur verfügung", num_vars, set->num_fields);
-            }
-#endif
-
             /* loop variablen {{{ */
-            Sym *loop = sym_push_var("loop", type_dict);
-            loop->scope = scope_enter();
+            Sym *loop = sym_push_var("loop", 0);
+            Scope *scope = scope_enter();
+            Type *type = type_dict(scope, TYPE_FLAGS_CALLABLE);
+
+            loop->scope = scope;
+            loop->type  = type;
 
             Type_Field *any_type[] = { type_field("s", type_any) };
 
@@ -2062,11 +2145,12 @@ resolve_stmt(Stmt *stmt) {
                 params[i]->sym = sym_push_var(params[i]->name, params[i]->type);
                 buf_push(param_names, val_str(params[i]->name));
             }
+            size_t num_param_names = buf_len(param_names);
 
             /* macro variablen {{{ */
-            sym_push_var("name",      type_str,   val_str(macro_name));
-            sym_push_var("arguments", type_tuple, val_tuple(param_names, buf_len(param_names)));
-            sym_push_var("varargs",   type_list,  &val_none);
+            sym_push_var("name",      type_str, val_str(macro_name));
+            sym_push_var("arguments", type_tuple(num_param_names), val_tuple(param_names, num_param_names));
+            sym_push_var("varargs",   type_list, &val_none);
             /* }}} */
 
             Resolved_Stmt **stmts = 0;
@@ -2330,14 +2414,14 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *left  = resolve_expr(expr->expr_range.left);
             Resolved_Expr *right = resolve_expr(expr->expr_range.right);
 
-            if ( is_arithmetic(left->type) && is_arithmetic(right->type) ) {
+            if ( type_is_arithmetic(left->type) && type_is_arithmetic(right->type) ) {
                 unify_arithmetic_operands(left, right);
 
-                if ( !is_int(left->type) ) {
+                if ( !type_is_int(left->type) ) {
                     fatal(left->pos.name, left->pos.row, "range typ muss vom typ int sein");
                 }
 
-                if ( !is_int(right->type) ) {
+                if ( !type_is_int(right->type) ) {
                     fatal(right->pos.name, right->pos.row, "range typ muss vom typ int sein");
                 }
 
@@ -2358,7 +2442,7 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *call_expr = resolve_expr(expr->expr_call.expr);
             Type *type = call_expr->type;
 
-            if ( !is_callable(type) ) {
+            if ( !type_is_callable(type) ) {
                 fatal(call_expr->pos.name, call_expr->pos.row, "aufruf einer nicht-prozedur");
             }
 
@@ -2541,7 +2625,8 @@ resolve_expr(Expr *expr) {
                 buf_push(exprs, rexpr);
             }
 
-            result = resolved_expr_tuple(exprs, buf_len(exprs), val_tuple(vals, buf_len(vals)));
+            size_t num_elems = buf_len(vals);
+            result = resolved_expr_tuple(exprs, buf_len(exprs), type_tuple(num_elems), val_tuple(vals, num_elems));
         } break;
 
         case EXPR_NOT: {
@@ -2694,12 +2779,6 @@ resolve_init_builtin_types() {
 
     type_str   = type_new(TYPE_STR);
     type_str->size = PTR_SIZE;
-
-    type_dict  = type_new(TYPE_DICT);
-    type_dict->size = sizeof(Map);
-
-    type_tuple = type_new(TYPE_TUPLE);
-    type_tuple->size = 0;
 
     type_list  = type_new(TYPE_LIST);
     type_list->size = 0;

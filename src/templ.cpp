@@ -122,7 +122,7 @@ templ_var_set(Templ_Var *var, char *key, b32 value) {
 user_api void
 templ_var_set(Templ_Var *var, char *key, Templ_Var *value) {
     Scope *prev_scope = scope_set(var->scope);
-    Sym *sym = sym_push_var(key, type_dict);
+    Sym *sym = sym_push_var(key, type_dict(value->scope));
     sym->scope = value->scope;
     scope_set(prev_scope);
 }
@@ -166,7 +166,7 @@ templ_render(Parsed_Templ *templ, Templ_Vars *vars = 0) {
             Templ_Var *var = vars->vars[i];
 
             if ( var->scope ) {
-                Sym *sym = sym_push_var(var->name, type_dict);
+                Sym *sym = sym_push_var(var->name, type_dict(var->scope));
                 sym->scope = var->scope;
             } else {
                 assert(var->val);

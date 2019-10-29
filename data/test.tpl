@@ -76,6 +76,12 @@
 
     {{ "name %s alter %d und %.2f" | format(user.name, user.age, 7.53) | upper }}
 
+    {{ "abcd"[0] }}
+
+    {% for eins, zwei in [("eins", "zwei"), ("drei", "vier")] %}
+        eins = {{ eins }} und zwei = {{ zwei }}
+    {% endfor %}
+
     <h2>from import macro</h2>
     {{ test_1() }}
     {{ test2() }}
