@@ -81,3 +81,9 @@ internal_proc TEST_CALLBACK(test_le) {
     return val_bool(result);
 }
 
+internal_proc TEST_CALLBACK(test_lt) {
+    b32 result = val_int(val) < val_int(args[0]->val);
+
+    return val_bool(result);
+}
+
