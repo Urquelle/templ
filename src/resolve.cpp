@@ -220,6 +220,13 @@ val_str(char *val, size_t len = 0) {
     return result;
 }
 
+internal_proc Val *
+val_str(char c) {
+    Val *result = val_str(strf("%c", c));
+
+    return result;
+}
+
 internal_proc char *
 val_str(Val *val) {
     return (char *)val->ptr;
@@ -389,9 +396,9 @@ val_elem(Val *val, int idx) {
         } break;
 
         case VAL_STR: {
-            char *result = (char *)val->ptr + idx;
+            char c = *((char *)val->ptr + idx);
 
-            return val_str(result, 1);
+            return val_str(c);
         } break;
 
         default: {
