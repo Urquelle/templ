@@ -106,7 +106,7 @@
     {% if シ个 is iterable %}
     {% endif %}
 
-    {% if 3 is lt 5 %}
+    {% if 5 is ne 5 %}
     {% endif %}
 
     <h2>set anweisung</h2>

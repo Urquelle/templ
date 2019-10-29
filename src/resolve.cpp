@@ -42,6 +42,7 @@ internal_proc TEST_CALLBACK(test_in);
 internal_proc TEST_CALLBACK(test_iterable);
 internal_proc TEST_CALLBACK(test_le);
 internal_proc TEST_CALLBACK(test_lt);
+internal_proc TEST_CALLBACK(test_ne);
 
 global_var Resolved_Templ *current_templ;
 global_var Arena           resolve_arena;
@@ -2758,6 +2759,7 @@ resolve_init_builtin_tests() {
     sym_push_test("iterable",    type_test(any_type,  1, test_iterable));
     sym_push_test("le",          type_test(int2_type, 2, test_le));
     sym_push_test("lt",          type_test(int2_type, 2, test_lt));
+    sym_push_test("ne",          type_test(int2_type, 2, test_ne));
 }
 
 internal_proc void
