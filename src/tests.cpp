@@ -93,3 +93,9 @@ internal_proc TEST_CALLBACK(test_ne) {
     return val_bool(result);
 }
 
+internal_proc TEST_CALLBACK(test_none) {
+    b32 result = val->kind == VAL_NONE;
+
+    return val_bool(result);
+}
+
