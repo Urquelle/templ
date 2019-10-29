@@ -8,7 +8,7 @@ os_env(char *name) {
 }
 
 internal_proc b32
-file_read(char *filename, char **result) {
+os_file_read(char *filename, char **result) {
     HANDLE file = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
     if ( file == INVALID_HANDLE_VALUE ) {
@@ -22,7 +22,7 @@ file_read(char *filename, char **result) {
 }
 
 internal_proc b32
-file_write(char *filename, char *data, size_t len) {
+os_file_write(char *filename, char *data, size_t len) {
     HANDLE file = CreateFileA(filename, GENERIC_WRITE, FILE_SHARE_WRITE, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 
     if ( file == INVALID_HANDLE_VALUE ) {
@@ -38,7 +38,7 @@ file_write(char *filename, char *data, size_t len) {
 }
 
 internal_proc b32
-file_exists(char *filename) {
+os_file_exists(char *filename) {
     b32 result = PathFileExistsA(filename);
 
     return result;
@@ -55,5 +55,12 @@ os_utf8_char_to_wchar(char *c, size_t size) {
 internal_proc void
 os_utf8_wchar_to_char(wchar_t wc, char *dest, size_t size) {
     WideCharToMultiByte(CP_UTF8, 0, &wc, 1, dest, (int)size, 0, 0);
+}
+
+internal_proc size_t
+os_strlen(char *str) {
+    size_t result = _mbstrlen(str);
+
+    return result;
 }
 

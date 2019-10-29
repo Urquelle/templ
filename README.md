@@ -18,15 +18,15 @@ main(int argc, char **argv) {
 
     templ_init(MB(100), MB(100), MB(100));
 
-    Templ_Var **vars = 0;
+    Templ_Vars vars = templ_vars();
     Templ_Var *name = templ_var("name", val_str("noob"));
-    buf_push(vars, name);
+    templ_vars_add(&vars, user);
 
     Parsed_Templ *templ = templ_compile_string("hallo {{ name }}");
-    char *result = templ_render(templ, vars, buf_len(vars));
+    char *result = templ_render(templ, &vars);
 
     if ( !status_is_error() ) {
-        file_write("test.html", result, strlen(result));
+        os_file_write("test.html", result, strlen(result));
     } else {
         fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
         status_reset();

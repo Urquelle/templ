@@ -1,5 +1,3 @@
-#define SUBSCRIPT_ACTIVE 0
-
 struct Parser {
     Lexer lex;
 };
@@ -108,7 +106,16 @@ init_parser(Parser *p, char *input, char *name = "<from string>") {
 
 internal_proc b32
 is_token(Parser *p, Token_Kind kind) {
-    return p->lex.token.kind == kind;
+    b32 result = p->lex.token.kind == kind;
+
+    return result;
+}
+
+internal_proc b32
+is_prev_token(Parser *p, Token_Kind kind) {
+    b32 result = p->lex.token_prev.kind == kind;
+
+    return result;
 }
 
 internal_proc b32
@@ -285,12 +292,8 @@ internal_proc Expr *
 parse_expr_field_or_call_or_subscript(Parser *p) {
     Expr *left = parse_expr_list(p);
 
-#if SUBSCRIPT_ACTIVE
     while ( is_token(p, T_LPAREN) || is_token(p, T_LBRACKET) ||
             is_token(p, T_DOT) )
-#else
-    while ( is_token(p, T_LPAREN) || is_token(p, T_DOT) )
-#endif
     {
         if ( match_token(p, T_LPAREN) ) {
             Arg **args = 0;
@@ -312,11 +315,15 @@ parse_expr_field_or_call_or_subscript(Parser *p) {
 
             expect_token(p, T_RPAREN);
             left = expr_call(left, args, buf_len(args));
-#if SUBSCRIPT_ACTIVE
-        } else if ( match_token(p, T_LBRACKET ) ) {
+        } else if ( is_token(p, T_LBRACKET ) ) {
+            if ( is_prev_token(p, T_SPACE) ) {
+                break;
+            }
+
+            match_token(p, T_LBRACKET);
+
             left = expr_subscript(left, parse_expr(p));
             expect_token(p, T_RBRACKET);
-#endif
         } else if ( match_token(p, T_DOT) ) {
             char *field = p->lex.token.name;
             expect_token(p, T_NAME);
@@ -429,10 +436,13 @@ parse_expr_not(Parser *p) {
 
 internal_proc Expr *
 parse_expr_in(Parser *p) {
-    Expr *left = parse_expr_not(p);
+    Expr *left = 0;
 
     if ( match_keyword(p, keyword_in) ) {
-        left = expr_in(left, parse_expr_not(p));
+        Expr *set = parse_expr_not(p);
+        left = expr_in(set);
+    } else {
+        left = parse_expr_not(p);
     }
 
     return left;
@@ -563,6 +573,14 @@ parse_str(Parser *p) {
 internal_proc Stmt *
 parse_stmt_for(Parser *p) {
     Expr *expr = parse_expr(p);
+    Expr *cond = 0;
+
+    if ( !is_token(p, T_CODE_END) ) {
+        assert(expr->kind == EXPR_NAME);
+        cond = parse_expr(p);
+        assert(cond->kind == EXPR_IN);
+    }
+
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
@@ -584,7 +602,7 @@ parse_stmt_for(Parser *p) {
         }
     }
 
-    Stmt *result = stmt_for(expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
+    Stmt *result = stmt_for(expr, cond, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
     buf_free(stmts);
 
     return result;
@@ -718,7 +736,7 @@ parse_stmt_include(Parser *p) {
             Expr *name_expr = expr->expr_list.expr[i];
             assert(name_expr->kind == EXPR_STR);
 
-            b32 success = file_exists(name_expr->expr_str.value);
+            b32 success = os_file_exists(name_expr->expr_str.value);
             if ( !success && !ignore_missing ) {
                 fatal(p->lex.pos.name, p->lex.pos.row, "konnte datei %s nicht finden", name_expr->expr_str.value);
             }
@@ -728,7 +746,7 @@ parse_stmt_include(Parser *p) {
             }
         }
     } else {
-        b32 success = file_exists(expr->expr_str.value);
+        b32 success = os_file_exists(expr->expr_str.value);
         if ( !success && !ignore_missing ) {
             fatal(p->lex.pos.name, p->lex.pos.row, "konnte datei %s nicht finden", expr->expr_str.value);
         }
@@ -991,7 +1009,7 @@ parse_stmt_lit(Parser *p) {
         next(&p->lex);
     }
 
-    Stmt *result = stmt_lit(lit, _mbstrlen(lit));
+    Stmt *result = stmt_lit(lit, os_strlen(lit));
     next_token(&p->lex);
 
     return result;
@@ -1025,7 +1043,7 @@ parse_file(char *filename) {
     Parsed_Templ *templ = parsed_templ(path_file(filename));
 
     char *content = 0;
-    if ( file_read(filename, &content) ) {
+    if ( os_file_read(filename, &content) ) {
         Parser parser = {};
         Parser *p = &parser;
         init_parser(p, content, filename);

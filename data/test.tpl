@@ -21,6 +21,7 @@
     {{ "string literal" }}
     {{ 10 }}
     {{ 5.3 }}
+    {{ "abcdef"[2] }}
 
     <h2>templ vars</h2>
     {{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}

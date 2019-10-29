@@ -154,7 +154,6 @@ struct Expr {
         } expr_not;
 
         struct {
-            Expr *expr;
             Expr *set;
         } expr_in;
 
@@ -342,10 +341,9 @@ expr_not(Expr *expr) {
 }
 
 internal_proc Expr *
-expr_in(Expr *expr, Expr *set) {
+expr_in(Expr *set) {
     Expr *result = expr_new(EXPR_IN);
 
-    result->expr_in.expr = expr;
     result->expr_in.set  = set;
 
     return result;
@@ -453,6 +451,7 @@ struct Stmt {
     union {
         struct {
             Expr *expr;
+            Expr *cond;
             Stmt **stmts;
             size_t num_stmts;
             Stmt **else_stmts;
@@ -548,12 +547,13 @@ stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Stmt *
-stmt_for(Expr *expr, Stmt **stmts, size_t num_stmts,
+stmt_for(Expr *expr, Expr *cond, Stmt **stmts, size_t num_stmts,
         Stmt **else_stmts, size_t num_else_stmts)
 {
     Stmt *result = stmt_new(STMT_FOR);
 
     result->stmt_for.expr = expr;
+    result->stmt_for.cond = cond;
     result->stmt_for.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_for.num_stmts = num_stmts;
     result->stmt_for.else_stmts = (Stmt **)AST_DUP(else_stmts);

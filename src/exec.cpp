@@ -241,8 +241,17 @@ exec_expr(Resolved_Expr *expr) {
             result = val_neg(exec_expr(expr->expr_not.expr));
         } break;
 
+        case EXPR_SUBSCRIPT: {
+            Val *set = exec_expr(expr->expr_subscript.expr);
+            Val *index = exec_expr(expr->expr_subscript.index);
+
+            assert(index->kind == VAL_INT);
+            result = val_item(set, val_int(index));
+        } break;
+
         default: {
             fatal(expr->pos.name, expr->pos.row, "unerwarteter ausdruck");
+            illegal_path();
         } break;
     }
 
@@ -335,28 +344,34 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_FOR: {
-            Val *list = exec_expr(stmt->stmt_for.expr);
+            if ( stmt->stmt_for.it ) {
+                Val *list = exec_expr(stmt->stmt_for.expr);
 
-            if ( list->len ) {
-                global_for_stmt = stmt;
-                val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
+                if ( list->len ) {
+                    global_for_stmt = stmt;
+                    val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
 
-                for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
-                    stmt->stmt_for.it->val = it.val;
+                    for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
+                        stmt->stmt_for.it->val = it.val;
 
-                    val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));
+                        val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));
 
-                    for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
-                        exec_stmt(stmt->stmt_for.stmts[j]);
+                        for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
+                            exec_stmt(stmt->stmt_for.stmts[j]);
+                        }
+
+                        val_inc(stmt->stmt_for.loop_index->val);
+                        val_inc(stmt->stmt_for.loop_index0->val);
+                        val_set(stmt->stmt_for.loop_first->val, false);
                     }
-
-                    val_inc(stmt->stmt_for.loop_index->val);
-                    val_inc(stmt->stmt_for.loop_index0->val);
-                    val_set(stmt->stmt_for.loop_first->val, false);
+                } else if ( stmt->stmt_for.else_stmts ) {
+                    for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
+                        exec_stmt(stmt->stmt_for.else_stmts[i]);
+                    }
                 }
-            } else if ( stmt->stmt_for.else_stmts ) {
-                for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
-                    exec_stmt(stmt->stmt_for.else_stmts[i]);
+            } else {
+                Val *val = exec_expr(stmt->stmt_for.expr);
+                for ( ;val_bool(val); ) {
                 }
             }
         } break;
@@ -474,7 +489,7 @@ PROC_CALLBACK(cycle) {
 
 internal_proc void
 exec_reset() {
-    if ( gen_result && _mbstrlen(gen_result) ) {
+    if ( gen_result && os_strlen(gen_result) ) {
         free(gen_result);
         gen_result = "";
     }

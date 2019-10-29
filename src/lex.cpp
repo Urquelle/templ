@@ -259,7 +259,11 @@ tokenkind_to_str(Token_Kind kind) {
 }
 
 struct Lexer {
+    Token token_raw_prev;
+    Token token_raw;
+    Token token_prev;
     Token token;
+
     Pos pos;
     char *input;
     char at[2];
@@ -327,9 +331,8 @@ skip_comment(Lexer *lex) {
 }
 
 internal_proc b32
-is_raw(Lexer *lex) {
-    Token t = lex->token;
-    b32 result = T_SPACE <= t.kind && t.kind <= T_COMMENT;
+is_raw(Token token) {
+    b32 result = T_SPACE <= token.kind && token.kind <= T_COMMENT;
 
     return result;
 }
@@ -411,6 +414,8 @@ scan_float(Lexer *lex) {
 internal_proc void
 next_raw_token(Lexer *lex) {
     char *start = lex->input;
+
+    lex->token_prev = lex->token;
     lex->token.pos = lex->pos;
     lex->token.pos.start = start;
 
@@ -583,13 +588,18 @@ next_raw_token(Lexer *lex) {
         next(lex);
     }
 
+    if ( is_raw(lex->token) ) {
+        lex->token_raw_prev = lex->token_raw;
+        lex->token_raw      = lex->token;
+    }
+
     lex->token.literal = intern_str(start, utf8_char_end(lex->input));
 }
 
 internal_proc void
 next_token(Lexer *lex) {
     next_raw_token(lex);
-    while ( is_raw(lex) ) {
+    while ( is_raw(lex->token) ) {
         next_raw_token(lex);
     }
 }

@@ -71,14 +71,17 @@ utf8_char_to_wchar(char *c) {
     return result;
 }
 
+enum { UTF8_MAX_BYTES = 6 };
 internal_proc char *
 utf8_char_to_uppercase(char *c) {
     Utf8_Char utf8_c = utf8_char(c);
     wchar_t wchar_lowercase = utf8_char_to_wchar(utf8_c);
+
+    /* @AUFGABE: nutzung von std entfernen */
     wchar_t wchar_uppercase = std::toupper(wchar_lowercase, std::locale());
 
-    char *result = (char *)xcalloc(1, sizeof(char)*6);
-    os_utf8_wchar_to_char(wchar_uppercase, result, 6*sizeof(char));
+    char *result = (char *)xcalloc(1, sizeof(char)*UTF8_MAX_BYTES);
+    os_utf8_wchar_to_char(wchar_uppercase, result, sizeof(char)*UTF8_MAX_BYTES);
 
     return result;
 }

@@ -127,6 +127,24 @@ templ_var_set(Templ_Var *var, char *key, Templ_Var *value) {
     scope_set(prev_scope);
 }
 
+struct Templ_Vars {
+    Templ_Var **vars;
+    size_t num_vars;
+};
+
+user_api Templ_Vars
+templ_vars() {
+    Templ_Vars result = {};
+
+    return result;
+}
+
+user_api void
+templ_vars_add(Templ_Vars *vars, Templ_Var *var) {
+    buf_push(vars->vars, var);
+    vars->num_vars = buf_len(vars->vars);
+}
+
 user_api Parsed_Templ *
 templ_compile_file(char *filename) {
     Parsed_Templ *result = parse_file(filename);
@@ -142,10 +160,10 @@ templ_compile_string(char *content) {
 }
 
 user_api char *
-templ_render(Parsed_Templ *templ, Templ_Var **vars = 0, size_t num_vars = 0) {
+templ_render(Parsed_Templ *templ, Templ_Vars *vars = 0) {
     if ( vars ) {
-        for ( int i = 0; i < num_vars; ++i ) {
-            Templ_Var *var = vars[i];
+        for ( int i = 0; i < vars->num_vars; ++i ) {
+            Templ_Var *var = vars->vars[i];
 
             if ( var->scope ) {
                 Sym *sym = sym_push_var(var->name, type_dict);
@@ -178,20 +196,23 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
 }
 
 namespace api {
-    using templ::Buf_Hdr;
     using templ::Parsed_Templ;
     using templ::Templ_Var;
-    using templ::file_write;
-    using templ::status_is_error;
-    using templ::status_message;
+    using templ::Templ_Vars;
+    using templ::os_file_write;
+    using templ::os_strlen;
     using templ::status_filename;
+    using templ::status_is_error;
     using templ::status_line;
+    using templ::status_message;
     using templ::status_reset;
     using templ::templ_compile_file;
     using templ::templ_compile_string;
     using templ::templ_init;
     using templ::templ_reset;
     using templ::templ_var;
+    using templ::templ_vars;
+    using templ::templ_vars_add;
 }
 
 } /* namespace templ */

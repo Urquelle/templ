@@ -204,10 +204,10 @@ val_float(Val *val) {
 }
 
 internal_proc Val *
-val_str(char *val) {
+val_str(char *val, size_t len = 0) {
     Val *result = val_new(VAL_STR, sizeof(char*));
 
-    result->len = _mbstrlen(val);
+    result->len = (len) ? len : os_strlen(val);
     result->ptr = val;
 
     return result;
@@ -329,7 +329,7 @@ val_op(Token_Kind op, Val *val) {
     return val;
 }
 
-global_var char to_char_buf[1000];
+global_var char val_to_char_buf[1000];
 internal_proc char *
 val_to_char(Val *val) {
     switch ( val->kind ) {
@@ -338,13 +338,13 @@ val_to_char(Val *val) {
         } break;
 
         case VAL_INT: {
-            sprintf(to_char_buf, "%d", val_int(val));
-            return to_char_buf;
+            sprintf(val_to_char_buf, "%d", val_int(val));
+            return val_to_char_buf;
         } break;
 
         case VAL_FLOAT: {
-            sprintf(to_char_buf, "%.9g", val_float(val));
-            return to_char_buf;
+            sprintf(val_to_char_buf, "%.9g", val_float(val));
+            return val_to_char_buf;
         } break;
 
         case VAL_NONE: {
@@ -360,7 +360,7 @@ val_to_char(Val *val) {
         } break;
 
         default: {
-            illegal_path();
+            fatal(0, 0, "datentyp kann nicht in zeichenkette umgewandelt werden.\n");
             return "";
         } break;
     }
@@ -381,7 +381,14 @@ val_item(Val *val, int idx) {
             return *((Val **)val->ptr + idx);
         } break;
 
+        case VAL_STR: {
+            char *result = (char *)val->ptr + idx;
+
+            return val_str(result, 1);
+        } break;
+
         default: {
+            fatal(0, 0, "indizierung eines nicht-unterstützten datentyps\n");
             illegal_path();
         } break;
     }
@@ -1176,7 +1183,6 @@ struct Resolved_Expr {
         } expr_not;
 
         struct {
-            Resolved_Expr *expr;
             Resolved_Expr *set;
         } expr_in;
 
@@ -1348,10 +1354,9 @@ resolved_expr_not(Resolved_Expr *expr) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_in(Resolved_Expr *expr, Resolved_Expr *set) {
+resolved_expr_in(Resolved_Expr *set) {
     Resolved_Expr *result = resolved_expr_new(EXPR_IN);
 
-    result->expr_in.expr = expr;
     result->expr_in.set  = set;
 
     return result;
@@ -1836,9 +1841,15 @@ resolve_stmt(Stmt *stmt) {
         case STMT_FOR: {
             scope_enter();
 
-            assert(stmt->stmt_for.expr->kind == EXPR_IN);
-            Sym *it = sym_push_var(stmt->stmt_for.expr->expr_in.expr->expr_name.value, type_any, val_int(0));
-            Resolved_Expr *expr = resolve_expr(stmt->stmt_for.expr);
+            Sym *it = 0;
+            if ( stmt->stmt_for.expr ) {
+                it = sym_push_var(stmt->stmt_for.expr->expr_name.value, type_any, val_int(0));
+            }
+
+            Resolved_Expr *expr = 0;
+            if ( stmt->stmt_for.cond ) {
+                expr = resolve_expr(stmt->stmt_for.cond);
+            }
 
             /* loop variablen {{{ */
             Sym *loop = sym_push_var("loop", type_dict);
@@ -2487,10 +2498,9 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_IN: {
-            Resolved_Expr *rexpr = resolve_expr(expr->expr_in.expr);
-            Resolved_Expr *set   = resolve_expr(expr->expr_in.set);
+            Resolved_Expr *set = resolve_expr(expr->expr_in.set);
 
-            result = resolved_expr_in(rexpr, set);
+            result = resolved_expr_in(set);
         } break;
 
         case EXPR_IF: {
