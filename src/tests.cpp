@@ -58,7 +58,7 @@ internal_proc TEST_CALLBACK(test_in) {
 
     b32 found = false;
     for ( int i = 0; i < set->len; ++i ) {
-        Val *it = val_item(set, i);
+        Val *it = val_elem(set, i);
 
         if ( *it == *val ) {
             found = true;

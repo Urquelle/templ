@@ -27,7 +27,7 @@ iterator_init(Val *container) {
 
     result.container = container;
     result.pos = 0;
-    result.val = val_item(container, 0);
+    result.val = val_elem(container, 0);
 
     return result;
 }
@@ -49,7 +49,7 @@ iterator_is_last(Iterator *it) {
 internal_proc void
 iterator_next(Iterator *it) {
     it->pos += 1;
-    it->val = val_item(it->container, it->pos);
+    it->val = val_elem(it->container, it->pos);
 }
 
 internal_proc Val *
@@ -246,7 +246,7 @@ exec_expr(Resolved_Expr *expr) {
             Val *index = exec_expr(expr->expr_subscript.index);
 
             assert(index->kind == VAL_INT);
-            result = val_item(set, val_int(index));
+            result = val_elem(set, val_int(index));
         } break;
 
         default: {
@@ -350,7 +350,7 @@ exec_stmt(Resolved_Stmt *stmt) {
 
                 for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
                     for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
-                        stmt->stmt_for.vars[i]->val = val_field(it.val, i);
+                        stmt->stmt_for.vars[i]->val = val_elem(it.val, i);
                     }
 
                     val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));

@@ -374,7 +374,7 @@ val_to_char(Val *val) {
 }
 
 internal_proc Val *
-val_item(Val *val, int idx) {
+val_elem(Val *val, int idx) {
     switch ( val->kind ) {
         case VAL_RANGE: {
             return val_int(val_range0(val) + idx);
@@ -392,25 +392,6 @@ val_item(Val *val, int idx) {
             char *result = (char *)val->ptr + idx;
 
             return val_str(result, 1);
-        } break;
-
-        default: {
-            fatal(0, 0, "indizierung eines nicht-unterstützten datentyps\n");
-            illegal_path();
-        } break;
-    }
-
-    return 0;
-}
-
-internal_proc Val *
-val_field(Val *val, int idx) {
-    switch ( val->kind ) {
-        case VAL_RANGE:
-        case VAL_LIST:
-        case VAL_TUPLE:
-        case VAL_STR: {
-            return val_item(val, idx);
         } break;
 
         default: {
