@@ -572,14 +572,12 @@ parse_str(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_for(Parser *p) {
-    Expr *expr = parse_expr(p);
-    Expr *cond = 0;
+    Expr **vars = 0;
+    do {
+        buf_push(vars, parse_expr(p));
+    } while ( match_token(p, T_COMMA) );
 
-    if ( !is_token(p, T_CODE_END) ) {
-        assert(expr->kind == EXPR_NAME);
-        cond = parse_expr(p);
-        assert(cond->kind == EXPR_IN);
-    }
+    Expr *set = parse_expr(p);
 
     expect_token(p, T_CODE_END);
 
@@ -602,7 +600,9 @@ parse_stmt_for(Parser *p) {
         }
     }
 
-    Stmt *result = stmt_for(expr, cond, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts));
+    Stmt *result = stmt_for(vars, buf_len(vars), set, stmts, buf_len(stmts),
+            else_stmts, buf_len(else_stmts));
+    buf_free(vars);
     buf_free(stmts);
 
     return result;

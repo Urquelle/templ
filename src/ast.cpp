@@ -450,10 +450,13 @@ struct Stmt {
 
     union {
         struct {
-            Expr *expr;
-            Expr *cond;
+            Expr **vars;
+            size_t num_vars;
+            Expr *set;
+
             Stmt **stmts;
             size_t num_stmts;
+
             Stmt **else_stmts;
             size_t num_else_stmts;
         } stmt_for;
@@ -547,15 +550,18 @@ stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Stmt *
-stmt_for(Expr *expr, Expr *cond, Stmt **stmts, size_t num_stmts,
+stmt_for(Expr **vars, size_t num_vars, Expr *set, Stmt **stmts, size_t num_stmts,
         Stmt **else_stmts, size_t num_else_stmts)
 {
     Stmt *result = stmt_new(STMT_FOR);
 
-    result->stmt_for.expr = expr;
-    result->stmt_for.cond = cond;
-    result->stmt_for.stmts = (Stmt **)AST_DUP(stmts);
+    result->stmt_for.vars      = (Expr **)AST_DUP(vars);
+    result->stmt_for.num_vars  = num_vars;
+    result->stmt_for.set       = set;
+
+    result->stmt_for.stmts     = (Stmt **)AST_DUP(stmts);
     result->stmt_for.num_stmts = num_stmts;
+
     result->stmt_for.else_stmts = (Stmt **)AST_DUP(else_stmts);
     result->stmt_for.num_else_stmts = num_else_stmts;
 

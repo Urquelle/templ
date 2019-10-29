@@ -1354,8 +1354,8 @@ resolved_expr_not(Resolved_Expr *expr) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_in(Resolved_Expr *set) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_IN);
+resolved_expr_in(Resolved_Expr *set, Type *type) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_IN, type);
 
     result->expr_in.set  = set;
 
@@ -1444,8 +1444,10 @@ struct Resolved_Stmt {
         } stmt_var;
 
         struct {
-            Sym *it;
-            Resolved_Expr *expr;
+            Sym **vars;
+            size_t num_vars;
+            Resolved_Expr *set;
+
             Resolved_Stmt **stmts;
             size_t num_stmts;
             Resolved_Stmt **else_stmts;
@@ -1579,17 +1581,20 @@ resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_for(Sym *it, Resolved_Expr *expr, Resolved_Stmt **stmts,
+resolved_stmt_for(Sym **vars, size_t num_vars, Resolved_Expr *set, Resolved_Stmt **stmts,
         size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts,
         Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0,
         Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
 
-    result->stmt_for.it = it;
-    result->stmt_for.expr = expr;
+    result->stmt_for.vars = (Sym **)AST_DUP(vars);
+    result->stmt_for.num_vars = num_vars;
+    result->stmt_for.set = set;
+
     result->stmt_for.stmts = stmts;
     result->stmt_for.num_stmts = num_stmts;
+
     result->stmt_for.else_stmts = else_stmts;
     result->stmt_for.num_else_stmts = num_else_stmts;
 
@@ -1841,15 +1846,21 @@ resolve_stmt(Stmt *stmt) {
         case STMT_FOR: {
             scope_enter();
 
-            Sym *it = 0;
-            if ( stmt->stmt_for.expr ) {
-                it = sym_push_var(stmt->stmt_for.expr->expr_name.value, type_any, val_int(0));
+            Sym **vars = 0;
+            size_t num_vars = 0;
+            for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
+                Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, type_any, &val_none);
+                buf_push(vars, sym);
             }
 
-            Resolved_Expr *expr = 0;
-            if ( stmt->stmt_for.cond ) {
-                expr = resolve_expr(stmt->stmt_for.cond);
+            num_vars = buf_len(vars);
+            Resolved_Expr *set = resolve_expr(stmt->stmt_for.set);
+
+#if 0
+            if ( num_vars > set->num_fields ) {
+                fatal(stmt->pos.name, stmt->pos.row, "zu viele iterationsvariablen: angegeben %d, aber nur %d stehen zur verfügung", num_vars, set->num_fields);
             }
+#endif
 
             /* loop variablen {{{ */
             Sym *loop = sym_push_var("loop", type_dict);
@@ -1881,7 +1892,7 @@ resolve_stmt(Stmt *stmt) {
 
             scope_leave();
 
-            result = resolved_stmt_for(it, expr, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts),
+            result = resolved_stmt_for(vars, num_vars, set, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts),
                     loop_index, loop_index0, loop_revindex, loop_revindex0, loop_first, loop_last,
                     loop_length, loop_cycle);
         } break;
@@ -2474,9 +2485,6 @@ resolve_expr(Expr *expr) {
             }
 
             for ( int i = 1; i < type->type_test.num_params; ++i ) {
-                /* @ACHTUNG: 'in ...' sollte als eigene expr geparst werden anstelle von
-                             aktueller version, in der x in ... geparst wird
-                 */
 #if 1
                 Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
 #else
@@ -2488,7 +2496,6 @@ resolve_expr(Expr *expr) {
                 if (arg->type != param->type) {
                     fatal(arg->pos.name, arg->pos.row, "datentyp des arguments ist falsch");
                 }
-                */
 #endif
 
                 buf_push(args, arg);
@@ -2500,7 +2507,7 @@ resolve_expr(Expr *expr) {
         case EXPR_IN: {
             Resolved_Expr *set = resolve_expr(expr->expr_in.set);
 
-            result = resolved_expr_in(set);
+            result = resolved_expr_in(set, set->type);
         } break;
 
         case EXPR_IF: {

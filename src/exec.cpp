@@ -344,34 +344,31 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_FOR: {
-            if ( stmt->stmt_for.it ) {
-                Val *list = exec_expr(stmt->stmt_for.expr);
+            Val *list = exec_expr(stmt->stmt_for.set);
 
-                if ( list->len ) {
-                    global_for_stmt = stmt;
-                    val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
+            if ( list->len ) {
+                global_for_stmt = stmt;
+                val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
 
-                    for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
-                        stmt->stmt_for.it->val = it.val;
-
-                        val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));
-
-                        for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
-                            exec_stmt(stmt->stmt_for.stmts[j]);
-                        }
-
-                        val_inc(stmt->stmt_for.loop_index->val);
-                        val_inc(stmt->stmt_for.loop_index0->val);
-                        val_set(stmt->stmt_for.loop_first->val, false);
+                for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
+                    /* @ACHTUNG: vorerst nur unterstützung für eine iterationsvariable */
+                    for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
+                        stmt->stmt_for.vars[i]->val = it.val;
                     }
-                } else if ( stmt->stmt_for.else_stmts ) {
-                    for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
-                        exec_stmt(stmt->stmt_for.else_stmts[i]);
+
+                    val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));
+
+                    for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
+                        exec_stmt(stmt->stmt_for.stmts[j]);
                     }
+
+                    val_inc(stmt->stmt_for.loop_index->val);
+                    val_inc(stmt->stmt_for.loop_index0->val);
+                    val_set(stmt->stmt_for.loop_first->val, false);
                 }
-            } else {
-                Val *val = exec_expr(stmt->stmt_for.expr);
-                for ( ;val_bool(val); ) {
+            } else if ( stmt->stmt_for.else_stmts ) {
+                for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
+                    exec_stmt(stmt->stmt_for.else_stmts[i]);
                 }
             }
         } break;
