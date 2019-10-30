@@ -117,3 +117,9 @@ internal_proc TEST_CALLBACK(test_sameas) {
     return val_bool(result);
 }
 
+internal_proc TEST_CALLBACK(test_sequence) {
+    b32 result = test_iterable(val, 0, 0);
+
+    return val_bool(result);
+}
+

@@ -47,6 +47,7 @@ internal_proc TEST_CALLBACK(test_none);
 internal_proc TEST_CALLBACK(test_number);
 internal_proc TEST_CALLBACK(test_odd);
 internal_proc TEST_CALLBACK(test_sameas);
+internal_proc TEST_CALLBACK(test_sequence);
 
 global_var Resolved_Templ *current_templ;
 global_var Arena           resolve_arena;
@@ -854,7 +855,8 @@ enum Type_Kind {
 enum Type_Flags {
     TYPE_FLAGS_NONE     = 0x0,
     TYPE_FLAGS_CALLABLE = 0x1,
-    TYPE_FLAGS_CONST    = 0x2,
+    TYPE_FLAGS_ITERABLE = 0x2,
+    TYPE_FLAGS_CONST    = 0x4,
 };
 struct Type {
     Type_Kind kind;
@@ -934,7 +936,7 @@ internal_proc Type *
 type_tuple(size_t num_elems) {
     Type *result = type_new(TYPE_TUPLE);
 
-    result->flags = TYPE_FLAGS_CONST;
+    result->flags = TYPE_FLAGS_CONST|TYPE_FLAGS_ITERABLE;
 
     result->type_tuple.num_elems = num_elems;
 
@@ -1053,6 +1055,13 @@ type_is_scalar(Type *type) {
 internal_proc b32
 type_is_callable(Type *type) {
     b32 result = type->flags & TYPE_FLAGS_CALLABLE;
+
+    return result;
+}
+
+internal_proc b32
+type_is_iterable(Type *type) {
+    b32 result = type->flags & TYPE_FLAGS_ITERABLE;
 
     return result;
 }
@@ -2788,6 +2797,7 @@ resolve_init_builtin_tests() {
     sym_push_test("number",      type_test(any_type,  1, test_number));
     sym_push_test("odd",         type_test(int_type,  1, test_odd));
     sym_push_test("sameas",      type_test(any2_type, 2, test_sameas));
+    sym_push_test("sequence",    type_test(any_type,  1, test_sequence));
 }
 
 internal_proc void
@@ -2811,9 +2821,11 @@ resolve_init_builtin_types() {
 
     type_str   = type_new(TYPE_STR);
     type_str->size = PTR_SIZE;
+    type_str->flags = TYPE_FLAGS_ITERABLE;
 
     type_list  = type_new(TYPE_LIST);
     type_list->size = 0;
+    type_list->flags = TYPE_FLAGS_ITERABLE;
 
     type_any   = type_new(TYPE_ANY);
     type_any->size = PTR_SIZE;

@@ -17,3 +17,6 @@
 {% if sameastest_a is not sameas sameastest_b %}
 {% endif %}
 
+{% if [1, 2, 3] is sequence %}
+{% endif %}
+
