@@ -94,7 +94,7 @@ init_keywords() {
 }
 
 internal_proc void
-init_parser(Parser *p, char *input, char *name = "<from string>") {
+parser_init(Parser *p, char *input, char *name) {
     p->lex.input = input;
     p->lex.pos.name = name;
     p->lex.pos.row = 1;
@@ -1016,12 +1016,12 @@ parse_stmt_lit(Parser *p) {
 }
 
 internal_proc Parsed_Templ *
-parse_string(char *content) {
-    Parsed_Templ *templ = parsed_templ("<from string>");
+parse_string(char *content, char *sourcename = "<string>") {
+    Parsed_Templ *templ = parsed_templ(sourcename);
 
     Parser parser = {};
     Parser *p = &parser;
-    init_parser(p, content);
+    parser_init(p, content, sourcename);
 
     while ( !match_token(p, T_EOF) ) {
         if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
@@ -1040,29 +1040,15 @@ parse_string(char *content) {
 
 internal_proc Parsed_Templ *
 parse_file(char *filename) {
-    Parsed_Templ *templ = parsed_templ(path_file(filename));
+    Parsed_Templ *templ = 0;
 
     char *content = 0;
     if ( os_file_read(filename, &content) ) {
-        Parser parser = {};
-        Parser *p = &parser;
-        init_parser(p, content, filename);
-
-        while ( !match_token(p, T_EOF) ) {
-            if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
-                Stmt *stmt = parse_code(p);
-                buf_push(templ->stmts, stmt);
-            } else if ( is_token(p, T_COMMENT) ) {
-                next_token(&p->lex);
-            } else {
-                buf_push(templ->stmts, parse_stmt_lit(p));
-            }
-        }
+        templ = parse_string(content, filename);
     } else {
         fatal(0, 0, "konnte datei %s nicht lesen", filename);
     }
 
-    templ->num_stmts = buf_len(templ->stmts);
     return templ;
 }
 

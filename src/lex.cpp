@@ -383,6 +383,13 @@ is_numeric(char c) {
     return ( c >= '0' && c <= '9' );
 }
 
+internal_proc b32
+is_whitespace(char c) {
+    b32 result = c == ' ' || c == '\t' || c == '\n' || c == '\v';
+
+    return result;
+}
+
 internal_proc int
 scan_int(Lexer *lex) {
     int value = 0;
@@ -506,16 +513,7 @@ next_raw_token(Lexer *lex) {
     } else if ( c == ':' ) {
         lex->token.kind = T_COLON;
         next(lex);
-    } else if ( c == ' ' ) {
-        lex->token.kind = T_SPACE;
-        next(lex);
-    } else if ( c == '\t' ) {
-        lex->token.kind = T_TAB;
-        next(lex);
-    } else if ( c == '\n' ) {
-        lex->token.kind = T_NEWLINE;
-        next(lex);
-    } else if ( c == '\v' ) {
+    } else if ( is_whitespace(c) ) {
         lex->token.kind = T_SPACE;
         next(lex);
     } else if ( c == '{' ) {
