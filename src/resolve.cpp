@@ -395,6 +395,27 @@ val_elem(Val *val, int idx) {
             return *((Val **)val->ptr + idx);
         } break;
 
+        default: {
+            return val;
+        } break;
+    }
+}
+
+internal_proc Val *
+val_subscript(Val *val, int idx) {
+    switch ( val->kind ) {
+        case VAL_RANGE: {
+            return val_int(val_range0(val) + idx);
+        } break;
+
+        case VAL_LIST: {
+            return *((Val **)val->ptr + idx);
+        } break;
+
+        case VAL_TUPLE: {
+            return *((Val **)val->ptr + idx);
+        } break;
+
         case VAL_STR: {
             char c = *((char *)val->ptr + idx);
 

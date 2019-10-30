@@ -246,7 +246,7 @@ exec_expr(Resolved_Expr *expr) {
             Val *index = exec_expr(expr->expr_subscript.index);
 
             assert(index->kind == VAL_INT);
-            result = val_elem(set, val_int(index));
+            result = val_subscript(set, val_int(index));
         } break;
 
         default: {
