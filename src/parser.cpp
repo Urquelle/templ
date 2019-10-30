@@ -464,7 +464,7 @@ internal_proc Expr *
 parse_expr_and(Parser *p) {
     Expr *left = parse_expr_cmp(p);
 
-    if ( match_keyword(p, keyword_and) ) {
+    while ( match_keyword(p, keyword_and) ) {
         left = expr_binary(T_AND, left, parse_expr(p));
     }
 
@@ -475,7 +475,7 @@ internal_proc Expr *
 parse_expr_or(Parser *p) {
     Expr *left = parse_expr_and(p);
 
-    if ( match_keyword(p, keyword_or) ) {
+    while ( match_keyword(p, keyword_or) ) {
         left = expr_binary(T_OR, left, parse_expr(p));
     }
 
