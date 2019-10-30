@@ -123,3 +123,9 @@ internal_proc TEST_CALLBACK(test_sequence) {
     return val_bool(result);
 }
 
+internal_proc TEST_CALLBACK(test_string) {
+    b32 result = val->kind == VAL_STR;
+
+    return val_bool(result);
+}
+

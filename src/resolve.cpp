@@ -48,6 +48,7 @@ internal_proc TEST_CALLBACK(test_number);
 internal_proc TEST_CALLBACK(test_odd);
 internal_proc TEST_CALLBACK(test_sameas);
 internal_proc TEST_CALLBACK(test_sequence);
+internal_proc TEST_CALLBACK(test_string);
 
 global_var Resolved_Templ *current_templ;
 global_var Arena           resolve_arena;
@@ -2798,6 +2799,7 @@ resolve_init_builtin_tests() {
     sym_push_test("odd",         type_test(int_type,  1, test_odd));
     sym_push_test("sameas",      type_test(any2_type, 2, test_sameas));
     sym_push_test("sequence",    type_test(any_type,  1, test_sequence));
+    sym_push_test("string",      type_test(any_type,  1, test_string));
 }
 
 internal_proc void
