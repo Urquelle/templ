@@ -10,9 +10,9 @@
 {% if 2 is odd %}
 {% endif %}
 
-{% set sameastest_a = "abcd" %}
-{% set sameastest_b = sameastest_a %}
-{% if sameastest_a is not sameas sameastest_b %}
+{% set a = "abcd" %}
+{% set b = a %}
+{% if a is not sameas b %}
 {% endif %}
 
 {% if [1, 2, 3] is sequence %}

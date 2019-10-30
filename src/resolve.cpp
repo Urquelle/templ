@@ -18,7 +18,7 @@ internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Filter * resolve_filter(Filter *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
-internal_proc Resolved_Templ  * resolve(Parsed_Templ *d);
+internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
 internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
 
@@ -62,6 +62,7 @@ struct Scope {
     size_t num_syms;
 };
 
+global_var Scope *system_scope;
 global_var Scope global_scope;
 global_var Scope *current_scope = &global_scope;
 
@@ -1132,6 +1133,9 @@ sym_get(char *name) {
 internal_proc void
 sym_clear() {
     for ( Scope *scope = current_scope; scope; scope = scope->parent ) {
+        if ( scope == system_scope ) {
+            break;
+        }
         map_reset(&scope->syms);
     }
 }
@@ -1160,14 +1164,26 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
 
 internal_proc Sym *
 sym_push_filter(char *name, Type *type) {
+    Scope *prev_scope = current_scope;
+    current_scope = system_scope;
+
     Sym *result = sym_push(SYM_PROC, name, type);
+
+    current_scope = prev_scope;
 
     return result;
 }
 
 internal_proc Sym *
 sym_push_test(char *name, Type *type) {
-    return sym_push(SYM_PROC, name, type);
+    Scope *prev_scope = current_scope;
+    current_scope = system_scope;
+
+    Sym *result = sym_push(SYM_PROC, name, type);
+
+    current_scope = prev_scope;
+
+    return result;
 }
 
 internal_proc Sym *
@@ -1827,10 +1843,10 @@ struct Resolved_Templ {
 };
 
 internal_proc Resolved_Templ *
-resolved_templ() {
+resolved_templ(char *name) {
     Resolved_Templ *result = ALLOC_STRUCT(&resolve_arena, Resolved_Templ);
 
-    result->name = 0;
+    result->name = name;
     result->stmts = 0;
     result->num_stmts = 0;
     result->blocks = {};
@@ -2147,7 +2163,7 @@ resolve_stmt(Stmt *stmt) {
             Resolved_Templ *prev_templ = current_templ;
 
             for ( int i = 0; i < stmt->stmt_include.num_templ; ++i ) {
-                buf_push(templ, resolve(stmt->stmt_include.templ[i]));
+                buf_push(templ, resolve(stmt->stmt_include.templ[i], stmt->stmt_include.with_context));
             }
 
             current_templ = prev_templ;
@@ -2852,12 +2868,20 @@ resolve_init_builtin_types() {
 }
 
 internal_proc void
+resolve_init_scope() {
+    system_scope = scope_new(0, "system scope");
+    global_scope.name = "global scope";
+    global_scope.parent = system_scope;
+}
+
+internal_proc void
 resolve_reset() {
     sym_clear();
 }
 
 internal_proc void
 resolve_init() {
+    resolve_init_scope();
     resolve_init_arenas();
     resolve_init_builtin_types();
     resolve_init_builtin_filter();
@@ -2865,10 +2889,14 @@ resolve_init() {
 }
 
 internal_proc Resolved_Templ *
-resolve(Parsed_Templ *parsed_templ) {
-    Resolved_Templ *result = resolved_templ();
-    result->name = parsed_templ->name;
+resolve(Parsed_Templ *parsed_templ, b32 with_context) {
+    Resolved_Templ *result = resolved_templ(parsed_templ->name);
     current_templ = result;
+
+    Scope *prev_scope = current_scope;
+    if ( !with_context ) {
+        current_scope = scope_new(system_scope, parsed_templ->name);
+    }
 
     for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
         Resolved_Stmt *stmt = resolve_stmt(parsed_templ->stmts[i]);
@@ -2876,6 +2904,9 @@ resolve(Parsed_Templ *parsed_templ) {
     }
 
     result->num_stmts = buf_len(result->stmts);
+    if ( !with_context ) {
+        current_scope = prev_scope;
+    }
 
     return result;
 }
