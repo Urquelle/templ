@@ -105,3 +105,15 @@ internal_proc TEST_CALLBACK(test_number) {
     return val_bool(result);
 }
 
+internal_proc TEST_CALLBACK(test_odd) {
+    b32 result = (val_int(val) & 0x1) == 0x1;
+
+    return val_bool(result);
+}
+
+internal_proc TEST_CALLBACK(test_sameas) {
+    b32 result = val->ptr == args[0]->val->ptr;
+
+    return val_bool(result);
+}
+

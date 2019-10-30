@@ -11,6 +11,8 @@
     <h2>super()</h2>
     {{ super() }}
 
+    {% include "tests.tpl" %}
+
     <h2>unicode</h2>
     {% set シ个 = "原ラ掘聞" %}
     {{ シ个 }}
@@ -99,15 +101,6 @@
     {% for it in ['grün', 'blau', 'weiss'] %}
         <li>{{ it }}</li>
     {% endfor %}
-
-    {% if "a" is in ["c", "b", "a"] %}
-    {% endif %}
-
-    {% if シ个 is iterable %}
-    {% endif %}
-
-    {% if 5 is number %}
-    {% endif %}
 
     <h2>set anweisung</h2>
     {% set a = "test" %}

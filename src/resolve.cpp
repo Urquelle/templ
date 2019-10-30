@@ -45,6 +45,8 @@ internal_proc TEST_CALLBACK(test_lt);
 internal_proc TEST_CALLBACK(test_ne);
 internal_proc TEST_CALLBACK(test_none);
 internal_proc TEST_CALLBACK(test_number);
+internal_proc TEST_CALLBACK(test_odd);
+internal_proc TEST_CALLBACK(test_sameas);
 
 global_var Resolved_Templ *current_templ;
 global_var Arena           resolve_arena;
@@ -1882,7 +1884,11 @@ internal_proc b32
 convert_operand(Resolved_Expr *op, Type *dest_type) {
     b32 result = false;
 
-    if ( op->type == dest_type ) {
+    if ( op->type->kind == dest_type->kind ) {
+        return true;
+    }
+
+    if ( op->type->kind == TYPE_ANY ) {
         return true;
     }
 
@@ -2097,10 +2103,16 @@ resolve_stmt(Stmt *stmt) {
 
             if ( !sym ) {
                 sym = sym_push_var(stmt->stmt_set.name, expr->type, val_copy(expr->val));
+
+                /* @INFO: die untere überprüfung wird nicht benötigt, da in dieser
+                 *        sprache keine statische typprüfung notwendig ist.
+                 */
+#if 0
             } else {
                 if ( !convert_operand(expr, sym->type) ) {
                     fatal(stmt->pos.name, stmt->pos.row, "datentyp des operanden passt nicht");
                 }
+#endif
             }
 
             result = resolved_stmt_set(sym, expr);
@@ -2757,6 +2769,7 @@ resolve_init_builtin_tests() {
     Type_Field *int_type[]  = { type_field("s",    type_int) };
     Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
     Type_Field *any_type[]  = { type_field("s",    type_any) };
+    Type_Field *any2_type[] = { type_field("left", type_any), type_field("right", type_any) };
 
     sym_push_test("callable",    type_test(str_type,  1, test_callable));
     sym_push_test("defined",     type_test(str_type,  1, test_defined));
@@ -2773,6 +2786,8 @@ resolve_init_builtin_tests() {
     sym_push_test("ne",          type_test(int2_type, 2, test_ne));
     sym_push_test("none",        type_test(any_type,  1, test_none));
     sym_push_test("number",      type_test(any_type,  1, test_number));
+    sym_push_test("odd",         type_test(int_type,  1, test_odd));
+    sym_push_test("sameas",      type_test(any2_type, 2, test_sameas));
 }
 
 internal_proc void
