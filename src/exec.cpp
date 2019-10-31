@@ -291,7 +291,10 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
             continue;
         }
 
-        assert(child_stmt->kind != STMT_LIT);
+        if ( child_stmt->kind == STMT_LIT ) {
+            fatal(child_stmt->pos.name, child_stmt->pos.row, "unerwarteter ausdruck");
+        }
+
         Resolved_Stmt *block = (Resolved_Stmt *)map_get(&templ->blocks, child_stmt->stmt_block.name);
         if ( !block ) {
             exec_stmt(child_stmt);

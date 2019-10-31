@@ -2008,7 +2008,7 @@ resolve_stmt(Stmt *stmt) {
             /* loop variablen {{{ */
             Sym *loop = sym_push_var("loop", 0);
             Scope *scope = scope_enter();
-            Type *type = type_dict(scope, TYPE_FLAGS_CALLABLE);
+            Type *type = type_dict(scope, TYPE_FLAGS_CONST|TYPE_FLAGS_CALLABLE);
 
             loop->scope = scope;
             loop->type  = type;

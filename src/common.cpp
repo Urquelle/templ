@@ -161,7 +161,6 @@ fatal(char *file, s64 line, char *msg, ...) {
         va_end(args);
 
         status_set_error(file, line, buf);
-        assert(0);
     }
 }
 

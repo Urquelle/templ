@@ -29,17 +29,6 @@
         <div>kontinent:</div><div>{{ kontinent }}</div>
     {% endfor %}
 
-    <h2>raw</h2>
-    {% raw %}
-        {% set foo = "bar" %}
-        und dann
-    {% endraw %}
-
-    {{ -1*5%2 | abs }}
-    {{ 20/7 }}--{{ 20//7 }}
-    {{ "hallo" | capitalize }}
-    {{ "xy" * 10 }}
-    {{ 3 ** 2 }}
     <h2>test default</h2>
     {{ '' | default("bla") }}
     {{ '<div>escape</div>' | e }}

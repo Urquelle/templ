@@ -6,3 +6,7 @@
     {{ 5 * 10 }}
 {% endif %}
 
+{% raw %}
+    {% set foo = "bar" %}
+    und dann
+{% endraw %}
