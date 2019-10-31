@@ -203,6 +203,7 @@ namespace api {
     using templ::os_strlen;
     using templ::status_filename;
     using templ::status_is_error;
+    using templ::status_is_not_error;
     using templ::status_line;
     using templ::status_message;
     using templ::status_reset;

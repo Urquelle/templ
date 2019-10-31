@@ -585,7 +585,7 @@ parse_stmt_for(Parser *p) {
     Stmt **else_stmts = 0;
     Stmt ***stmts_ptr = &stmts;
 
-    for (;;) {
+    while ( status_is_not_error() ) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
             if ( stmt->kind == STMT_ENDFOR ) {
@@ -619,7 +619,7 @@ parse_stmt_if(Parser *p) {
     Stmt *stmt_else = 0;
     Stmt *curr_stmt = if_stmt;
 
-    for (;;) {
+    while ( status_is_not_error() ) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
             if ( stmt->kind == STMT_ENDIF ) {
@@ -668,7 +668,7 @@ parse_stmt_block(Parser *p) {
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
-    for (;;) {
+    while ( status_is_not_error() ) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
             if ( stmt->kind == STMT_ENDBLOCK ) {
@@ -765,7 +765,7 @@ parse_stmt_filter(Parser *p) {
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
-    for (;;) {
+    while ( status_is_not_error() ) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
             if ( stmt->kind == STMT_ENDFILTER ) {
@@ -875,8 +875,8 @@ parse_stmt_raw(Parser *p) {
 
     expect_token(p, T_CODE_END);
 
-    for (;; ) {
-        while ( parser_valid(p) && !match_token(p, T_CODE_BEGIN) ) {
+    while ( status_is_not_error() ) {
+        while ( !match_token(p, T_CODE_BEGIN) ) {
             end = p->lex.input;
             next_token(&p->lex);
         }

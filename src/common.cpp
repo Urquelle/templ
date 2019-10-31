@@ -116,6 +116,13 @@ status_is_error() {
     return result;
 }
 
+internal_proc b32
+status_is_not_error() {
+    b32 result = global_status.kind != STATUS_ERROR;
+
+    return result;
+}
+
 internal_proc void
 status_set_ok() {
     status_set(STATUS_OK, 0, 0, "");
