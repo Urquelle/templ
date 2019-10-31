@@ -59,7 +59,7 @@ os_utf8_wchar_to_char(wchar_t wc, char *dest, size_t size) {
 
 internal_proc size_t
 os_strlen(char *str) {
-    size_t result = _mbstrlen(str);
+    size_t result = ( str ) ? _mbstrlen(str) : 0;
 
     return result;
 }

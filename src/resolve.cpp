@@ -2252,6 +2252,8 @@ resolve_stmt(Stmt *stmt) {
                             parsed_stmt->stmt_macro.alias = import_sym->alias;
                             resolve_stmt(parsed_stmt);
                         }
+                    } else if ( parsed_stmt->kind == STMT_LIT ) {
+                        /* nichts tun */
                     } else {
                         assert(parsed_stmt->kind == STMT_SET);
                         if ( import_sym->name == parsed_stmt->stmt_set.name ) {
@@ -2908,7 +2910,9 @@ resolve(Parsed_Templ *parsed_templ, b32 with_context) {
     }
 
     for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
-        Resolved_Stmt *stmt = resolve_stmt(parsed_templ->stmts[i]);
+        Stmt *parsed_stmt = parsed_templ->stmts[i];
+
+        Resolved_Stmt *stmt = ( parsed_stmt ) ? resolve_stmt(parsed_templ->stmts[i]) : 0;
 
         if ( stmt ) {
             buf_push(result->stmts, stmt);

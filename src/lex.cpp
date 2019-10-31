@@ -264,6 +264,9 @@ struct Lexer {
     Token token_prev;
     Token token;
 
+    b32 ignore_whitespace;
+    b32 trim_blocks;
+
     Pos pos;
     char *input;
     char at[2];
@@ -521,6 +524,7 @@ next_raw_token(Lexer *lex) {
         next(lex);
 
         if ( at0(lex) == '{' ) {
+            lex->ignore_whitespace = true;
             lex->token.kind = T_VAR_BEGIN;
             next(lex);
         } else if ( at0(lex) == '#' ) {
@@ -528,6 +532,7 @@ next_raw_token(Lexer *lex) {
             next(lex);
             skip_comment(lex);
         } else if ( at0(lex) == '%' ) {
+            lex->ignore_whitespace = true;
             lex->token.kind = T_CODE_BEGIN;
             next(lex);
         }
@@ -536,6 +541,7 @@ next_raw_token(Lexer *lex) {
         next(lex);
 
         if ( at0(lex) == '}' ) {
+            lex->ignore_whitespace = false;
             lex->token.kind = T_VAR_END;
             next(lex);
         }
@@ -557,6 +563,7 @@ next_raw_token(Lexer *lex) {
         next(lex);
 
         if ( at0(lex) == '}' ) {
+            lex->ignore_whitespace = false;
             lex->token.kind = T_CODE_END;
             next(lex);
         }
@@ -597,8 +604,11 @@ next_raw_token(Lexer *lex) {
 internal_proc void
 next_token(Lexer *lex) {
     next_raw_token(lex);
-    while ( is_raw(lex->token) ) {
-        next_raw_token(lex);
+
+    if ( lex->ignore_whitespace ) {
+        while ( is_raw(lex->token) ) {
+            next_raw_token(lex);
+        }
     }
 }
 

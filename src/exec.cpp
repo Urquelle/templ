@@ -67,12 +67,19 @@ exec_macro(Resolved_Expr *expr) {
         }
     }
 
+    char *old_gen_result = gen_result;
+    char *temp = "";
+    gen_result = temp;
+
     for ( int i = 0; i < type->type_macro.num_stmts; ++i ) {
         Resolved_Stmt *stmt = type->type_macro.stmts[i];
         exec_stmt(stmt);
     }
 
-    return &val_undefined;
+    Val *result = val_str(gen_result);
+    gen_result = old_gen_result;
+
+    return result;
 }
 
 internal_proc Val *
@@ -287,12 +294,8 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
     for ( int i = 0; i < global_current_tmpl->num_stmts; ++i ) {
         Resolved_Stmt *child_stmt = global_current_tmpl->stmts[i];
 
-        if ( !child_stmt || child_stmt->kind == STMT_EXTENDS ) {
+        if ( !child_stmt || child_stmt->kind == STMT_EXTENDS || child_stmt->kind == STMT_LIT ) {
             continue;
-        }
-
-        if ( child_stmt->kind == STMT_LIT ) {
-            fatal(child_stmt->pos.name, child_stmt->pos.row, "unerwarteter ausdruck");
         }
 
         Resolved_Stmt *block = (Resolved_Stmt *)map_get(&templ->blocks, child_stmt->stmt_block.name);
@@ -468,11 +471,18 @@ PROC_CALLBACK(super) {
     assert(global_super_block);
     assert(global_super_block->kind == STMT_BLOCK);
 
+    char *old_gen_result = gen_result;
+    char *temp = "";
+    gen_result = temp;
+
     for ( int i = 0; i < global_super_block->stmt_block.num_stmts; ++i ) {
         exec_stmt(global_super_block->stmt_block.stmts[i]);
     }
 
-    return &val_undefined;
+    Val *result = val_str(gen_result);
+    gen_result = old_gen_result;
+
+    return result;
 }
 
 PROC_CALLBACK(cycle) {

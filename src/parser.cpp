@@ -99,6 +99,10 @@ parser_init(Parser *p, char *input, char *name) {
     p->lex.pos.name = name;
     p->lex.pos.row = 1;
     p->lex.token.pos = p->lex.pos;
+
+    p->lex.ignore_whitespace = false;
+    p->lex.trim_blocks = true;
+
     refill(&p->lex);
     init_keywords();
     next_raw_token(&p->lex);
@@ -273,10 +277,9 @@ parse_expr_list(Parser *p) {
             return expr_list(expr, buf_len(expr));
         }
 
-        buf_push(expr, parse_expr(p));
-        while ( match_token(p, T_COMMA) ) {
+        do {
             buf_push(expr, parse_expr(p));
-        }
+        } while ( match_token(p, T_COMMA) );
 
         expect_token(p, T_RBRACKET);
 
@@ -636,8 +639,12 @@ parse_stmt_if(Parser *p) {
                 curr_stmt->stmt_if.num_stmts = buf_len(curr_stmt->stmt_if.stmts);
             }
         } else {
-            buf_push(curr_stmt->stmt_if.stmts, parse_stmt(p));
-            curr_stmt->stmt_if.num_stmts = buf_len(curr_stmt->stmt_if.stmts);
+            Stmt *stmt = parse_stmt(p);
+
+            if ( stmt ) {
+                buf_push(curr_stmt->stmt_if.stmts, stmt);
+                curr_stmt->stmt_if.num_stmts = buf_len(curr_stmt->stmt_if.stmts);
+            }
         }
     }
 
@@ -678,7 +685,11 @@ parse_stmt_block(Parser *p) {
                 buf_push(stmts, stmt);
             }
         } else {
-            buf_push(stmts, parse_stmt(p));
+            Stmt *stmt = parse_stmt(p);
+
+            if ( stmt ) {
+                buf_push(stmts, stmt);
+            }
         }
     }
 
@@ -1004,13 +1015,16 @@ internal_proc Stmt *
 parse_stmt_lit(Parser *p) {
     char *lit = 0;
 
-    buf_printf(lit, "%s", p->lex.token.literal);
+    if ( !is_prev_token(p, T_CODE_END) || p->lex.token.literal[0] != '\n' ) {
+        buf_printf(lit, "%s", p->lex.token.literal);
+    }
+
     while ( parser_valid(p) && is_lit(&p->lex) ) {
         buf_printf(lit, "%.*s", utf8_char_size(parser_input(p)), parser_input(p));
         next(&p->lex);
     }
 
-    Stmt *result = stmt_lit(lit, os_strlen(lit));
+    Stmt *result = ( lit ) ? stmt_lit(lit, os_strlen(lit)) : 0;
     next_token(&p->lex);
 
     return result;
@@ -1029,11 +1043,18 @@ parse_string(char *content, char *sourcename = "<string>") {
     while ( !match_token(p, T_EOF) ) {
         if ( is_token(p, T_VAR_BEGIN) || is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_code(p);
-            buf_push(templ->stmts, stmt);
+
+            if ( stmt ) {
+                buf_push(templ->stmts, stmt);
+            }
         } else if ( is_token(p, T_COMMENT) ) {
             next_token(&p->lex);
         } else {
-            buf_push(templ->stmts, parse_stmt_lit(p));
+            Stmt *stmt = parse_stmt_lit(p);
+
+            if ( stmt ) {
+                buf_push(templ->stmts, stmt);
+            }
         }
     }
 
