@@ -2380,10 +2380,6 @@ resolve_expr(Expr *expr) {
     switch (expr->kind) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
-            if ( sym_invalid(sym) ) {
-                fatal(expr->pos.name, expr->pos.row, "konnte symbol %s nicht auflösen", expr->expr_name.value);
-            }
-
             result = resolved_expr_name(sym, sym->type, sym->val);
         } break;
 
@@ -2588,27 +2584,10 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_SUBSCRIPT: {
-            /*
-               @AUFGABE: index zu subscript umbenennen und wieder aktivieren
-             */
-#if 1
             Resolved_Expr *resolved_expr  = resolve_expr(expr->expr_subscript.expr);
             Resolved_Expr *resolved_index = resolve_expr(expr->expr_subscript.index);
 
             result = resolved_expr_subscript(resolved_expr, resolved_index);
-#else
-            Resolved_Expr *resolved_expr = resolve_expr(expr->expr_index.expr);
-            if (resolved_expr->type->kind != TYPE_ARRAY) {
-                fatal("indizierung auf einem nicht-array");
-            }
-
-            Resolved_Expr **index = 0;
-            for ( int i = 0; i < expr->expr_index.num_index; ++i ) {
-                buf_push(index, resolve_expr(expr->expr_index.index[i]));
-            }
-
-            result = resolved_expr_index(resolved_expr, index, buf_len(index));
-#endif
         } break;
 
         case EXPR_IS: {
@@ -2625,25 +2604,8 @@ resolve_expr(Expr *expr) {
             }
 
             Resolved_Expr **args = 0;
-            Type_Field *param = type->type_test.params[0];
-            if ( param->type != type_any && test_expr->type != param->type ) {
-                fatal(test_expr->pos.name, test_expr->pos.row, "datentyp des arguments ist falsch");
-            }
-
             for ( int i = 1; i < type->type_test.num_params; ++i ) {
-#if 1
                 Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
-#else
-                param = type->type_test.params[i];
-
-                Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
-
-
-                if (arg->type != param->type) {
-                    fatal(arg->pos.name, arg->pos.row, "datentyp des arguments ist falsch");
-                }
-#endif
-
                 buf_push(args, arg);
             }
 
@@ -2659,6 +2621,7 @@ resolve_expr(Expr *expr) {
         case EXPR_IF: {
             Resolved_Expr *cond = resolve_expr(expr->expr_if.cond);
             Resolved_Expr *else_expr = 0;
+
             if ( expr->expr_if.else_expr ) {
                 else_expr = resolve_expr(expr->expr_if.else_expr);
             }
@@ -2669,6 +2632,7 @@ resolve_expr(Expr *expr) {
         case EXPR_LIST: {
             Resolved_Expr **index = 0;
             Val **vals = 0;
+
             for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
                 Resolved_Expr *resolved_expr = resolve_expr(expr->expr_list.expr[i]);
                 buf_push(index, resolved_expr);
@@ -2681,6 +2645,7 @@ resolve_expr(Expr *expr) {
         case EXPR_TUPLE: {
             Resolved_Expr **exprs = 0;
             Val **vals = 0;
+
             for ( int i = 0; i < expr->expr_tuple.num_exprs; ++i ) {
                 Resolved_Expr *rexpr = resolve_expr(expr->expr_tuple.exprs[i]);
                 buf_push(vals, rexpr->val);
