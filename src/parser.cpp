@@ -1020,6 +1020,8 @@ internal_proc Parsed_Templ *
 parse_string(char *content, char *sourcename = "<string>") {
     Parsed_Templ *templ = parsed_templ(sourcename);
 
+    if ( !content ) return templ;
+
     Parser parser = {};
     Parser *p = &parser;
     parser_init(p, content, sourcename);
