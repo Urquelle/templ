@@ -1,8 +1,5 @@
 {% extends "template.tpl" %}
 
-{% import "macros.tpl" as macros %}
-{% from "macros.tpl" import test1 as test_1, test2 %}
-
 {% block title %}
     test - {{ default_title }}
 {% endblock %}
@@ -11,25 +8,16 @@
     <h2>super()</h2>
     {{ super() }}
 
-    {% include "filter.tpl"   without context %}
     {% include "literals.tpl" without context %}
+    {% include "exprs.tpl"    without context %}
     {% include "stmts.tpl"    without context %}
-    {% include "tests.tpl"    without context %}
     {% include "utf8.tpl"     without context %}
+    {% include "filter.tpl"   without context %}
+    {% include "tests.tpl"    without context %}
+    {% include "macros.tpl"   without context %}
 
     <h2>templ vars</h2>
     {{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}
-
-    <h2>import macros</h2>
-    {{ macros.test1() }}
-    macro name: {{ macros.test1.name }}
-    macro parameter:
-    {% for param in macros.printf.arguments %}
-        *{{ param }}*
-    {% endfor %}
-
-    <h2>import variablen</h2>
-    {{ macros.macro_name }}
 
     <h2>tuple test</h2>
     {% set tuple = ("europa" | upper, "asien", "amerika") %}
@@ -63,14 +51,6 @@
     {% for eins, zwei in [("eins", "zwei"), ("drei", "vier")] %}
         eins = {{ eins }} und zwei = {{ zwei }}
     {% endfor %}
-
-    <h2>from import macro</h2>
-    {{ test_1() }}
-    {{ test2() }}
-
-    <h2>macro</h2>
-    {{ macros.printf(arg='10, 5', format="%d = %d") }}
-    {{ macros.printf("zeugs %s zum formatieren") }}
 
     <h2>for mit zeichenketten</h2>
     {% for it in "d".."i" %}

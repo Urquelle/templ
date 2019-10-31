@@ -70,7 +70,7 @@ internal_proc TEST_CALLBACK(test_in) {
 }
 
 internal_proc TEST_CALLBACK(test_iterable) {
-    b32 result = VAL_ITERABLE_START <= val->kind && val->kind <= VAL_ITERABLE_END;
+    b32 result = type->flags & TYPE_FLAGS_CALLABLE;
 
     return val_bool(result);
 }
@@ -94,13 +94,13 @@ internal_proc TEST_CALLBACK(test_ne) {
 }
 
 internal_proc TEST_CALLBACK(test_none) {
-    b32 result = val->kind == VAL_NONE;
+    b32 result = val->kind == VAL_UNDEFINED;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_number) {
-    b32 result = val->kind == VAL_INT || val->kind == VAL_FLOAT;
+    b32 result = type_is_arithmetic(type);
 
     return val_bool(result);
 }
@@ -118,7 +118,7 @@ internal_proc TEST_CALLBACK(test_sameas) {
 }
 
 internal_proc TEST_CALLBACK(test_sequence) {
-    b32 result = test_iterable(val, 0, 0);
+    b32 result = test_iterable(val, type, 0, 0);
 
     return val_bool(result);
 }
