@@ -18,12 +18,14 @@
 #define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
 #define CLAMP_MAX(x, max) MIN(x, max)
 #define CLAMP_MIN(x, min) MAX(x, min)
-#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
 #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
+
+#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
 #define PROC_CALLBACK(name) Val * name(Resolved_Arg **args, size_t num_args)
-#define TEST_CALLBACK(name) Val * name(Val *val, Resolved_Expr **args, size_t num_args)
+#define TEST_CALLBACK(name) Val * name(Val *val, Type *type, Resolved_Expr **args, size_t num_args)
+
 #define erstes_if if
 #define genf(...)   gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
 #define genln()     gen_result = strf("%s\n", gen_result); gen_indentation()

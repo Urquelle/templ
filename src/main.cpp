@@ -17,10 +17,7 @@ main(int argc, char **argv) {
     templ_var_set(user, "age", 25);
     templ_var_set(user, "address", address);
 
-    Templ_Var *none = templ_var("var_none", &val_none);
-
     templ_vars_add(&vars, user);
-    templ_vars_add(&vars, none);
 
     Parsed_Templ *templ1 = templ_compile_string("servus {{ user.name }} in {{ user.address.city }}");
     char *result1 = templ_render(templ1, &vars);

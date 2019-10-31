@@ -196,7 +196,7 @@ exec_expr(Resolved_Expr *expr) {
             Type *type = expr->expr_is.test->type;
             assert(type->kind == TYPE_TEST);
 
-            result = type->type_test.callback(var_val, expr->expr_is.args, expr->expr_is.num_args);
+            result = type->type_test.callback(var_val, type, expr->expr_is.args, expr->expr_is.num_args);
         } break;
 
         case EXPR_IN: {
