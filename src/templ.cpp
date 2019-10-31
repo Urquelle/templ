@@ -214,7 +214,7 @@ namespace api {
     using templ::templ_var;
     using templ::templ_vars;
     using templ::templ_vars_add;
-    using templ::val_none;
+    using templ::val_undefined;
 }
 
 } /* namespace templ */

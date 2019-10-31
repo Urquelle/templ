@@ -1,3 +1,6 @@
+{% if var is defined %}
+{% endif %}
+
 {% if [1, 2, 3] is iterable %}
 {% endif %}
 

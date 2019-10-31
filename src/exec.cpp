@@ -72,7 +72,7 @@ exec_macro(Resolved_Expr *expr) {
         exec_stmt(stmt);
     }
 
-    return &val_none;
+    return &val_undefined;
 }
 
 internal_proc Val *
@@ -469,7 +469,7 @@ PROC_CALLBACK(super) {
         exec_stmt(global_super_block->stmt_block.stmts[i]);
     }
 
-    return &val_none;
+    return &val_undefined;
 }
 
 PROC_CALLBACK(cycle) {

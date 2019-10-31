@@ -1,11 +1,11 @@
 internal_proc TEST_CALLBACK(test_callable) {
-    b32 result = type_is_callable(args[0]->type);
+    b32 result = type_is_callable(type);
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_defined) {
-    b32 result = args[0]->sym != 0;
+    b32 result = type != &type_undefined;
 
     return val_bool(result);
 }

@@ -105,7 +105,7 @@ scope_set(Scope *scope) {
 /* }}} */
 /* val {{{ */
 enum Val_Kind {
-    VAL_NONE,
+    VAL_UNDEFINED,
     VAL_BOOL,
     VAL_INT,
     VAL_FLOAT,
@@ -124,7 +124,7 @@ struct Val {
     void  *ptr;
 };
 
-global_var Val val_none;
+global_var Val val_undefined;
 
 internal_proc Val *
 val_new(Val_Kind kind, size_t size) {
@@ -366,8 +366,8 @@ val_to_char(Val *val) {
             return val_to_char_buf;
         } break;
 
-        case VAL_NONE: {
-            return "";
+        case VAL_UNDEFINED: {
+            return "<undefined>";
         } break;
 
         case VAL_BOOL: {
@@ -914,6 +914,9 @@ struct Type {
 
 enum { PTR_SIZE = 8 };
 
+
+global_var Type type_none = { TYPE_NONE };
+global_var Type type_undefined;
 global_var Type *type_void;
 global_var Type *type_bool;
 global_var Type *type_int;
@@ -1104,6 +1107,22 @@ struct Sym {
     Val  *val;
 };
 
+global_var Sym sym_undefined = { SYM_NONE, 0, intern_str("undefined"), &type_undefined, &val_undefined };
+
+internal_proc b32
+sym_valid(Sym *sym) {
+    b32 result = sym != &sym_undefined;
+
+    return result;
+}
+
+internal_proc b32
+sym_invalid(Sym *sym) {
+    b32 result = sym == &sym_undefined;
+
+    return result;
+}
+
 internal_proc Sym *
 sym_new(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
     Sym *result = ALLOC_STRUCT(&resolve_arena, Sym);
@@ -1127,7 +1146,7 @@ sym_get(char *name) {
         }
     }
 
-    return 0;
+    return &sym_undefined;
 }
 
 internal_proc void
@@ -1979,7 +1998,7 @@ resolve_stmt(Stmt *stmt) {
             Sym **vars = 0;
             size_t num_vars = 0;
             for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
-                Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, type_any, &val_none);
+                Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, type_any, &val_undefined);
                 buf_push(vars, sym);
             }
 
@@ -2101,7 +2120,7 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_EXTENDS: {
-            if ( !sym_get(intern_str("super")) ) {
+            if ( sym_invalid(sym_get(intern_str("super"))) ) {
                 sym_push_proc("super", type_proc(0, 0, 0, super));
             }
 
@@ -2127,18 +2146,8 @@ resolve_stmt(Stmt *stmt) {
             Sym *sym = resolve_name(stmt->stmt_set.name);
             Resolved_Expr *expr = resolve_expr(stmt->stmt_set.expr);
 
-            if ( !sym ) {
+            if ( sym_invalid(sym) ) {
                 sym = sym_push_var(stmt->stmt_set.name, expr->type, val_copy(expr->val));
-
-                /* @INFO: die untere überprüfung wird nicht benötigt, da in dieser
-                 *        sprache keine statische typprüfung notwendig ist.
-                 */
-#if 0
-            } else {
-                if ( !convert_operand(expr, sym->type) ) {
-                    fatal(stmt->pos.name, stmt->pos.row, "datentyp des operanden passt nicht");
-                }
-#endif
             }
 
             result = resolved_stmt_set(sym, expr);
@@ -2201,7 +2210,7 @@ resolve_stmt(Stmt *stmt) {
             /* macro variablen {{{ */
             sym_push_var("name",      type_str, val_str(macro_name));
             sym_push_var("arguments", type_tuple(num_param_names), val_tuple(param_names, num_param_names));
-            sym_push_var("varargs",   type_list, &val_none);
+            sym_push_var("varargs",   type_list, &val_undefined);
             /* }}} */
 
             Resolved_Stmt **stmts = 0;
@@ -2369,7 +2378,7 @@ resolve_expr(Expr *expr) {
     switch (expr->kind) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
-            if ( !sym ) {
+            if ( sym_invalid(sym) ) {
                 fatal(expr->pos.name, expr->pos.row, "konnte symbol %s nicht auflösen", expr->expr_name.value);
             }
 
