@@ -62,7 +62,7 @@ struct Scope {
     size_t num_syms;
 };
 
-global_var Scope *system_scope;
+global_var Scope system_scope;
 global_var Scope global_scope;
 global_var Scope *current_scope = &global_scope;
 
@@ -1152,7 +1152,7 @@ sym_get(char *name) {
 internal_proc void
 sym_clear() {
     for ( Scope *scope = current_scope; scope; scope = scope->parent ) {
-        if ( scope == system_scope ) {
+        if ( scope == &system_scope ) {
             break;
         }
         map_reset(&scope->syms);
@@ -1184,7 +1184,7 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
 internal_proc Sym *
 sym_push_filter(char *name, Type *type) {
     Scope *prev_scope = current_scope;
-    current_scope = system_scope;
+    current_scope = &system_scope;
 
     Sym *result = sym_push(SYM_PROC, name, type);
 
@@ -1196,7 +1196,7 @@ sym_push_filter(char *name, Type *type) {
 internal_proc Sym *
 sym_push_test(char *name, Type *type) {
     Scope *prev_scope = current_scope;
-    current_scope = system_scope;
+    current_scope = &system_scope;
 
     Sym *result = sym_push(SYM_PROC, name, type);
 
@@ -2878,9 +2878,9 @@ resolve_init_builtin_types() {
 
 internal_proc void
 resolve_init_scope() {
-    system_scope = scope_new(0, "system scope");
+    system_scope.name = "system scope";
     global_scope.name = "global scope";
-    global_scope.parent = system_scope;
+    global_scope.parent = &system_scope;
 }
 
 internal_proc void
@@ -2904,12 +2904,15 @@ resolve(Parsed_Templ *parsed_templ, b32 with_context) {
 
     Scope *prev_scope = current_scope;
     if ( !with_context ) {
-        current_scope = scope_new(system_scope, parsed_templ->name);
+        current_scope = scope_new(&system_scope, parsed_templ->name);
     }
 
     for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
         Resolved_Stmt *stmt = resolve_stmt(parsed_templ->stmts[i]);
-        buf_push(result->stmts, stmt);
+
+        if ( stmt ) {
+            buf_push(result->stmts, stmt);
+        }
     }
 
     result->num_stmts = buf_len(result->stmts);
