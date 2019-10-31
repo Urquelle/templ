@@ -196,7 +196,6 @@ internal_proc Expr *
 parse_expr_base(Parser *p) {
     Lexer *lex = &p->lex;
     Expr *result = &expr_illegal;
-    result->pos = lex->pos;
 
     if ( is_token(p, T_INT) ) {
         result = expr_int(lex->token.int_value);
@@ -259,6 +258,8 @@ parse_expr_base(Parser *p) {
 
         buf_free(exprs);
     }
+
+    result->pos = lex->pos;
 
     return result;
 }
