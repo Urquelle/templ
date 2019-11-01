@@ -1632,7 +1632,8 @@ struct Resolved_Stmt {
         } stmt_raw;
 
         struct {
-            Sym *sym;
+            Sym **syms;
+            size_t num_syms;
             Resolved_Expr *expr;
         } stmt_set;
 
@@ -1774,10 +1775,11 @@ resolved_stmt_raw(char *value) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_set(Sym *sym, Resolved_Expr *expr) {
+resolved_stmt_set(Sym **syms, size_t num_syms, Resolved_Expr *expr) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_SET);
 
-    result->stmt_set.sym = sym;
+    result->stmt_set.syms = syms;
+    result->stmt_set.num_syms = num_syms;
     result->stmt_set.expr = expr;
 
     return result;
@@ -2143,14 +2145,31 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_SET: {
-            Sym *sym = resolve_name(stmt->stmt_set.name);
             Resolved_Expr *expr = resolve_expr(stmt->stmt_set.expr);
 
-            if ( sym_invalid(sym) ) {
-                sym = sym_push_var(stmt->stmt_set.name, expr->type, val_copy(expr->val));
+            Sym **syms = 0;
+            if ( stmt->stmt_set.num_names == 1 ) {
+                Sym *sym = resolve_name(stmt->stmt_set.names[0]);
+
+                if ( sym_invalid(sym) ) {
+                    sym = sym_push_var(stmt->stmt_set.names[0], expr->type, val_copy(expr->val));
+                }
+
+                buf_push(syms, sym);
+            } else {
+                for ( int i = 0; i < stmt->stmt_set.num_names; ++i ) {
+                    char *name = stmt->stmt_set.names[i];
+                    Sym *sym = resolve_name(name);
+
+                    if ( sym_invalid(sym) ) {
+                        sym = sym_push_var(name, expr->type, val_copy(val_elem(expr->val, i)));
+                    }
+
+                    buf_push(syms, sym);
+                }
             }
 
-            result = resolved_stmt_set(sym, expr);
+            result = resolved_stmt_set(syms, buf_len(syms), expr);
         } break;
 
         case STMT_FILTER: {
@@ -2256,9 +2275,13 @@ resolve_stmt(Stmt *stmt) {
                         /* nichts tun */
                     } else {
                         assert(parsed_stmt->kind == STMT_SET);
-                        if ( import_sym->name == parsed_stmt->stmt_set.name ) {
-                            parsed_stmt->stmt_macro.alias = import_sym->alias;
-                            resolve_stmt(parsed_stmt);
+                        for ( int k = 0; k < parsed_stmt->stmt_set.num_names; ++k ) {
+                            char *name = parsed_stmt->stmt_set.names[k];
+
+                            if ( import_sym->name == name ) {
+                                parsed_stmt->stmt_macro.alias = import_sym->alias;
+                                resolve_stmt(parsed_stmt);
+                            }
                         }
                     }
                 }

@@ -35,7 +35,11 @@
 
     {{ "name %s alter %d und %.2f" | format(user.name, user.age, 7.53) | upper }}
 
-    {{ "abcd"[0] }}
+    {% set elem1, elem2 = [1, 2] %}
+    elem1 = {{ elem1 }}
+    elem2 = {{ elem2 }}
+
+    {{ "abcd"[2] }}
 
     {% for eins, zwei in [("eins", "zwei"), ("drei", "vier")] %}
         eins = {{ eins }} und zwei = {{ zwei }}

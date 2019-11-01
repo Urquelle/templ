@@ -344,7 +344,14 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_SET: {
-            stmt->stmt_set.sym->val = exec_expr(stmt->stmt_set.expr);
+            if ( stmt->stmt_set.num_syms == 1 ) {
+                stmt->stmt_set.syms[0]->val = exec_expr(stmt->stmt_set.expr);
+            } else {
+                Val *val = exec_expr(stmt->stmt_set.expr);
+                for ( int i = 0; i < stmt->stmt_set.num_syms; ++i ) {
+                    stmt->stmt_set.syms[i]->val = val_elem(val, i);
+                }
+            }
         } break;
 
         case STMT_FOR: {

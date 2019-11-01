@@ -799,12 +799,17 @@ parse_stmt_filter(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_set(Parser *p) {
-    char *name = parse_name(p);
+    char **names = 0;
+    do {
+        char *name = parse_name(p);
+        buf_push(names, name);
+    } while ( match_token(p, T_COMMA) );
+
     expect_token(p, T_ASSIGN);
     Expr *expr = parse_expr(p);
     expect_token(p, T_CODE_END);
 
-    return stmt_set(name, expr);
+    return stmt_set(names, buf_len(names), expr);
 }
 
 internal_proc Stmt *
