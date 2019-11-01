@@ -306,6 +306,19 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
 }
 
 internal_proc void
+exec_set(Val *dest, Val *source) {
+    if ( dest->kind == VAL_INT ) {
+        val_set(dest, val_int(source));
+    } else if ( dest->kind == VAL_STR ) {
+        dest = source;
+    } else if ( dest->kind == VAL_LIST ) {
+        dest->ptr = source->ptr;
+    } else if ( dest->kind == VAL_TUPLE ) {
+        dest->ptr = source->ptr;
+    }
+}
+
+internal_proc void
 exec_stmt(Resolved_Stmt *stmt) {
     switch ( stmt->kind ) {
         case STMT_LIT: {
@@ -344,12 +357,17 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_SET: {
-            if ( stmt->stmt_set.num_syms == 1 ) {
-                stmt->stmt_set.syms[0]->val = exec_expr(stmt->stmt_set.expr);
+            if ( stmt->stmt_set.num_names == 1 ) {
+                Val *dest   = exec_expr(stmt->stmt_set.names[0]);
+                Val *source = exec_expr(stmt->stmt_set.expr);
+
+                exec_set(dest, source);
             } else {
-                Val *val = exec_expr(stmt->stmt_set.expr);
-                for ( int i = 0; i < stmt->stmt_set.num_syms; ++i ) {
-                    stmt->stmt_set.syms[i]->val = val_elem(val, i);
+                Val *source = exec_expr(stmt->stmt_set.expr);
+
+                for ( int i = 0; i < stmt->stmt_set.num_names; ++i ) {
+                    Val *dest = stmt->stmt_set.names[i]->val;
+                    exec_set(dest, val_elem(source, i));
                 }
             }
         } break;

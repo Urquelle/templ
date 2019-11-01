@@ -496,7 +496,7 @@ struct Stmt {
         } stmt_extends;
 
         struct {
-            char **names;
+            Expr **names;
             size_t num_names;
             Expr *expr;
         } stmt_set;
@@ -661,10 +661,10 @@ stmt_extends(char *name, Parsed_Templ *templ, Parsed_Templ *else_templ, Expr *if
 }
 
 internal_proc Stmt *
-stmt_set(char **names, size_t num_names, Expr *expr) {
+stmt_set(Expr **names, size_t num_names, Expr *expr) {
     Stmt *result = stmt_new(STMT_SET);
 
-    result->stmt_set.names = (char **)AST_DUP(names);
+    result->stmt_set.names = (Expr **)AST_DUP(names);
     result->stmt_set.num_names = num_names;
     result->stmt_set.expr = expr;
 

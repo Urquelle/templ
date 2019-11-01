@@ -800,9 +800,9 @@ parse_stmt_filter(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_set(Parser *p) {
-    char **names = 0;
+    Expr **names = 0;
     do {
-        char *name = parse_name(p);
+        Expr *name = parse_expr(p);
         buf_push(names, name);
     } while ( match_token(p, T_COMMA) );
 

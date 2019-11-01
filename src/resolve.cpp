@@ -1634,8 +1634,8 @@ struct Resolved_Stmt {
         } stmt_raw;
 
         struct {
-            Sym **syms;
-            size_t num_syms;
+            Resolved_Expr **names;
+            size_t num_names;
             Resolved_Expr *expr;
         } stmt_set;
 
@@ -1782,11 +1782,11 @@ resolved_stmt_raw(char *value) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_set(Sym **syms, size_t num_syms, Resolved_Expr *expr) {
+resolved_stmt_set(Resolved_Expr **names, size_t num_names, Resolved_Expr *expr) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_SET);
 
-    result->stmt_set.syms = syms;
-    result->stmt_set.num_syms = num_syms;
+    result->stmt_set.names = names;
+    result->stmt_set.num_names = num_names;
     result->stmt_set.expr = expr;
 
     return result;
@@ -2158,29 +2158,30 @@ resolve_stmt(Stmt *stmt) {
         case STMT_SET: {
             Resolved_Expr *expr = resolve_expr(stmt->stmt_set.expr);
 
-            Sym **syms = 0;
+            Resolved_Expr **names = 0;
             if ( stmt->stmt_set.num_names == 1 ) {
-                Sym *sym = resolve_name(stmt->stmt_set.names[0]);
+                Expr *name = stmt->stmt_set.names[0];
+                Resolved_Expr *resolved_name = resolve_expr(name);
 
-                if ( sym_invalid(sym) ) {
-                    sym = sym_push_var(stmt->stmt_set.names[0], expr->type, val_copy(expr->val));
+                if ( sym_invalid(resolved_name->sym) && name->kind == EXPR_NAME ) {
+                    resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_copy(expr->val));
                 }
 
-                buf_push(syms, sym);
+                buf_push(names, resolved_name);
             } else {
                 for ( int i = 0; i < stmt->stmt_set.num_names; ++i ) {
-                    char *name = stmt->stmt_set.names[i];
-                    Sym *sym = resolve_name(name);
+                    Expr *name = stmt->stmt_set.names[i];
+                    Resolved_Expr *resolved_name = resolve_expr(name);
 
-                    if ( sym_invalid(sym) ) {
-                        sym = sym_push_var(name, expr->type, val_copy(val_elem(expr->val, i)));
+                    if ( sym_invalid(resolved_name->sym) && name->kind == EXPR_NAME ) {
+                        resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_copy(val_elem(expr->val, i)));
                     }
 
-                    buf_push(syms, sym);
+                    buf_push(names, resolved_name);
                 }
             }
 
-            result = resolved_stmt_set(syms, buf_len(syms), expr);
+            result = resolved_stmt_set(names, buf_len(names), expr);
         } break;
 
         case STMT_FILTER: {
@@ -2287,9 +2288,10 @@ resolve_stmt(Stmt *stmt) {
                     } else {
                         assert(parsed_stmt->kind == STMT_SET);
                         for ( int k = 0; k < parsed_stmt->stmt_set.num_names; ++k ) {
-                            char *name = parsed_stmt->stmt_set.names[k];
+                            Expr *name = parsed_stmt->stmt_set.names[k];
+                            assert(name->kind == EXPR_NAME);
 
-                            if ( import_sym->name == name ) {
+                            if ( import_sym->name == name->expr_name.value ) {
                                 parsed_stmt->stmt_macro.alias = import_sym->alias;
                                 resolve_stmt(parsed_stmt);
                             }
