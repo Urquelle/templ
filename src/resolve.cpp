@@ -1535,8 +1535,8 @@ resolved_expr_if(Resolved_Expr *cond, Resolved_Expr *else_expr) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_subscript(Resolved_Expr *expr, Resolved_Expr *index) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_SUBSCRIPT);
+resolved_expr_subscript(Resolved_Expr *expr, Resolved_Expr *index, Type *type) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_SUBSCRIPT, type);
 
     result->expr_subscript.expr  = expr;
     result->expr_subscript.index = index;
@@ -2659,7 +2659,8 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *resolved_expr  = resolve_expr(expr->expr_subscript.expr);
             Resolved_Expr *resolved_index = resolve_expr(expr->expr_subscript.index);
 
-            result = resolved_expr_subscript(resolved_expr, resolved_index);
+            result = resolved_expr_subscript(resolved_expr, resolved_index, resolved_expr->type);
+            result->type->flags |= resolved_expr->type->flags & TYPE_FLAGS_CONST;
         } break;
 
         case EXPR_IS: {
