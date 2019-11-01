@@ -10,3 +10,11 @@
     {% set foo = "bar" %}
     und dann
 {% endraw %}
+
+{% with a = a, b = 3 %}
+    {% set x = 5 %}
+    x = {{ x }}
+    a = {{ a }}
+{% endwith %}
+
+außerhalb: x = {{ x }}

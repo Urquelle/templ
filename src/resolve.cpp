@@ -1224,14 +1224,16 @@ sym_push_module(char *name, Type *type) {
 struct Resolved_Arg {
     Pos pos;
     char *name;
+    Type *type;
     Val *val;
 };
 
 internal_proc Resolved_Arg *
-resolved_arg(Pos pos, char *name, Val *val) {
+resolved_arg(Pos pos, char *name, Type *type, Val *val) {
     Resolved_Arg *result = ALLOC_STRUCT(&resolve_arena, Resolved_Arg);
 
     result->name = name;
+    result->type = type;
     result->val = val;
 
     return result;
@@ -1666,6 +1668,11 @@ struct Resolved_Stmt {
         struct {
             Sym *sym;
         } stmt_module;
+
+        struct {
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+        } stmt_with;
     };
 };
 
@@ -1851,6 +1858,16 @@ resolved_stmt_import(Sym *sym) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_IMPORT);
 
     result->stmt_module.sym = sym;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_with(Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_WITH);
+
+    result->stmt_with.stmts = stmts;
+    result->stmt_with.num_stmts = num_stmts;
 
     return result;
 }
@@ -2292,6 +2309,39 @@ resolve_stmt(Stmt *stmt) {
             /* nichts tun */
         } break;
 
+        case STMT_WITH: {
+            scope_enter();
+
+            /* @INFO: zuerst müssen die ausdrücke der argumente aufgelöst werden
+             *        BEVOR die argumente als symbole in den scope gepusht werden,
+             *        da in diesem bereich die argumente noch keine gültigkeit haben.
+             *
+             *        https://jinja.palletsprojects.com/en/2.10.x/templates/#with-statement
+             */
+            Resolved_Arg **args = 0;
+            for ( int i = 0; i < stmt->stmt_with.num_args; ++i ) {
+                Arg *arg = stmt->stmt_with.args[i];
+                Resolved_Expr *expr = resolve_expr(arg->expr);
+                buf_push(args, resolved_arg(arg->pos, arg->name, expr->type, expr->val));
+            }
+
+            /* @INFO: hier werden die symbole der argumente tatsächlich veröffentlicht */
+            for ( int i = 0; i < buf_len(args); ++i ) {
+                Resolved_Arg *arg = args[i];
+                sym_push_var(arg->name, arg->type, arg->val);
+            }
+
+            Resolved_Stmt **stmts = 0;
+            for ( int i = 0; i < stmt->stmt_with.num_stmts; ++i ) {
+                Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_with.stmts[i]);
+                buf_push(stmts, resolved_stmt);
+            }
+
+            scope_leave();
+
+            result = resolved_stmt_with(stmts, buf_len(stmts));
+        } break;
+
         default: {
             illegal_path();
             return result;
@@ -2534,7 +2584,7 @@ resolve_expr(Expr *expr) {
                     Arg *arg = expr->expr_call.args[i];
 
                     Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
-                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->val);
+                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->type, arg_expr->val);
                     buf_push(args, rarg);
                 }
 
@@ -2544,7 +2594,7 @@ resolve_expr(Expr *expr) {
                 for ( size_t i = type->type_proc.num_params; i < expr->expr_call.num_args; ++i ) {
                     Arg *arg = expr->expr_call.args[i];
                     Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->val);
+                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->type, arg_expr->val);
                     buf_push(varargs, rarg);
                 }
 
@@ -2598,7 +2648,7 @@ resolve_expr(Expr *expr) {
                     buf_push(params, name);
 
                     Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, name, arg_expr->val);
+                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, name, arg_expr->type, arg_expr->val);
                     buf_push(args, rarg);
                 }
 
@@ -2725,7 +2775,7 @@ resolve_filter(Filter *filter) {
         for ( int i = 0; i < filter->num_args; ++i ) {
             Arg *arg = filter->args[i];
             Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-            buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->val));
+            buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->type, arg_expr->val));
         }
     } else {
         if ( type->type_filter.num_params-1 < num_args ) {
@@ -2745,7 +2795,7 @@ resolve_filter(Filter *filter) {
                 if (arg_expr->type != param->type) {
                     fatal(arg_expr->pos.name, arg_expr->pos.row, "datentyp des arguments stimmt nicht");
                 }
-                buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->val));
+                buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->type, arg_expr->val));
             }
         }
     }

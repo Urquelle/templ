@@ -432,6 +432,7 @@ enum Stmt_Kind {
     STMT_ENDBLOCK,
     STMT_ENDFILTER,
     STMT_ENDMACRO,
+    STMT_ENDWITH,
     STMT_VAR,
     STMT_LIT,
     STMT_EXTENDS,
@@ -442,6 +443,7 @@ enum Stmt_Kind {
     STMT_IMPORT,
     STMT_FROM_IMPORT,
     STMT_RAW,
+    STMT_WITH,
 };
 
 struct Stmt {
@@ -536,10 +538,18 @@ struct Stmt {
         struct {
             char *value;
         } stmt_raw;
+
+        struct {
+            Arg **args;
+            size_t num_args;
+            Stmt **stmts;
+            size_t num_stmts;
+        } stmt_with;
     };
 };
 
 global_var Stmt stmt_illegal = { STMT_NONE };
+global_var Stmt stmt_endwith   = { STMT_ENDWITH };
 
 internal_proc Stmt *
 stmt_new(Stmt_Kind kind) {
@@ -759,6 +769,18 @@ stmt_raw(char *value) {
     Stmt *result = stmt_new(STMT_RAW);
 
     result->stmt_raw.value = value;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_with(Arg **args, size_t num_args, Stmt **stmts, size_t num_stmts) {
+    Stmt *result = stmt_new(STMT_WITH);
+
+    result->stmt_with.args = (Arg **)AST_DUP(args);
+    result->stmt_with.num_args = num_args;
+    result->stmt_with.stmts = (Stmt **)AST_DUP(stmts);
+    result->stmt_with.num_stmts = num_stmts;
 
     return result;
 }

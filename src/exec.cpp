@@ -462,6 +462,12 @@ exec_stmt(Resolved_Stmt *stmt) {
             genf("%s", stmt->stmt_raw.value);
         } break;
 
+        case STMT_WITH: {
+            for ( int i = 0; i < stmt->stmt_with.num_stmts; ++i ) {
+                exec_stmt(stmt->stmt_with.stmts[i]);
+            }
+        } break;
+
         case STMT_MACRO:
         case STMT_FROM_IMPORT:
         case STMT_IMPORT: {

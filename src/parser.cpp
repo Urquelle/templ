@@ -47,6 +47,7 @@ global_var char *keyword_endblock;
 global_var char *keyword_endfilter;
 global_var char *keyword_endmacro;
 global_var char *keyword_endraw;
+global_var char *keyword_endwith;
 global_var char *keyword_extends;
 global_var char *keyword_block;
 global_var char *keyword_embed;
@@ -57,6 +58,7 @@ global_var char *keyword_macro;
 global_var char *keyword_import;
 global_var char *keyword_raw;
 global_var char *keyword_not;
+global_var char *keyword_with;
 
 internal_proc void
 init_keywords() {
@@ -79,6 +81,7 @@ init_keywords() {
     ADD_KEYWORD(endfilter);
     ADD_KEYWORD(endmacro);
     ADD_KEYWORD(endraw);
+    ADD_KEYWORD(endwith);
     ADD_KEYWORD(extends);
     ADD_KEYWORD(block);
     ADD_KEYWORD(embed);
@@ -89,6 +92,7 @@ init_keywords() {
     ADD_KEYWORD(import);
     ADD_KEYWORD(raw);
     ADD_KEYWORD(not);
+    ADD_KEYWORD(with);
 
 #undef ADD_KEYWORD
 }
@@ -908,6 +912,31 @@ parse_stmt_raw(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_with(Parser *p) {
+    Arg **args = 0;
+    if ( !is_token(p, T_CODE_END) ) {
+        do {
+            char *name = parse_name(p);
+            expect_token(p, T_ASSIGN);
+            Expr *expr = parse_expr(p);
+
+            buf_push(args, arg_new(expr->pos, name, expr));
+        } while ( match_token(p, T_COMMA) );
+    }
+
+    expect_token(p, T_CODE_END);
+    Stmt **stmts = 0;
+    Stmt *stmt = parse_stmt(p);
+
+    while ( stmt && stmt->kind != STMT_ENDWITH ) {
+        buf_push(stmts, stmt);
+        stmt = parse_stmt(p);
+    }
+
+    return stmt_with(args, buf_len(args), stmts, buf_len(stmts));
+}
+
+internal_proc Stmt *
 parse_stmt_endfor(Parser *p) {
     expect_token(p, T_CODE_END);
     return stmt_endfor();
@@ -939,6 +968,12 @@ parse_stmt_endmacro(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_endwith(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return &stmt_endwith;
+}
+
+internal_proc Stmt *
 parse_stmt(Parser *p) {
     Pos pos = p->lex.pos;
 
@@ -958,6 +993,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_endfilter(p);
         } else if ( match_keyword(p, keyword_endmacro) ) {
             result = parse_stmt_endmacro(p);
+        } else if ( match_keyword(p, keyword_endwith) ) {
+            result = parse_stmt_endwith(p);
         } else if ( match_keyword(p, keyword_else) ) {
             result = parse_stmt_else(p);
         } else if ( match_keyword(p, keyword_elif) ) {
@@ -980,6 +1017,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_from_import(p);
         } else if ( match_keyword(p, keyword_raw) ) {
             result = parse_stmt_raw(p);
+        } else if ( match_keyword(p, keyword_with) ) {
+            result = parse_stmt_with(p);
         } else {
             result = &stmt_illegal;
             fatal(p->lex.pos.name, p->lex.pos.row, "unbekanntes token aufgetreten: %s", tokenkind_to_str(p->lex.token.kind));
