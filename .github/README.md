@@ -39,7 +39,7 @@ main(int argc, char **argv) {
 
 ## weitere beispiele
 
-im [data](data/) verzeichnis befinden sich einige jinja2 templates, die weitestgehend alle angaben nutzen, die von `templ` aktuell unterstützt werden.
+im [data](https://github.com/NoobSaibot/templ/tree/dev/data) verzeichnis befinden sich einige jinja2 templates, die weitestgehend alle angaben nutzen, die von `templ` aktuell unterstützt werden.
 
 ## unicode
 
