@@ -315,6 +315,15 @@ exec_stmt_set(Val *dest, Val *source) {
         dest->ptr = source->ptr;
     } else if ( dest->kind == VAL_TUPLE ) {
         dest->ptr = source->ptr;
+    } else if ( dest->kind == VAL_CHAR ) {
+        /* @ACHTUNG: folgende anweisung funktioniert nur für ascii! */
+        /* @AUFGABE: länge der neuen zeichenkette mit dem neuen zeichen berechnen,
+         *           neuen speicher entsprechend belegen und ptr zuweisen, und danach
+         *           die zeichenkette neukomponieren
+         */
+        ((char *)dest->ptr)[0] = *(char *)source->ptr;
+    } else {
+        fatal(0, 0, "nicht unterstützter datentyp wird in einer set anweisung verwendet");
     }
 }
 

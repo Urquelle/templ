@@ -109,6 +109,7 @@ enum Val_Kind {
     VAL_BOOL,
     VAL_INT,
     VAL_FLOAT,
+    VAL_CHAR,
     VAL_STR,
     VAL_ITERABLE_START = VAL_STR,
     VAL_RANGE,
@@ -226,8 +227,11 @@ val_str(char *val, size_t len = 0) {
 }
 
 internal_proc Val *
-val_str(char c) {
-    Val *result = val_str(strf("%c", c));
+val_char(char *c) {
+    Val *result = val_new(VAL_CHAR, sizeof(char *));
+
+    result->len = 1;
+    result->ptr = c;
 
     return result;
 }
@@ -378,6 +382,11 @@ val_to_char(Val *val) {
             }
         } break;
 
+        case VAL_CHAR: {
+            sprintf(val_to_char_buf, "%.1s", val_str(val));
+            return val_to_char_buf;
+        } break;
+
         default: {
             fatal(0, 0, "datentyp kann nicht in zeichenkette umgewandelt werden.\n");
             return "";
@@ -422,9 +431,9 @@ val_subscript(Val *val, int idx) {
         } break;
 
         case VAL_STR: {
-            char c = *((char *)val->ptr + idx);
+            char *c = ((char *)val->ptr + idx);
 
-            return val_str(c);
+            return val_char(c);
         } break;
 
         default: {
