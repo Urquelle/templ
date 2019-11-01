@@ -2124,12 +2124,6 @@ resolve_stmt(Stmt *stmt) {
             result = resolved_stmt_block(stmt->stmt_block.name, stmts, buf_len(stmts));
         } break;
 
-        case STMT_ENDIF:
-        case STMT_ENDBLOCK:
-        case STMT_ENDFILTER:
-        case STMT_ENDFOR: {
-        } break;
-
         case STMT_LIT: {
             result = resolved_stmt_lit(stmt->stmt_lit.value);
         } break;
@@ -2305,10 +2299,6 @@ resolve_stmt(Stmt *stmt) {
             }
         } break;
 
-        case STMT_NONE: {
-            /* nichts tun */
-        } break;
-
         case STMT_WITH: {
             scope_enter();
 
@@ -2340,6 +2330,13 @@ resolve_stmt(Stmt *stmt) {
             scope_leave();
 
             result = resolved_stmt_with(stmts, buf_len(stmts));
+        } break;
+
+        case STMT_ENDWITH:
+        case STMT_ENDIF:
+        case STMT_ENDBLOCK:
+        case STMT_ENDFILTER:
+        case STMT_ENDFOR: {
         } break;
 
         default: {

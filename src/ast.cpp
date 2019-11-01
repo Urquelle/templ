@@ -548,7 +548,12 @@ struct Stmt {
     };
 };
 
-global_var Stmt stmt_illegal = { STMT_NONE };
+global_var Stmt stmt_illegal   = { STMT_NONE };
+global_var Stmt stmt_endblock  = { STMT_ENDBLOCK };
+global_var Stmt stmt_endfilter = { STMT_ENDFILTER };
+global_var Stmt stmt_endfor    = { STMT_ENDFOR };
+global_var Stmt stmt_endif     = { STMT_ENDIF };
+global_var Stmt stmt_endmacro  = { STMT_ENDMACRO };
 global_var Stmt stmt_endwith   = { STMT_ENDWITH };
 
 internal_proc Stmt *
@@ -619,41 +624,6 @@ stmt_block(char *name, Stmt **stmts, size_t num_stmts) {
     result->stmt_block.name = name;
     result->stmt_block.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_block.num_stmts = num_stmts;
-
-    return result;
-}
-
-internal_proc Stmt *
-stmt_endfor() {
-    Stmt *result = stmt_new(STMT_ENDFOR);
-
-    return result;
-}
-
-internal_proc Stmt *
-stmt_endif() {
-    Stmt *result = stmt_new(STMT_ENDIF);
-
-    return result;
-}
-
-internal_proc Stmt *
-stmt_endblock() {
-    Stmt *result = stmt_new(STMT_ENDBLOCK);
-
-    return result;
-}
-
-internal_proc Stmt *
-stmt_endfilter() {
-    Stmt *result = stmt_new(STMT_ENDFILTER);
-
-    return result;
-}
-
-internal_proc Stmt *
-stmt_endmacro() {
-    Stmt *result = stmt_new(STMT_ENDMACRO);
 
     return result;
 }

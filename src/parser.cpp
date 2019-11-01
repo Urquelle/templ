@@ -18,15 +18,12 @@ parser_input(Parser *p) {
 
 global_var Arena parse_arena;
 
-global_var Stmt **parsed_stmts;
-
 internal_proc Expr * parse_expr(Parser *p, b32 do_parse_filter = true);
 internal_proc char * parse_name(Parser *p);
 internal_proc Stmt * parse_stmt(Parser *p);
 internal_proc Stmt * parse_stmt_var(Parser *p);
 internal_proc Stmt * parse_stmt_lit(Parser *p);
 internal_proc Parsed_Templ * parse_file(char *filename);
-internal_proc Stmt * parse_stmt_endmacro(Parser *p);
 internal_proc char * parse_str(Parser *p);
 
 global_var char ** keywords;
@@ -939,32 +936,32 @@ parse_stmt_with(Parser *p) {
 internal_proc Stmt *
 parse_stmt_endfor(Parser *p) {
     expect_token(p, T_CODE_END);
-    return stmt_endfor();
+    return &stmt_endfor;
 }
 
 internal_proc Stmt *
 parse_stmt_endif(Parser *p) {
     expect_token(p, T_CODE_END);
-    return stmt_endif();
+    return &stmt_endif;
 }
 
 internal_proc Stmt *
 parse_stmt_endblock(Parser *p) {
     match_token(p, T_NAME);
     expect_token(p, T_CODE_END);
-    return stmt_endblock();
+    return &stmt_endblock;
 }
 
 internal_proc Stmt *
 parse_stmt_endfilter(Parser *p) {
     expect_token(p, T_CODE_END);
-    return stmt_endfilter();
+    return &stmt_endfilter;
 }
 
 internal_proc Stmt *
 parse_stmt_endmacro(Parser *p) {
     expect_token(p, T_CODE_END);
-    return stmt_endmacro();
+    return &stmt_endmacro;
 }
 
 internal_proc Stmt *
