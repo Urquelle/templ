@@ -1383,6 +1383,7 @@ resolved_expr_new(Expr_Kind kind, Type *type = 0) {
     result->is_const = false;
     result->type = type;
     result->kind = kind;
+    result->sym = &sym_undefined;
 
     return result;
 }
@@ -2174,6 +2175,9 @@ resolve_stmt(Stmt *stmt) {
 
                 if ( sym_invalid(resolved_name->sym) && name->kind == EXPR_NAME ) {
                     resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_copy(expr->val));
+                } else if ( !sym_invalid(resolved_name->sym) ) {
+                    resolved_name->sym->type = expr->type;
+                    resolved_name->sym->val = val_copy(expr->val);
                 }
 
                 buf_push(names, resolved_name);
@@ -2184,6 +2188,9 @@ resolve_stmt(Stmt *stmt) {
 
                     if ( sym_invalid(resolved_name->sym) && name->kind == EXPR_NAME ) {
                         resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_copy(val_elem(expr->val, i)));
+                    } else if ( !sym_invalid(resolved_name->sym) ) {
+                        resolved_name->sym->type = expr->type;
+                        resolved_name->sym->val = val_copy(val_elem(expr->val, i));
                     }
 
                     buf_push(names, resolved_name);
