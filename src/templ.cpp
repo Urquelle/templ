@@ -199,16 +199,23 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
 
 namespace api {
     using templ::Parsed_Templ;
+    using templ::Status;
     using templ::Templ_Var;
     using templ::Templ_Vars;
     using templ::os_file_write;
     using templ::os_strlen;
+    using templ::status_error_get;
     using templ::status_filename;
     using templ::status_is_error;
     using templ::status_is_not_error;
+    using templ::status_is_not_warning;
+    using templ::status_is_warning;
     using templ::status_line;
     using templ::status_message;
+    using templ::status_num_errors;
+    using templ::status_num_warnings;
     using templ::status_reset;
+    using templ::status_warning_get;
     using templ::templ_compile_file;
     using templ::templ_compile_string;
     using templ::templ_init;

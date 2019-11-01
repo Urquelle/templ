@@ -65,23 +65,65 @@ struct Status {
     char *filename;
     s64   line;
     char  message[1024];
+
+    Status **errors;
+    size_t num_errors;
+
+    Status **warnings;
+    size_t num_warnings;
 };
 
 global_var Status global_status = {STATUS_OK};
 
-internal_proc char *
-status_message() {
-    return global_status.message;
+internal_proc Status *
+status_error(char *filename, s64 line, char *message) {
+    Status *result = (Status *)xmalloc(sizeof(Status));
+
+    result->kind = STATUS_ERROR;
+    result->filename = filename;
+    result->line = line;
+    memcpy(result->message, message, _mbstrlen(message));
+
+    return result;
 }
 
-internal_proc char *
-status_filename() {
-    return global_status.filename;
+internal_proc Status *
+status_warning(char *filename, s64 line, char *message) {
+    Status *result = (Status *)xmalloc(sizeof(Status));
+
+    result->kind = STATUS_WARNING;
+    result->filename = filename;
+    result->line = line;
+    memcpy(result->message, message, _mbstrlen(message));
+
+    return result;
 }
 
-internal_proc s64
-status_line() {
-    return global_status.line;
+user_api char *
+status_message(Status *status = &global_status) {
+    if ( !status ) {
+        return "";
+    }
+
+    return status->message;
+}
+
+user_api char *
+status_filename(Status *status = &global_status) {
+    if ( !status ) {
+        return "";
+    }
+
+    return status->filename;
+}
+
+user_api s64
+status_line(Status *status = &global_status) {
+    if ( !status ) {
+        return 0;
+    }
+
+    return status->line;
 }
 
 internal_proc void
@@ -93,32 +135,39 @@ status_set(Status_Kind kind, char *filename, s64 line, char *message) {
 }
 
 internal_proc void
-status_set_warning(char *file, s64 line, char *message) {
-    status_set(STATUS_WARNING, file, line, message);
-}
-
-internal_proc b32
-status_is_warning() {
-    b32 result = global_status.kind == STATUS_WARNING;
-
-    return result;
-}
-
-internal_proc void
 status_set_error(char *file, s64 line, char *message) {
     status_set(STATUS_ERROR, file, line, message);
 }
 
-internal_proc b32
+user_api b32
 status_is_error() {
     b32 result = global_status.kind == STATUS_ERROR;
 
     return result;
 }
 
-internal_proc b32
+user_api b32
 status_is_not_error() {
     b32 result = global_status.kind != STATUS_ERROR;
+
+    return result;
+}
+
+internal_proc void
+status_set_warning(char *file, s64 line, char *message) {
+    status_set(STATUS_WARNING, file, line, message);
+}
+
+user_api b32
+status_is_warning() {
+    b32 result = global_status.kind == STATUS_WARNING;
+
+    return result;
+}
+
+user_api b32
+status_is_not_warning() {
+    b32 result = global_status.kind != STATUS_WARNING && status_is_not_error();
 
     return result;
 }
@@ -128,9 +177,43 @@ status_set_ok() {
     status_set(STATUS_OK, 0, 0, "");
 }
 
-internal_proc void
+user_api void
 status_reset() {
     status_set_ok();
+}
+
+user_api size_t
+status_num_errors() {
+    return global_status.num_errors;
+}
+
+user_api Status *
+status_error_get(size_t idx) {
+    Status *result = 0;
+
+    if ( idx >= global_status.num_errors ) {
+        return result;
+    }
+
+    result = global_status.errors[idx];
+    return result;
+}
+
+user_api size_t
+status_num_warnings() {
+    return global_status.num_warnings;
+}
+
+user_api Status *
+status_warning_get(size_t idx) {
+    Status *result = 0;
+
+    if ( idx >= global_status.num_warnings ) {
+        return result;
+    }
+
+    result = global_status.warnings[idx];
+    return result;
 }
 
 internal_proc char *
@@ -147,34 +230,6 @@ strf(char *fmt, ...) {
     va_end(args);
 
     return str;
-}
-
-internal_proc void
-fatal(char *file, s64 line, char *msg, ...) {
-    if ( !status_is_error() ) {
-        va_list args = NULL;
-        va_start(args, msg);
-
-        char buf[255];
-        vsnprintf(buf, 255, msg, args);
-
-        va_end(args);
-
-        status_set_error(file, line, buf);
-    }
-}
-
-internal_proc void
-warn(char *file, s64 line, char *msg, ...) {
-    va_list args = NULL;
-    va_start(args, msg);
-
-    char buf[255];
-    vsnprintf(buf, 255, msg, args);
-
-    va_end(args);
-
-    status_set_error(file, line, buf);
 }
 
 struct Buf_Hdr {
@@ -220,6 +275,42 @@ buf__printf(char *buf, const char *fmt, ...) {
     }
     buf__hdr(buf)->len += n - 1;
     return buf;
+}
+
+internal_proc void
+fatal(char *file, s64 line, char *msg, ...) {
+    va_list args = NULL;
+    va_start(args, msg);
+
+    char buf[255];
+    vsnprintf(buf, 255, msg, args);
+
+    va_end(args);
+
+    buf_push(global_status.errors, status_error(file, line, buf));
+    global_status.num_errors = buf_len(global_status.errors);
+
+    if ( status_is_not_error() ) {
+        status_set_error(file, line, buf);
+    }
+}
+
+internal_proc void
+warn(char *file, s64 line, char *msg, ...) {
+    va_list args = NULL;
+    va_start(args, msg);
+
+    char buf[255];
+    vsnprintf(buf, 255, msg, args);
+
+    va_end(args);
+
+    buf_push(global_status.warnings, status_warning(file, line, buf));
+    global_status.num_warnings = buf_len(global_status.warnings);
+
+    if ( status_is_not_warning() ) {
+        status_set_warning(file, line, buf);
+    }
 }
 
 internal_proc uint64_t
