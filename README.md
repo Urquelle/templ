@@ -38,14 +38,9 @@ main(int argc, char **argv) {
 }
 ```
 
-## ausstehende aufgaben
+## weitere beispiele
 
-- leerzeichenkontrolle
-- filter
-- tests
-- schleifenrekursion
-
-# umgesetzte aufgaben
+im `data` verzeichnis befinden sich einige jinja2 templates, die weitestgehend alle angaben nutzen, die von `templ` aktuell unterstützt werden.
 
 ## unicode
 
