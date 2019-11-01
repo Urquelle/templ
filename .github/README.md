@@ -19,7 +19,7 @@ main(int argc, char **argv) {
 
     Templ_Vars vars = templ_vars();
     Templ_Var *name = templ_var("name", val_str("noob"));
-    templ_vars_add(&vars, user);
+    templ_vars_add(&vars, name);
 
     Parsed_Templ *templ = templ_compile_string("hallo {{ name }}");
     char *result = templ_render(templ, &vars);
@@ -39,7 +39,7 @@ main(int argc, char **argv) {
 
 ## weitere beispiele
 
-im `data` verzeichnis befinden sich einige jinja2 templates, die weitestgehend alle angaben nutzen, die von `templ` aktuell unterstützt werden.
+im [data](data/) verzeichnis befinden sich einige jinja2 templates, die weitestgehend alle angaben nutzen, die von `templ` aktuell unterstützt werden.
 
 ## unicode
 
