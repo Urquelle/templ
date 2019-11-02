@@ -18,6 +18,7 @@ gen_indentation() {
 struct Iterator {
     Val *container;
     int pos;
+    int step;
     Val *val;
 };
 
@@ -29,6 +30,12 @@ iterator_init(Val *container) {
 
     result.container = container;
     result.pos = 0;
+    result.step = 1;
+
+    if ( container->kind == VAL_RANGE ) {
+        result.step = val_range2(container);
+    }
+
     result.val = val_elem(container, 0);
 
     return result;
@@ -43,14 +50,14 @@ iterator_valid(Iterator *it) {
 
 internal_proc b32
 iterator_is_last(Iterator *it) {
-    b32 result = (it->pos+1) == it->container->len;
+    b32 result = (it->pos + it->step) == it->container->len;
 
     return result;
 }
 
 internal_proc void
 iterator_next(Iterator *it) {
-    it->pos += 1;
+    it->pos += it->step;
     it->val = val_elem(it->container, it->pos);
 }
 
@@ -560,7 +567,7 @@ exec_stmt(Resolved_Stmt *stmt) {
     }
 }
 
-PROC_CALLBACK(super) {
+PROC_CALLBACK(proc_super) {
     assert(global_super_block);
     assert(global_super_block->kind == STMT_BLOCK);
 
@@ -578,13 +585,34 @@ PROC_CALLBACK(super) {
     return result;
 }
 
-PROC_CALLBACK(cycle) {
+PROC_CALLBACK(proc_cycle) {
     assert(global_for_stmt->kind == STMT_FOR);
 
     s32 loop_index = val_int(global_for_stmt->stmt_for.loop_index->val);
     s32 arg_index  = loop_index % num_args;
 
     return args[arg_index]->val;
+}
+
+PROC_CALLBACK(proc_range) {
+    int start = 0;
+    if ( num_args > 1 ) {
+        start = val_int(args[0]->val);
+    }
+
+    int stop  = 0;
+    if ( num_args == 1 ) {
+        stop = val_int(args[0]->val);
+    } else if ( num_args > 1 ) {
+        stop = val_int(args[1]->val);
+    }
+
+    int step = 1;
+    if ( num_args > 2 ) {
+        step = val_int(args[2]->val);
+    }
+
+    return val_range(start, stop, step);
 }
 
 internal_proc void

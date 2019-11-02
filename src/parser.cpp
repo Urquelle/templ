@@ -205,23 +205,24 @@ internal_proc Expr *
 parse_expr_base(Parser *p) {
     Lexer *lex = &p->lex;
     Expr *result = &expr_illegal;
+    Pos pos = lex->pos;
 
     if ( is_token(p, T_INT) ) {
-        result = expr_int(lex->token.int_value);
+        result = expr_int(pos, lex->token.int_value);
         next_token(lex);
     } else if ( is_token(p, T_FLOAT) ) {
-        result = expr_float(lex->token.float_value);
+        result = expr_float(pos, lex->token.float_value);
         next_token(lex);
     } else if ( is_token(p, T_STR) ) {
-        result = expr_str(lex->token.str_value);
+        result = expr_str(pos, lex->token.str_value);
         next_token(lex);
     } else if ( is_token(p, T_NAME) ) {
         if ( match_keyword(p, keyword_true) ) {
-            result = expr_bool(true);
+            result = expr_bool(pos, true);
         } else if ( match_keyword(p, keyword_false) ) {
-            result = expr_bool(false);
+            result = expr_bool(pos, false);
         } else {
-            result = expr_name(lex->token.name);
+            result = expr_name(pos, lex->token.name);
             next_token(lex);
         }
     } else if ( match_token(p, T_LBRACE) ) {
@@ -239,7 +240,7 @@ parse_expr_base(Parser *p) {
 
         expect_token(p, T_RBRACE);
 
-        result = expr_dict(map, keys, buf_len(keys));
+        result = expr_dict(pos, map, keys, buf_len(keys));
 
     } else if ( match_token(p, T_LPAREN) ) {
         Expr **exprs = 0;
@@ -260,26 +261,26 @@ parse_expr_base(Parser *p) {
 
         size_t num_exprs = buf_len(exprs);
         if ( num_exprs > 1 ) {
-            result = expr_tuple(exprs, num_exprs);
+            result = expr_tuple(pos, exprs, num_exprs);
         } else {
-            result = expr_paren((num_exprs) ? exprs[0] : 0);
+            result = expr_paren(pos, (num_exprs) ? exprs[0] : 0);
         }
 
         buf_free(exprs);
     }
-
-    result->pos = lex->pos;
 
     return result;
 }
 
 internal_proc Expr *
 parse_expr_list(Parser *p) {
+    Pos pos = p->lex.pos;
+
     if ( match_token(p, T_LBRACKET) ) {
         Expr **expr = 0;
 
         if ( match_token(p, T_RBRACKET) ) {
-            return expr_list(expr, buf_len(expr));
+            return expr_list(pos, expr, buf_len(expr));
         }
 
         do {
@@ -288,7 +289,7 @@ parse_expr_list(Parser *p) {
 
         expect_token(p, T_RBRACKET);
 
-        Expr *result = expr_list(expr, buf_len(expr));
+        Expr *result = expr_list(pos, expr, buf_len(expr));
         buf_free(expr);
 
         return result;
@@ -300,6 +301,7 @@ parse_expr_list(Parser *p) {
 internal_proc Expr *
 parse_expr_field_or_call_or_subscript(Parser *p) {
     Expr *left = parse_expr_list(p);
+    Pos pos = p->lex.pos;
 
     while ( is_token(p, T_LPAREN) || is_token(p, T_LBRACKET) ||
             is_token(p, T_DOT) )
@@ -323,7 +325,7 @@ parse_expr_field_or_call_or_subscript(Parser *p) {
             }
 
             expect_token(p, T_RPAREN);
-            left = expr_call(left, args, buf_len(args));
+            left = expr_call(pos, left, args, buf_len(args));
         } else if ( is_token(p, T_LBRACKET ) ) {
             if ( is_prev_token(p, T_SPACE) ) {
                 break;
@@ -331,12 +333,12 @@ parse_expr_field_or_call_or_subscript(Parser *p) {
 
             match_token(p, T_LBRACKET);
 
-            left = expr_subscript(left, parse_expr(p));
+            left = expr_subscript(pos, left, parse_expr(p));
             expect_token(p, T_RBRACKET);
         } else if ( match_token(p, T_DOT) ) {
             char *field = p->lex.token.name;
             expect_token(p, T_NAME);
-            left = expr_field(left, field);
+            left = expr_field(pos, left, field);
         }
     }
 
@@ -347,7 +349,7 @@ internal_proc Expr *
 parse_expr_unary(Parser *p) {
     if ( is_unary(p->lex.token.kind) ) {
         Token op = eat_token(&p->lex);
-        return expr_unary(op.kind, parse_expr_unary(p));
+        return expr_unary(p->lex.pos, op.kind, parse_expr_unary(p));
     } else {
         return parse_expr_field_or_call_or_subscript(p);
     }
@@ -358,7 +360,7 @@ parse_expr_exponent(Parser *p) {
     Expr *left = parse_expr_unary(p);
 
     while ( match_token(p, T_POT) ) {
-        left = expr_binary(T_POT, left, parse_expr_unary(p));
+        left = expr_binary(p->lex.pos, T_POT, left, parse_expr_unary(p));
     }
 
     return left;
@@ -372,7 +374,7 @@ parse_expr_mul(Parser *p) {
             is_token(p, T_PERCENT) )
     {
         Token op = eat_token(&p->lex);
-        left = expr_binary(op.kind, left, parse_expr_exponent(p));
+        left = expr_binary(p->lex.pos, op.kind, left, parse_expr_exponent(p));
     }
 
     return left;
@@ -384,7 +386,7 @@ parse_expr_add(Parser *p) {
 
     while ( is_token(p, T_PLUS) || is_token(p, T_MINUS) ) {
         Token op = eat_token(&p->lex);
-        left = expr_binary(op.kind, left, parse_expr_mul(p));
+        left = expr_binary(p->lex.pos, op.kind, left, parse_expr_mul(p));
     }
 
     return left;
@@ -395,7 +397,7 @@ parse_expr_range(Parser *p) {
     Expr *left = parse_expr_add(p);
 
     if ( match_token(p, T_RANGE) ) {
-        left = expr_range(left, parse_expr_add(p));
+        left = expr_range(p->lex.pos, left, parse_expr_add(p));
     }
 
     return left;
@@ -420,10 +422,10 @@ parse_expr_is(Parser *p) {
             buf_push(args, parse_expr_range(p));
         }
 
-        left = expr_is(left, expr, args, buf_len(args));
+        left = expr_is(p->lex.pos, left, expr, args, buf_len(args));
 
         if ( not ) {
-            left = expr_not(left);
+            left = expr_not(p->lex.pos, left);
         }
     }
 
@@ -435,7 +437,7 @@ parse_expr_not(Parser *p) {
     Expr *left = 0;
 
     if ( match_keyword(p, keyword_not) ) {
-        left = expr_not(parse_expr(p));
+        left = expr_not(p->lex.pos, parse_expr(p));
     } else {
         left = parse_expr_is(p);
     }
@@ -449,7 +451,7 @@ parse_expr_in(Parser *p) {
 
     if ( match_keyword(p, keyword_in) ) {
         Expr *set = parse_expr_not(p);
-        left = expr_in(set);
+        left = expr_in(p->lex.pos, set);
     } else {
         left = parse_expr_not(p);
     }
@@ -463,7 +465,7 @@ parse_expr_cmp(Parser *p) {
 
     while ( is_cmp(p->lex.token.kind) ) {
         Token op = eat_token(&p->lex);
-        left = expr_binary(op.kind, left, parse_expr_in(p));
+        left = expr_binary(p->lex.pos, op.kind, left, parse_expr_in(p));
     }
 
     return left;
@@ -474,7 +476,7 @@ parse_expr_and(Parser *p) {
     Expr *left = parse_expr_cmp(p);
 
     while ( match_keyword(p, keyword_and) ) {
-        left = expr_binary(T_AND, left, parse_expr(p));
+        left = expr_binary(p->lex.pos, T_AND, left, parse_expr(p));
     }
 
     return left;
@@ -485,7 +487,7 @@ parse_expr_or(Parser *p) {
     Expr *left = parse_expr_and(p);
 
     while ( match_keyword(p, keyword_or) ) {
-        left = expr_binary(T_OR, left, parse_expr(p));
+        left = expr_binary(p->lex.pos, T_OR, left, parse_expr(p));
     }
 
     return left;
@@ -498,7 +500,7 @@ parse_expr_ternary(Parser *p) {
     if ( match_token(p, T_QMARK) ) {
         Expr *middle = parse_expr_or(p);
         expect_token(p, T_COLON);
-        left = expr_ternary(left, middle, parse_expr_or(p));
+        left = expr_ternary(p->lex.pos, left, middle, parse_expr_or(p));
     }
 
     return left;
@@ -520,7 +522,7 @@ parse_filter(Parser *p) {
         size_t num_args = buf_len(args);
 
         if ( call->kind != EXPR_CALL ) {
-            call = expr_call(call, args, num_args);
+            call = expr_call(p->lex.pos, call, args, num_args);
         }
 
         assert(call->kind == EXPR_CALL);
@@ -534,9 +536,7 @@ parse_filter(Parser *p) {
 
 internal_proc Expr *
 parse_expr(Parser *p, b32 do_parse_filter) {
-    Pos pos = p->lex.token.pos;
     Expr *expr = parse_expr_ternary(p);
-    expr->pos = pos;
 
     Filter **filters = 0;
     if ( do_parse_filter ) {
@@ -560,7 +560,7 @@ parse_expr_if(Parser *p) {
         else_expr = parse_expr(p);
     }
 
-    return expr_if(cond, else_expr);
+    return expr_if(p->lex.pos, cond, else_expr);
 }
 
 internal_proc char *

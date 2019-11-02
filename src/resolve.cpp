@@ -11,8 +11,9 @@ typedef PROC_CALLBACK(Proc_Callback);
 typedef FILTER_CALLBACK(Filter_Callback);
 typedef TEST_CALLBACK(Test_Callback);
 
-PROC_CALLBACK(super);
-PROC_CALLBACK(cycle);
+PROC_CALLBACK(proc_super);
+PROC_CALLBACK(proc_cycle);
+PROC_CALLBACK(proc_range);
 
 internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
@@ -242,12 +243,13 @@ val_str(Val *val) {
 }
 
 internal_proc Val *
-val_range(int min, int max) {
-    Val *result = val_new(VAL_RANGE, sizeof(int)*2);
+val_range(int min, int max, int step = 1) {
+    Val *result = val_new(VAL_RANGE, sizeof(int)*3);
 
     result->len = max - min;
     *((int *)result->ptr)   = min;
     *((int *)result->ptr+1) = max;
+    *((int *)result->ptr+2) = step;
 
     return result;
 }
@@ -270,6 +272,11 @@ val_range0(Val *val) {
 internal_proc int
 val_range1(Val *val) {
     return *((int *)val->ptr+1);
+}
+
+internal_proc int
+val_range2(Val *val) {
+    return *((int *)val->ptr+2);
 }
 
 internal_proc Val *
@@ -836,7 +843,7 @@ struct Type_Field {
 };
 
 internal_proc Type_Field *
-type_field(char *name, Type *type, Val *default_value = 0) {
+type_field(char *name, Type *type, Val *default_value = &val_undefined) {
     Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
 
     result->name = intern_str(name);
@@ -2067,7 +2074,7 @@ resolve_stmt(Stmt *stmt) {
             Sym *loop_first     = sym_push_var("first",     type_bool, val_bool(true));
             Sym *loop_last      = sym_push_var("last",      type_bool, val_bool(false));
             Sym *loop_length    = sym_push_var("length",    type_int,  val_int(0));
-            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0, cycle, true));
+            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0, proc_cycle, true));
 
             scope_leave();
             /* }}} */
@@ -2160,7 +2167,7 @@ resolve_stmt(Stmt *stmt) {
 
         case STMT_EXTENDS: {
             if ( sym_invalid(sym_get(intern_str("super"))) ) {
-                sym_push_proc("super", type_proc(0, 0, 0, super));
+                sym_push_proc("super", type_proc(0, 0, 0, proc_super));
             }
 
             Resolved_Expr *if_expr = 0;
@@ -2665,16 +2672,18 @@ resolve_expr(Expr *expr) {
                     for ( int j = 0; j < type->type_proc.num_params; ++j ) {
                         Type_Field *param = type->type_proc.params[j];
 
-                        if ( !arg->name || arg->name == param->name ) {
+                        if ( arg->name == param->name ) {
                             found = true;
 
                             if ( !name ) {
                                 name = param->name;
                             }
+
+                            break;
                         }
                     }
 
-                    if ( !found ) {
+                    if ( name && !found ) {
                         fatal(expr->pos.name, expr->pos.row, "kein argument mit der bezeichnung %s gefunden", arg->name);
                     }
 
@@ -2684,7 +2693,9 @@ resolve_expr(Expr *expr) {
                         }
                     }
 
-                    buf_push(params, name);
+                    if ( name ) {
+                        buf_push(params, name);
+                    }
 
                     Resolved_Expr *arg_expr = resolve_expr(arg->expr);
                     Resolved_Arg *rarg = resolved_arg(arg_expr->pos, name, arg_expr->type, arg_expr->val);
@@ -2908,6 +2919,12 @@ resolve_init_builtin_tests() {
 }
 
 internal_proc void
+resolve_init_builtin_procs() {
+    Type_Field *range_args[] = { type_field("start", type_int, val_int(0)), type_field("stop", type_int), type_field("step", type_int, val_int(1)) };
+    sym_push_proc("range", type_proc(range_args, 3, 0, proc_range));
+}
+
+internal_proc void
 resolve_init_arenas() {
     arena_init(&resolve_arena, MB(100));
 }
@@ -2973,6 +2990,7 @@ resolve_init() {
     resolve_init_scope();
     resolve_init_arenas();
     resolve_init_builtin_types();
+    resolve_init_builtin_procs();
     resolve_init_builtin_filter();
     resolve_init_builtin_tests();
 }

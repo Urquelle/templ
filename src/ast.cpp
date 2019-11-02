@@ -183,17 +183,18 @@ struct Expr {
 global_var Expr expr_illegal = {EXPR_NONE};
 
 internal_proc Expr *
-expr_new(Expr_Kind kind) {
+expr_new(Pos pos, Expr_Kind kind) {
     Expr *result = (Expr *)xcalloc(1, sizeof(Expr));
 
+    result->pos  = pos;
     result->kind = kind;
 
     return result;
 }
 
 internal_proc Expr *
-expr_paren(Expr *expr) {
-    Expr *result = expr_new(EXPR_PAREN);
+expr_paren(Pos pos, Expr *expr) {
+    Expr *result = expr_new(pos, EXPR_PAREN);
 
     result->expr_paren.expr = expr;
 
@@ -201,8 +202,8 @@ expr_paren(Expr *expr) {
 }
 
 internal_proc Expr *
-expr_name(char *value) {
-    Expr *result = expr_new(EXPR_NAME);
+expr_name(Pos pos, char *value) {
+    Expr *result = expr_new(pos, EXPR_NAME);
 
     result->expr_name.value = value;
 
@@ -210,8 +211,8 @@ expr_name(char *value) {
 }
 
 internal_proc Expr *
-expr_int(int value) {
-    Expr *result = expr_new(EXPR_INT);
+expr_int(Pos pos, int value) {
+    Expr *result = expr_new(pos, EXPR_INT);
 
     result->expr_int.value = value;
 
@@ -219,8 +220,8 @@ expr_int(int value) {
 }
 
 internal_proc Expr *
-expr_float(float value) {
-    Expr *result = expr_new(EXPR_FLOAT);
+expr_float(Pos pos, float value) {
+    Expr *result = expr_new(pos, EXPR_FLOAT);
 
     result->expr_float.value = value;
 
@@ -228,8 +229,8 @@ expr_float(float value) {
 }
 
 internal_proc Expr *
-expr_str(char *value) {
-    Expr *result = expr_new(EXPR_STR);
+expr_str(Pos pos, char *value) {
+    Expr *result = expr_new(pos, EXPR_STR);
 
     result->expr_str.value = value;
 
@@ -237,8 +238,8 @@ expr_str(char *value) {
 }
 
 internal_proc Expr *
-expr_bool(bool value) {
-    Expr *result = expr_new(EXPR_BOOL);
+expr_bool(Pos pos, bool value) {
+    Expr *result = expr_new(pos, EXPR_BOOL);
 
     result->expr_bool.value = value;
 
@@ -246,8 +247,8 @@ expr_bool(bool value) {
 }
 
 internal_proc Expr *
-expr_unary(Token_Kind op, Expr *expr) {
-    Expr *result = expr_new(EXPR_UNARY);
+expr_unary(Pos pos, Token_Kind op, Expr *expr) {
+    Expr *result = expr_new(pos, EXPR_UNARY);
 
     result->expr_unary.op = op;
     result->expr_unary.expr = expr;
@@ -256,8 +257,8 @@ expr_unary(Token_Kind op, Expr *expr) {
 }
 
 internal_proc Expr *
-expr_binary(Token_Kind op, Expr *left, Expr *right) {
-    Expr *result = expr_new(EXPR_BINARY);
+expr_binary(Pos pos, Token_Kind op, Expr *left, Expr *right) {
+    Expr *result = expr_new(pos, EXPR_BINARY);
 
     result->expr_binary.op = op;
     result->expr_binary.left = left;
@@ -267,8 +268,8 @@ expr_binary(Token_Kind op, Expr *left, Expr *right) {
 }
 
 internal_proc Expr *
-expr_ternary(Expr *left, Expr *middle, Expr *right) {
-    Expr *result = expr_new(EXPR_TERNARY);
+expr_ternary(Pos pos, Expr *left, Expr *middle, Expr *right) {
+    Expr *result = expr_new(pos, EXPR_TERNARY);
 
     result->expr_ternary.left = left;
     result->expr_ternary.middle = middle;
@@ -278,8 +279,8 @@ expr_ternary(Expr *left, Expr *middle, Expr *right) {
 }
 
 internal_proc Expr *
-expr_field(Expr *expr, char *field) {
-    Expr *result = expr_new(EXPR_FIELD);
+expr_field(Pos pos, Expr *expr, char *field) {
+    Expr *result = expr_new(pos, EXPR_FIELD);
 
     result->expr_field.expr = expr;
     result->expr_field.field = field;
@@ -288,8 +289,8 @@ expr_field(Expr *expr, char *field) {
 }
 
 internal_proc Expr *
-expr_subscript(Expr *expr, Expr *index) {
-    Expr *result = expr_new(EXPR_SUBSCRIPT);
+expr_subscript(Pos pos, Expr *expr, Expr *index) {
+    Expr *result = expr_new(pos, EXPR_SUBSCRIPT);
 
     result->expr_subscript.expr  = expr;
     result->expr_subscript.index = index;
@@ -298,8 +299,8 @@ expr_subscript(Expr *expr, Expr *index) {
 }
 
 internal_proc Expr *
-expr_range(Expr *left, Expr *right) {
-    Expr *result = expr_new(EXPR_RANGE);
+expr_range(Pos pos, Expr *left, Expr *right) {
+    Expr *result = expr_new(pos, EXPR_RANGE);
 
     result->expr_range.left = left;
     result->expr_range.right = right;
@@ -308,8 +309,8 @@ expr_range(Expr *left, Expr *right) {
 }
 
 internal_proc Expr *
-expr_call(Expr *expr, Arg **args, size_t num_args) {
-    Expr *result = expr_new(EXPR_CALL);
+expr_call(Pos pos, Expr *expr, Arg **args, size_t num_args) {
+    Expr *result = expr_new(pos, EXPR_CALL);
 
     result->expr_call.expr = expr;
     result->expr_call.args = (Arg **)AST_DUP(args);
@@ -319,9 +320,9 @@ expr_call(Expr *expr, Arg **args, size_t num_args) {
 }
 
 internal_proc Expr *
-expr_is(Expr *var, Expr *test, Expr **args = 0, size_t num_args = 0)
+expr_is(Pos pos, Expr *var, Expr *test, Expr **args = 0, size_t num_args = 0)
 {
-    Expr *result = expr_new(EXPR_IS);
+    Expr *result = expr_new(pos, EXPR_IS);
 
     result->expr_is.var = var;
     result->expr_is.test = test;
@@ -332,8 +333,8 @@ expr_is(Expr *var, Expr *test, Expr **args = 0, size_t num_args = 0)
 }
 
 internal_proc Expr *
-expr_not(Expr *expr) {
-    Expr *result = expr_new(EXPR_NOT);
+expr_not(Pos pos, Expr *expr) {
+    Expr *result = expr_new(pos, EXPR_NOT);
 
     result->expr_not.expr = expr;
 
@@ -341,8 +342,8 @@ expr_not(Expr *expr) {
 }
 
 internal_proc Expr *
-expr_in(Expr *set) {
-    Expr *result = expr_new(EXPR_IN);
+expr_in(Pos pos, Expr *set) {
+    Expr *result = expr_new(pos, EXPR_IN);
 
     result->expr_in.set  = set;
 
@@ -350,8 +351,8 @@ expr_in(Expr *set) {
 }
 
 internal_proc Expr *
-expr_if(Expr *cond, Expr *else_expr) {
-    Expr *result = expr_new(EXPR_IF);
+expr_if(Pos pos, Expr *cond, Expr *else_expr) {
+    Expr *result = expr_new(pos, EXPR_IF);
 
     result->expr_if.cond = cond;
     result->expr_if.else_expr = else_expr;
@@ -360,8 +361,8 @@ expr_if(Expr *cond, Expr *else_expr) {
 }
 
 internal_proc Expr *
-expr_tuple(Expr **exprs, size_t num_exprs) {
-    Expr *result = expr_new(EXPR_TUPLE);
+expr_tuple(Pos pos, Expr **exprs, size_t num_exprs) {
+    Expr *result = expr_new(pos, EXPR_TUPLE);
 
     result->expr_tuple.exprs = (Expr **)AST_DUP(exprs);
     result->expr_tuple.num_exprs = num_exprs;
@@ -370,8 +371,8 @@ expr_tuple(Expr **exprs, size_t num_exprs) {
 }
 
 internal_proc Expr *
-expr_list(Expr **expr, size_t num_expr) {
-    Expr *result = expr_new(EXPR_LIST);
+expr_list(Pos pos, Expr **expr, size_t num_expr) {
+    Expr *result = expr_new(pos, EXPR_LIST);
 
     result->expr_list.expr = (Expr **)AST_DUP(expr);
     result->expr_list.num_expr = num_expr;
@@ -380,8 +381,8 @@ expr_list(Expr **expr, size_t num_expr) {
 }
 
 internal_proc Expr *
-expr_dict(Map *map, char **keys, size_t num_keys) {
-    Expr *result = expr_new(EXPR_DICT);
+expr_dict(Pos pos, Map *map, char **keys, size_t num_keys) {
+    Expr *result = expr_new(pos, EXPR_DICT);
 
     result->expr_dict.map = map;
     result->expr_dict.keys = (char **)AST_DUP(keys);
