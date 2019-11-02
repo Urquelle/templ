@@ -1393,6 +1393,7 @@ resolved_expr_new(Expr_Kind kind, Type *type = 0) {
     result->type = type;
     result->kind = kind;
     result->sym = &sym_undefined;
+    result->val = &val_undefined;
 
     return result;
 }

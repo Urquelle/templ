@@ -315,7 +315,9 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
 }
 
 internal_proc void
-exec_stmt_set(Val *dest, Val *source) {
+exec_stmt_set(Val **dest_ptr, Val *source) {
+    Val *dest = *dest_ptr;
+
     if ( dest->kind == VAL_INT ) {
         val_set(dest, val_int(source));
     } else if ( dest->kind == VAL_STR ) {
@@ -354,6 +356,8 @@ exec_stmt_set(Val *dest, Val *source) {
 
             orig->ptr = new_mem;
         }
+    } else if ( dest == &val_undefined ) {
+        *dest_ptr = source;
     } else {
         fatal(0, 0, "nicht unterstützter datentyp wird in einer set anweisung verwendet");
     }
@@ -402,13 +406,13 @@ exec_stmt(Resolved_Stmt *stmt) {
                 Val *dest   = exec_expr(stmt->stmt_set.names[0]);
                 Val *source = exec_expr(stmt->stmt_set.expr);
 
-                exec_stmt_set(dest, source);
+                exec_stmt_set(&dest, source);
             } else {
                 Val *source = exec_expr(stmt->stmt_set.expr);
 
                 for ( int i = 0; i < stmt->stmt_set.num_names; ++i ) {
                     Val *dest = stmt->stmt_set.names[i]->val;
-                    exec_stmt_set(dest, val_elem(source, i));
+                    exec_stmt_set(&dest, val_elem(source, i));
                 }
             }
         } break;
