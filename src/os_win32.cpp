@@ -57,10 +57,3 @@ os_utf8_wchar_to_char(wchar_t wc, char *dest, size_t size) {
     WideCharToMultiByte(CP_UTF8, 0, &wc, 1, dest, (int)size, 0, 0);
 }
 
-internal_proc size_t
-os_strlen(char *str) {
-    size_t result = ( str ) ? _mbstrlen(str) : 0;
-
-    return result;
-}
-

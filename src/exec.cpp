@@ -559,7 +559,7 @@ PROC_CALLBACK(cycle) {
 
 internal_proc void
 exec_reset() {
-    if ( gen_result && os_strlen(gen_result) ) {
+    if ( gen_result && utf8_strlen(gen_result) ) {
         free(gen_result);
         gen_result = "";
     }

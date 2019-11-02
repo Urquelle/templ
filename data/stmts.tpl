@@ -1,4 +1,6 @@
 <div>stmts.tpl</div>
+{{ super() }}
+
 {% set a = 10 %}
 
 {% if 3 <= 5 %}
@@ -17,8 +19,7 @@
     x = {{ x }}
     a = {{ a }}
 {% endwith %}
-
-außerhalb: x = {{ x }}
+x = {{ x }}
 
 {% set b = [1, 2, 3] %}
 b[1] = {{ b[1] }}

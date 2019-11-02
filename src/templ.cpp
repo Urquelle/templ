@@ -203,7 +203,6 @@ namespace api {
     using templ::Templ_Var;
     using templ::Templ_Vars;
     using templ::os_file_write;
-    using templ::os_strlen;
     using templ::status_error_get;
     using templ::status_filename;
     using templ::status_is_error;
@@ -223,6 +222,7 @@ namespace api {
     using templ::templ_var;
     using templ::templ_vars;
     using templ::templ_vars_add;
+    using templ::utf8_strlen;
     using templ::val_undefined;
 }
 

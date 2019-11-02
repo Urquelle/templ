@@ -5,9 +5,6 @@
 {% endblock %}
 
 {% block main %}
-    <h2>super()</h2>
-    {{ super() }}
-
     {% include "literals.tpl" without context %}
     {% include "exprs.tpl"    without context %}
     {% include "stmts.tpl"    without context %}

@@ -37,7 +37,7 @@ utf8_strlen(char *str) {
 internal_proc size_t
 utf8_char_str_size(char *str) {
     size_t result = 0;
-    size_t len = os_strlen(str);
+    size_t len = utf8_strlen(str);
 
     char *ptr = str;
     for ( int i = 0; i < len; ++i ) {
@@ -101,7 +101,7 @@ utf8_char_end(char *input) {
 
 internal_proc char *
 utf8_char_goto(char *input, size_t count) {
-    size_t len = os_strlen(input);
+    size_t len = utf8_strlen(input);
     if ( len < count ) {
         return input;
     }
