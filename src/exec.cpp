@@ -435,6 +435,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                     }
 
                     if ( global_for_break ) {
+                        global_for_break = false;
                         break;
                     }
 
