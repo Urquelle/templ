@@ -1,7 +1,80 @@
-# Jinja2 C++
-![Aktuelles Release](https://img.shields.io/github/v/release/NoobSaibot/templ) [![Templ](../static/shield.svg)](https://github.com/NoobSaibot/templ) [![Sprache](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Github Aufgaben](https://img.shields.io/github/issues/NoobSaibot/templ)](https://github.com/NoobSaibot/templ/issues) [![Lizenz](https://img.shields.io/github/license/NoobSaibot/templ)](https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE) [![Travis Status](https://travis-ci.org/NoobSaibot/templ.svg?branch=dev)](https://travis-ci.org/NoobSaibot/templ) [![Build status](https://ci.appveyor.com/api/projects/status/d5vpfm3mtao94aow/branch/dev?svg=true)](https://ci.appveyor.com/project/NoobSaibot/templ/branch/dev) [![Codequalität](https://api.codacy.com/project/badge/Grade/f4e97144ea6d43b3a38fc34e9b5e50b7)](https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade) [![made in germany](https://img.shields.io/badge/made%20in-germany-red)](https://en.wikipedia.org/wiki/Made_in_Germany) ![Codezeilen](https://tokei.rs/b1/github/NoobSaibot/templ) ![Github Workflows](https://github.com/NoobSaibot/templ/workflows/windows-build/badge.svg)
+<p align="center">
+    <img src="https://github.com/NoobSaibot/templ/blob/dev/static/logo_500.png" />
+    <br /><br />
+    <a href="https://github.com/NoobSaibot/templ/releases/latest">
+        <img src="https://img.shields.io/github/v/release/NoobSaibot/templ" />
+    </a>
+    <a href="https://isocpp.org/">
+        <img src="https://img.shields.io/badge/language-C++-blue.svg" />
+    </a>
+    <a href="https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE">
+        <img src="https://img.shields.io/github/license/NoobSaibot/templ" />
+    </a>
+    <a href="https://en.wikipedia.org/wiki/Made_in_Germany">
+        <img src="https://img.shields.io/badge/made%20in-germany-red" />
+    </a>
+</p>
 
-![](../static/logo_1000.png)
+<hr />
+
+<table>
+    <tr>
+        <th>status</th>
+        <th>statistik</th>
+    </tr>
+    <tr>
+        <td>
+            <table>
+                <tr>
+                    <td>travis build:</td>
+                    <td align="right">
+                        <a href="https://travis-ci.org/NoobSaibot/templ">
+                            <img src="https://travis-ci.org/NoobSaibot/templ.svg?branch=dev" />
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>appveyor build:</td>
+                    <td align="right">
+                        <a href="https://ci.appveyor.com/project/NoobSaibot/templ/branch/dev">
+                            <img src="https://ci.appveyor.com/api/projects/status/d5vpfm3mtao94aow/branch/dev?svg=true" />
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>github actions:</td>
+                    <td align="right">
+                        <img src="https://github.com/NoobSaibot/templ/workflows/windows-build/badge.svg" />
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td>
+            <table>
+                <tr>
+                    <td>offene aufgaben:</td>
+                    <td align="right">
+                        <a href="https://github.com/NoobSaibot/templ/issues">
+                            <img src="https://img.shields.io/github/issues/NoobSaibot/templ" />
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>code qualität:</td>
+                    <td align="right">
+                        <a href="https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade">
+                            <img src="https://api.codacy.com/project/badge/Grade/f4e97144ea6d43b3a38fc34e9b5e50b7" />
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>code zeilen:</td>
+                    <td align="right"><img src="https://tokei.rs/b1/github/NoobSaibot/templ" /></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 
 ## einfaches beispiel
 
