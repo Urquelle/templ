@@ -7,6 +7,8 @@ global_var int gen_indent   = 0;
 Resolved_Templ *global_current_tmpl;
 Resolved_Stmt  *global_super_block;
 Resolved_Stmt  *global_for_stmt;
+b32             global_for_break;
+b32             global_for_continue;
 
 internal_proc void
 gen_indentation() {
@@ -409,6 +411,9 @@ exec_stmt(Resolved_Stmt *stmt) {
 
             if ( list->len ) {
                 global_for_stmt = stmt;
+                global_for_break = false;
+                global_for_continue = false;
+
                 val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
 
                 for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
@@ -420,6 +425,22 @@ exec_stmt(Resolved_Stmt *stmt) {
 
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                         exec_stmt(stmt->stmt_for.stmts[j]);
+                        if ( global_for_break ) {
+                            break;
+                        }
+
+                        if ( global_for_continue ) {
+                            break;
+                        }
+                    }
+
+                    if ( global_for_break ) {
+                        break;
+                    }
+
+                    if ( global_for_continue ) {
+                        global_for_continue = false;
+                        continue;
                     }
 
                     val_inc(stmt->stmt_for.loop_index->val);
@@ -516,6 +537,14 @@ exec_stmt(Resolved_Stmt *stmt) {
             for ( int i = 0; i < stmt->stmt_with.num_stmts; ++i ) {
                 exec_stmt(stmt->stmt_with.stmts[i]);
             }
+        } break;
+
+        case STMT_BREAK: {
+            global_for_break = true;
+        } break;
+
+        case STMT_CONTINUE: {
+            global_for_continue = true;
         } break;
 
         case STMT_MACRO:

@@ -56,6 +56,8 @@ global_var char *keyword_import;
 global_var char *keyword_raw;
 global_var char *keyword_not;
 global_var char *keyword_with;
+global_var char *keyword_break;
+global_var char *keyword_continue;
 
 internal_proc void
 init_keywords() {
@@ -90,6 +92,8 @@ init_keywords() {
     ADD_KEYWORD(raw);
     ADD_KEYWORD(not);
     ADD_KEYWORD(with);
+    ADD_KEYWORD(break);
+    ADD_KEYWORD(continue);
 
 #undef ADD_KEYWORD
 }
@@ -593,6 +597,9 @@ parse_stmt_for(Parser *p) {
     while ( status_is_not_error() ) {
         if ( is_token(p, T_CODE_BEGIN) ) {
             Stmt *stmt = parse_stmt(p);
+            /* @AUFGABE: darauf prüfen ob hier versehentlich
+             *           ein falsches END statement verwendet wurde
+             */
             if ( stmt->kind == STMT_ENDFOR ) {
                 break;
             } else if ( stmt->kind == STMT_ELSE ) {
@@ -601,7 +608,10 @@ parse_stmt_for(Parser *p) {
                 buf_push(*stmts_ptr, stmt);
             }
         } else {
-            buf_push(*stmts_ptr, parse_stmt(p));
+            Stmt *stmt = parse_stmt(p);
+            if ( stmt ) {
+                buf_push(*stmts_ptr, stmt);
+            }
         }
     }
 
@@ -934,6 +944,18 @@ parse_stmt_with(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_break(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return &stmt_break;
+}
+
+internal_proc Stmt *
+parse_stmt_continue(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return &stmt_continue;
+}
+
+internal_proc Stmt *
 parse_stmt_endfor(Parser *p) {
     expect_token(p, T_CODE_END);
     return &stmt_endfor;
@@ -1016,6 +1038,10 @@ parse_stmt(Parser *p) {
             result = parse_stmt_raw(p);
         } else if ( match_keyword(p, keyword_with) ) {
             result = parse_stmt_with(p);
+        } else if ( match_keyword(p, keyword_break) ) {
+            result = parse_stmt_break(p);
+        } else if ( match_keyword(p, keyword_continue) ) {
+            result = parse_stmt_continue(p);
         } else {
             result = &stmt_illegal;
             fatal(p->lex.pos.name, p->lex.pos.row, "unbekanntes token aufgetreten: %s", tokenkind_to_str(p->lex.token.kind));

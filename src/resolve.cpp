@@ -1883,6 +1883,20 @@ resolved_stmt_with(Resolved_Stmt **stmts, size_t num_stmts) {
 
     return result;
 }
+
+internal_proc Resolved_Stmt *
+resolved_stmt_break() {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_BREAK);
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_continue() {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_CONTINUE);
+
+    return result;
+}
 /* }}} */
 /* resolved_templ {{{ */
 struct Resolved_Templ {
@@ -2350,6 +2364,14 @@ resolve_stmt(Stmt *stmt) {
             scope_leave();
 
             result = resolved_stmt_with(stmts, buf_len(stmts));
+        } break;
+
+        case STMT_BREAK: {
+            result = resolved_stmt_break();
+        } break;
+
+        case STMT_CONTINUE: {
+            result = resolved_stmt_continue();
         } break;
 
         case STMT_ENDWITH:

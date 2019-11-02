@@ -444,6 +444,8 @@ enum Stmt_Kind {
     STMT_FROM_IMPORT,
     STMT_RAW,
     STMT_WITH,
+    STMT_BREAK,
+    STMT_CONTINUE,
 };
 
 struct Stmt {
@@ -555,6 +557,8 @@ global_var Stmt stmt_endfor    = { STMT_ENDFOR };
 global_var Stmt stmt_endif     = { STMT_ENDIF };
 global_var Stmt stmt_endmacro  = { STMT_ENDMACRO };
 global_var Stmt stmt_endwith   = { STMT_ENDWITH };
+global_var Stmt stmt_break     = { STMT_BREAK };
+global_var Stmt stmt_continue  = { STMT_CONTINUE };
 
 internal_proc Stmt *
 stmt_new(Stmt_Kind kind) {

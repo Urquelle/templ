@@ -1,6 +1,4 @@
 <div>stmts.tpl</div>
-{{ super() }}
-
 {% set a = 10 %}
 
 {% if 3 <= 5 %}
@@ -34,3 +32,9 @@ c[1][0] {{ c[1][0] }} {# sollte 7 rauskommen #}
 {{ "{% set d = " }}"シ个abcd"{{ "%}" }} = {{ d }}
 {% set d[3] = "个" %}
 {{ "{% set d[3] = " }} "个" {{ "%}" }} = {{ d }}
+
+{% for i in 1..10 %}
+    {% if i == 2 %}{% continue %}{% endif %}
+    {{ i }}
+    {% if i == 5 %}{% break %}{% endif %}
+{% endfor %}
