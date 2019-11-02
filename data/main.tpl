@@ -15,10 +15,6 @@
     {% include "tests.tpl"    without context %}
     {% include "macros.tpl"   without context %}
 
-    {% for it in range(1, 3) %}
-        {{ it }}
-    {% endfor %}
-
     <h2>templ vars</h2>
     {{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}
 

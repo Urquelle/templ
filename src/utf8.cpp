@@ -35,7 +35,7 @@ utf8_strlen(char *str) {
 }
 
 internal_proc size_t
-utf8_char_str_size(char *str) {
+utf8_str_size(char *str) {
     size_t result = 0;
     size_t len = utf8_strlen(str);
 

@@ -11,10 +11,6 @@ typedef PROC_CALLBACK(Proc_Callback);
 typedef FILTER_CALLBACK(Filter_Callback);
 typedef TEST_CALLBACK(Test_Callback);
 
-PROC_CALLBACK(proc_super);
-PROC_CALLBACK(proc_cycle);
-PROC_CALLBACK(proc_range);
-
 internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Filter * resolve_filter(Filter *expr);
@@ -22,6 +18,11 @@ internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
 internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
 internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
+
+internal_proc PROC_CALLBACK(proc_super);
+internal_proc PROC_CALLBACK(proc_cycle);
+internal_proc PROC_CALLBACK(proc_range);
+internal_proc PROC_CALLBACK(proc_lipsum);
 
 internal_proc FILTER_CALLBACK(filter_abs);
 internal_proc FILTER_CALLBACK(filter_capitalize);
@@ -126,8 +127,6 @@ struct Val {
     void  *ptr;
 };
 
-global_var Val val_undefined;
-
 internal_proc Val *
 val_new(Val_Kind kind, size_t size) {
     Val *result = ALLOC_STRUCT(&resolve_arena, Val);
@@ -139,10 +138,28 @@ val_new(Val_Kind kind, size_t size) {
     return result;
 }
 
+internal_proc b32
+val_is_undefined(Val *val) {
+    b32 result = ( !val || val->kind == VAL_UNDEFINED );
+
+    return result;
+}
+
+internal_proc Val *
+val_undefined() {
+    Val *result = val_new(VAL_UNDEFINED, 0);
+
+    return result;
+}
+
 internal_proc Val *
 val_copy(Val *val) {
     if ( !val ) {
         return 0;
+    }
+
+    if ( val->kind == VAL_UNDEFINED ) {
+        return val;
     }
 
     Val *result = val_new(val->kind, val->size);
@@ -843,7 +860,7 @@ struct Type_Field {
 };
 
 internal_proc Type_Field *
-type_field(char *name, Type *type, Val *default_value = &val_undefined) {
+type_field(char *name, Type *type, Val *default_value = val_undefined()) {
     Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
 
     result->name = intern_str(name);
@@ -1125,7 +1142,7 @@ struct Sym {
     Val  *val;
 };
 
-global_var Sym sym_undefined = { SYM_NONE, 0, intern_str("undefined"), &type_undefined, &val_undefined };
+global_var Sym sym_undefined = { SYM_NONE, 0, intern_str("undefined"), &type_undefined, val_undefined() };
 
 internal_proc b32
 sym_valid(Sym *sym) {
@@ -1142,7 +1159,7 @@ sym_invalid(Sym *sym) {
 }
 
 internal_proc Sym *
-sym_new(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
+sym_new(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
     Sym *result = ALLOC_STRUCT(&resolve_arena, Sym);
 
     result->kind  = kind;
@@ -1178,7 +1195,7 @@ sym_clear() {
 }
 
 internal_proc Sym *
-sym_push(Sym_Kind kind, char *name, Type *type, Val *val = 0) {
+sym_push(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
     name = intern_str(name);
 
     Sym *sym = (Sym *)map_get(&current_scope->syms, name);
@@ -1213,6 +1230,18 @@ sym_push_filter(char *name, Type *type) {
 
 internal_proc Sym *
 sym_push_test(char *name, Type *type) {
+    Scope *prev_scope = current_scope;
+    current_scope = &system_scope;
+
+    Sym *result = sym_push(SYM_PROC, name, type);
+
+    current_scope = prev_scope;
+
+    return result;
+}
+
+internal_proc Sym *
+sym_push_sysproc(char *name, Type *type) {
     Scope *prev_scope = current_scope;
     current_scope = &system_scope;
 
@@ -1393,7 +1422,7 @@ resolved_expr_new(Expr_Kind kind, Type *type = 0) {
     result->type = type;
     result->kind = kind;
     result->sym = &sym_undefined;
-    result->val = &val_undefined;
+    result->val = val_undefined();
 
     return result;
 }
@@ -2046,12 +2075,13 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_FOR: {
-            scope_enter();
+            scope_enter("for");
 
             Sym **vars = 0;
             size_t num_vars = 0;
             for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
-                Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, type_any, &val_undefined);
+                assert(stmt->stmt_for.vars[i]->kind == EXPR_NAME);
+                Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, type_any, val_undefined());
                 buf_push(vars, sym);
             }
 
@@ -2198,10 +2228,9 @@ resolve_stmt(Stmt *stmt) {
                 Resolved_Expr *resolved_name = resolve_expr(name);
 
                 if ( sym_invalid(resolved_name->sym) && name->kind == EXPR_NAME ) {
-                    resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_copy(expr->val));
+                    resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_undefined());
                 } else if ( !sym_invalid(resolved_name->sym) ) {
                     resolved_name->sym->type = expr->type;
-                    resolved_name->sym->val = val_copy(expr->val);
                 }
 
                 buf_push(names, resolved_name);
@@ -2281,7 +2310,7 @@ resolve_stmt(Stmt *stmt) {
             /* macro variablen {{{ */
             sym_push_var("name",      type_str, val_str(macro_name));
             sym_push_var("arguments", type_tuple(num_param_names), val_tuple(param_names, num_param_names));
-            sym_push_var("varargs",   type_list, &val_undefined);
+            sym_push_var("varargs",   type_list, val_undefined());
             /* }}} */
 
             Resolved_Stmt **stmts = 0;
@@ -2703,6 +2732,14 @@ resolve_expr(Expr *expr) {
                     buf_push(args, rarg);
                 }
 
+                /* @AUFGABE: falls kein wert übergeben wurde für parameter, die einen standardwert
+                 *           haben, diesen standardwert in die parameterliste aufnehmen.
+                 *
+                 *           eine map erstellen und dort alle benamten und nicht benamten (mit entsprechendem
+                 *           namen aus der type parameterliste) abspeichern, damit sie im callback über den
+                 *           namen abrufbar sind.
+                 */
+
                 result = resolved_expr_call(call_expr, args, buf_len(args), varargs, buf_len(varargs), type);
             }
         } break;
@@ -2921,8 +2958,11 @@ resolve_init_builtin_tests() {
 
 internal_proc void
 resolve_init_builtin_procs() {
-    Type_Field *range_args[] = { type_field("start", type_int, val_int(0)), type_field("stop", type_int), type_field("step", type_int, val_int(1)) };
-    sym_push_proc("range", type_proc(range_args, 3, 0, proc_range));
+    Type_Field *range_args[]  = { type_field("start", type_int, val_int(0)), type_field("stop", type_int), type_field("step", type_int, val_int(1)) };
+    Type_Field *lipsum_args[] = { type_field("n", type_int, val_int(5)), type_field("html", type_bool, val_bool(true)), type_field("min", type_int, val_int(20)), type_field("max", type_int, val_int(100)) };
+
+    sym_push_sysproc("range",  type_proc(range_args,  3, 0, proc_range));
+    sym_push_sysproc("lipsum", type_proc(lipsum_args, 4, 0, proc_lipsum));
 }
 
 internal_proc void

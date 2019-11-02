@@ -315,9 +315,7 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
 }
 
 internal_proc void
-exec_stmt_set(Val **dest_ptr, Val *source) {
-    Val *dest = *dest_ptr;
-
+exec_stmt_set(Val *dest, Val *source) {
     if ( dest->kind == VAL_INT ) {
         val_set(dest, val_int(source));
     } else if ( dest->kind == VAL_STR ) {
@@ -332,7 +330,7 @@ exec_stmt_set(Val **dest_ptr, Val *source) {
         char * old_char_loc  = utf8_char_goto((char *)orig->ptr, dest->len);
         size_t size_new_char = utf8_char_size((char *)source->ptr);
         size_t size_old_char = utf8_char_size(old_char_loc);
-        size_t old_size      = utf8_char_str_size((char *)orig->ptr);
+        size_t old_size      = utf8_str_size((char *)orig->ptr);
         size_t new_size      = old_size - size_old_char + size_new_char;
 
         if ( new_size == old_size && size_new_char == size_old_char ) {
@@ -356,8 +354,11 @@ exec_stmt_set(Val **dest_ptr, Val *source) {
 
             orig->ptr = new_mem;
         }
-    } else if ( dest == &val_undefined ) {
-        *dest_ptr = source;
+    } else if ( val_is_undefined(dest) ) {
+        dest->kind = source->kind;
+        dest->len  = source->len;
+        dest->size = source->size;
+        dest->ptr  = source->ptr;
     } else {
         fatal(0, 0, "nicht unterstützter datentyp wird in einer set anweisung verwendet");
     }
@@ -406,13 +407,13 @@ exec_stmt(Resolved_Stmt *stmt) {
                 Val *dest   = exec_expr(stmt->stmt_set.names[0]);
                 Val *source = exec_expr(stmt->stmt_set.expr);
 
-                exec_stmt_set(&dest, source);
+                exec_stmt_set(dest, source);
             } else {
                 Val *source = exec_expr(stmt->stmt_set.expr);
 
                 for ( int i = 0; i < stmt->stmt_set.num_names; ++i ) {
                     Val *dest = stmt->stmt_set.names[i]->val;
-                    exec_stmt_set(&dest, val_elem(source, i));
+                    exec_stmt_set(dest, val_elem(source, i));
                 }
             }
         } break;
@@ -617,6 +618,11 @@ PROC_CALLBACK(proc_range) {
     }
 
     return val_range(start, stop, step);
+}
+
+global_var char *global_lorem_ipsum = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
+PROC_CALLBACK(proc_lipsum) {
+    return val_str(global_lorem_ipsum);
 }
 
 internal_proc void

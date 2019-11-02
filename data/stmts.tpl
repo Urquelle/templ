@@ -38,3 +38,10 @@ c[1][0] {{ c[1][0] }} {# sollte 7 rauskommen #}
     {{ i }}
     {% if i == 5 %}{% break %}{% endif %}
 {% endfor %}
+
+{% for it in range(7) %}
+    {{ it }}
+{% endfor %}
+
+{% set lorem = lipsum() %}
+{{ lorem }}
