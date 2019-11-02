@@ -20,6 +20,33 @@ utf8_char_size(char *str) {
     return 0;
 }
 
+internal_proc size_t
+utf8_strlen(char *str) {
+    size_t result = 0;
+    char *ptr = str;
+
+    while ( *ptr ) {
+        size_t size = utf8_char_size(ptr);
+        ptr += size;
+        result++;
+    }
+
+    return result;
+}
+
+internal_proc size_t
+utf8_char_str_size(char *str) {
+    size_t result = 0;
+    size_t len = os_strlen(str);
+
+    char *ptr = str;
+    for ( int i = 0; i < len; ++i ) {
+        result += utf8_char_size(ptr+result);
+    }
+
+    return result;
+}
+
 internal_proc Utf8_Char
 utf8_char(size_t size, char *ptr) {
     Utf8_Char result = {};
@@ -42,6 +69,15 @@ utf8_char(char *input) {
     return result;
 }
 
+internal_proc void
+utf8_char_write(char *dest, char *c) {
+    size_t num_bytes = utf8_char_size(c);
+
+    for ( int i = 0; i < num_bytes; ++i ) {
+        dest[i] = c[i];
+    }
+}
+
 internal_proc char *
 utf8_char_next(char *input) {
     char *result = input + utf8_char_size(input);
@@ -49,9 +85,31 @@ utf8_char_next(char *input) {
     return result;
 }
 
+internal_proc size_t
+utf8_char_offset(char *ptr, char *c) {
+    size_t result = c - ptr;
+
+    return result;
+}
+
 internal_proc char *
 utf8_char_end(char *input) {
     char *result = input + utf8_char_size(input) - 1;
+
+    return result;
+}
+
+internal_proc char *
+utf8_char_goto(char *input, size_t count) {
+    size_t len = os_strlen(input);
+    if ( len < count ) {
+        return input;
+    }
+
+    char *result = input;
+    for ( int i = 0; i < count; ++i ) {
+        result += utf8_char_size(result);
+    }
 
     return result;
 }

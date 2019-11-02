@@ -227,11 +227,11 @@ val_str(char *val, size_t len = 0) {
 }
 
 internal_proc Val *
-val_char(char *c) {
+val_char(Val *val, int idx) {
     Val *result = val_new(VAL_CHAR, sizeof(char *));
 
-    result->len = 1;
-    result->ptr = c;
+    result->len = idx;
+    result->ptr = val;
 
     return result;
 }
@@ -383,7 +383,11 @@ val_to_char(Val *val) {
         } break;
 
         case VAL_CHAR: {
-            sprintf(val_to_char_buf, "%.1s", val_str(val));
+            Val *orig = (Val *)val->ptr;
+            char *ptr = utf8_char_goto((char *)orig->ptr, val->len);
+            int size = (int)utf8_char_size(ptr);
+
+            sprintf(val_to_char_buf, "%.*s", size, ptr);
             return val_to_char_buf;
         } break;
 
@@ -431,9 +435,7 @@ val_subscript(Val *val, int idx) {
         } break;
 
         case VAL_STR: {
-            char *c = ((char *)val->ptr + idx);
-
-            return val_char(c);
+            return val_char(val, idx);
         } break;
 
         default: {

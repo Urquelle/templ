@@ -39,8 +39,6 @@
     elem1 = {{ elem1 }}
     elem2 = {{ elem2 }}
 
-    {{ "abcd"[2] }}
-
     {% for eins, zwei in [("eins", "zwei"), ("drei", "vier")] %}
         eins = {{ eins }} und zwei = {{ zwei }}
     {% endfor %}
