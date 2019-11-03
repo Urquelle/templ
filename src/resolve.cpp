@@ -381,7 +381,9 @@ internal_proc char *
 val_to_char(Val *val) {
     switch ( val->kind ) {
         case VAL_STR: {
-            return val_str(val);
+            size_t len = utf8_str_size((char *)val->ptr, val->len);
+            sprintf(val_to_char_buf, "%.*s", (int)len, (char *)val->ptr);
+            return val_to_char_buf;
         } break;
 
         case VAL_INT: {

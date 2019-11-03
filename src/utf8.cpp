@@ -35,14 +35,21 @@ utf8_strlen(char *str) {
 }
 
 internal_proc size_t
-utf8_str_size(char *str) {
+utf8_str_size(char *str, size_t len) {
     size_t result = 0;
-    size_t len = utf8_strlen(str);
-
     char *ptr = str;
+
     for ( int i = 0; i < len; ++i ) {
         result += utf8_char_size(ptr+result);
     }
+
+    return result;
+}
+
+internal_proc size_t
+utf8_str_size(char *str) {
+    size_t len = utf8_strlen(str);
+    size_t result = utf8_str_size(str, len);
 
     return result;
 }
