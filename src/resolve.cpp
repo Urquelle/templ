@@ -1725,6 +1725,8 @@ struct Resolved_Stmt {
 
         struct {
             Sym *sym;
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
         } stmt_module;
 
         struct {
@@ -1912,10 +1914,22 @@ resolved_stmt_macro(Sym *sym, Type *type) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_import(Sym *sym) {
+resolved_stmt_import(Sym *sym, Resolved_Stmt **stmts, size_t num_stmts) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_IMPORT);
 
     result->stmt_module.sym = sym;
+    result->stmt_module.stmts = (Resolved_Stmt **)AST_DUP(stmts);
+    result->stmt_module.num_stmts = num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_from_import(Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_FROM_IMPORT);
+
+    result->stmt_module.stmts = (Resolved_Stmt **)AST_DUP(stmts);
+    result->stmt_module.num_stmts = num_stmts;
 
     return result;
 }
@@ -2340,16 +2354,18 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Templ *prev_templ = current_templ;
             Scope *scope = scope_enter(stmt->stmt_import.name);
-            resolve(stmt->stmt_import.templ);
+            Resolved_Templ *templ = resolve(stmt->stmt_import.templ);
             scope_leave();
             current_templ = prev_templ;
 
             sym->type->type_module.scope = scope;
-            result = resolved_stmt_import(sym);
+            result = resolved_stmt_import(sym, templ->stmts, templ->num_stmts);
         } break;
 
         case STMT_FROM_IMPORT: {
             Parsed_Templ *templ = stmt->stmt_from_import.templ;
+            Resolved_Stmt **stmts = 0;
+
             for ( int i = 0; i < templ->num_stmts; ++i ) {
                 Stmt *parsed_stmt = templ->stmts[i];
 
@@ -2371,12 +2387,14 @@ resolve_stmt(Stmt *stmt) {
 
                             if ( import_sym->name == name->expr_name.value ) {
                                 parsed_stmt->stmt_macro.alias = import_sym->alias;
-                                resolve_stmt(parsed_stmt);
+                                buf_push(stmts, resolve_stmt(parsed_stmt));
                             }
                         }
                     }
                 }
             }
+
+            result = resolved_stmt_from_import(stmts, buf_len(stmts));
         } break;
 
         case STMT_WITH: {

@@ -557,9 +557,21 @@ exec_stmt(Resolved_Stmt *stmt) {
             global_for_continue = true;
         } break;
 
-        case STMT_MACRO:
-        case STMT_FROM_IMPORT:
+        case STMT_FROM_IMPORT: {
+            for ( int i = 0; i < stmt->stmt_module.num_stmts; ++i ) {
+                Resolved_Stmt *imported_stmt = stmt->stmt_module.stmts[i];
+                exec_stmt(imported_stmt);
+            }
+        } break;
+
         case STMT_IMPORT: {
+            for ( int i = 0; i < stmt->stmt_module.num_stmts; ++i ) {
+                Resolved_Stmt *imported_stmt = stmt->stmt_module.stmts[i];
+                exec_stmt(imported_stmt);
+            }
+        } break;
+
+        case STMT_MACRO: {
             /* @INFO: nix tun */
         } break;
 
