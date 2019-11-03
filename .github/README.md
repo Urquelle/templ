@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://github.com/NoobSaibot/templ/blob/dev/static/logo_500.png" />
+    <img src="https://github.com/NoobSaibot/templ/blob/dev/static/logo_250.png" />
     <br /><br />
     <a href="https://github.com/NoobSaibot/templ/releases/latest">
         <img src="https://img.shields.io/github/v/release/NoobSaibot/templ" />
@@ -119,12 +119,7 @@ im [data](https://github.com/NoobSaibot/templ/tree/dev/data) verzeichnis befinde
 templ unterstützt sowohl ascii als auch unicode in utf-8 kodierung sowohl für variablen namen, als auch
 für die string literale.
 
-```jinja2
-{% set シ个 = "原ラ掘聞" %}
-{{ シ个 }}
-{% set приветствие = "здравствуйте" %}
-{{ приветствие }}
-```
+https://github.com/NoobSaibot/templ/blob/db3c1ff178b72e1a3ca377d18d5b82a6264e37d3/data/utf8.tpl#L1-L8
 
 ## ausdrücke
 
