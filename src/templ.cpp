@@ -23,7 +23,7 @@
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
 #define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
-#define PROC_CALLBACK(name) Val * name(Resolved_Arg **args, size_t num_args)
+#define PROC_CALLBACK(name) Val * name(Map nargs, Map kwargs, Resolved_Arg **varargs, size_t num_varargs)
 #define TEST_CALLBACK(name) Val * name(Val *val, Type *type, Resolved_Expr **args, size_t num_args)
 
 #define erstes_if if

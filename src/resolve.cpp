@@ -1382,8 +1382,8 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *expr;
-            Resolved_Arg **args;
-            size_t num_args;
+            Map nargs;
+            Map kwargs;
             Resolved_Arg **varargs;
             size_t num_varargs;
         } expr_call;
@@ -1559,14 +1559,23 @@ resolved_expr_in(Resolved_Expr *set, Type *type) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_call(Resolved_Expr *expr, Resolved_Arg **args, size_t num_args,
+resolved_expr_call(Resolved_Expr *expr, Map nargs, Map kwargs,
         Resolved_Arg **varargs, size_t num_varargs, Type *type)
 {
     Resolved_Expr *result = resolved_expr_new(EXPR_CALL, type);
 
     result->expr_call.expr        = expr;
-    result->expr_call.args        = (Resolved_Arg **)AST_DUP(args);
-    result->expr_call.num_args    = num_args;
+
+    result->expr_call.nargs.vals  = nargs.vals;
+    result->expr_call.nargs.keys  = nargs.keys;
+    result->expr_call.nargs.len   = nargs.len;
+    result->expr_call.nargs.cap   = nargs.cap;
+
+    result->expr_call.kwargs.vals  = kwargs.vals;
+    result->expr_call.kwargs.keys  = kwargs.keys;
+    result->expr_call.kwargs.len   = kwargs.len;
+    result->expr_call.kwargs.cap   = kwargs.cap;
+
     result->expr_call.varargs     = (Resolved_Arg **)AST_DUP(varargs);
     result->expr_call.num_varargs = num_varargs;
 
@@ -2105,7 +2114,7 @@ resolve_stmt(Stmt *stmt) {
             Sym *loop_first     = sym_push_var("first",     type_bool, val_bool(true));
             Sym *loop_last      = sym_push_var("last",      type_bool, val_bool(false));
             Sym *loop_length    = sym_push_var("length",    type_int,  val_int(0));
-            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0, proc_cycle, true));
+            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0, proc_cycle));
 
             scope_leave();
             /* }}} */
@@ -2653,95 +2662,103 @@ resolve_expr(Expr *expr) {
                 fatal(call_expr->pos.name, call_expr->pos.row, "aufruf einer nicht-prozedur");
             }
 
-            if ( type->type_proc.variadic ) {
-                Resolved_Arg **args = 0;
+            /* benamte argumente */
+            Map nargs = {};
+            /* benamte argumente, die nicht im typen definiert wurden */
+            Map kwargs = {};
+            /* mehr übergebener argumente als vom typ vorgegeben */
+            Resolved_Arg **varargs = 0;
+            b32 must_be_named = false;
 
-                for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
-                    Arg *arg = expr->expr_call.args[i];
+            /* @INFO: alle übergebenen argumente durchgehen */
+            for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
+                Arg *arg = expr->expr_call.args[i];
 
-                    Resolved_Expr *arg_expr = resolve_expr(expr->expr_call.args[i]->expr);
-                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->type, arg_expr->val);
-                    buf_push(args, rarg);
+                if ( must_be_named && !arg->name ) {
+                    fatal(expr->pos.name, expr->pos.row, "nach benamten parameter müssen alle folgende parameter benamt sein");
                 }
 
-                result = resolved_expr_call(call_expr, args, buf_len(args), 0, 0, type);
-            } else {
-                Resolved_Arg **varargs = 0;
-                for ( size_t i = type->type_proc.num_params; i < expr->expr_call.num_args; ++i ) {
-                    Arg *arg = expr->expr_call.args[i];
-                    Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, 0, arg_expr->type, arg_expr->val);
-                    buf_push(varargs, rarg);
+                char *name = 0;
+                if ( arg->name ) {
+                    name = arg->name;
                 }
 
-                for ( int i = 0; i < type->type_proc.num_params; ++i ) {
-                    Type_Field *param = type->type_proc.params[i];
+                Resolved_Expr *arg_expr = resolve_expr(arg->expr);
 
-                    if ( !param->default_value && (i >= expr->expr_call.num_args) ) {
-                        fatal(expr->pos.name, expr->pos.row, "zu wenige parameter übergeben");
-                    }
-                }
+                /* @INFO: wenn benamtes argument */
+                if ( name ) {
+                    must_be_named = true;
 
-                Resolved_Arg **args = 0;
-                b32 must_be_named = false;
-                char **params = 0;
-                for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
-                    Arg *arg = expr->expr_call.args[i];
-
-                    char *name = 0;
-                    if ( arg->name ) {
-                        must_be_named = true;
-                        name = arg->name;
-                    }
-
-                    if ( !arg->name && must_be_named ) {
-                        fatal(expr->pos.name, expr->pos.row, "nach benamten parameter müssen alle folgende parameter benamt sein");
-                    }
-
-                    b32 found = false;
+                    Type_Field *matching_param = 0;
                     for ( int j = 0; j < type->type_proc.num_params; ++j ) {
                         Type_Field *param = type->type_proc.params[j];
-
-                        if ( arg->name == param->name ) {
-                            found = true;
-
-                            if ( !name ) {
-                                name = param->name;
-                            }
-
+                        if ( name == param->name ) {
+                            matching_param = param;
                             break;
                         }
                     }
 
-                    if ( name && !found ) {
-                        fatal(expr->pos.name, expr->pos.row, "kein argument mit der bezeichnung %s gefunden", arg->name);
+                    if ( matching_param ) {
+                        map_put(&nargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
+                    } else {
+                        map_put(&kwargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
                     }
 
-                    for ( int j = 0; j < buf_len(params); ++j ) {
-                        if ( name == params[j] ) {
-                            fatal(expr->pos.name, expr->pos.row, "parameter %s wurde bereits gesetzt", name);
+                /* @INFO: wenn unbenamtes argument */
+                } else {
+                    /* @INFO: mehr positionsargumente als im typ angegeben kommen
+                     *        in die varargs sammlung
+                     */
+                    if ( i >= type->type_proc.num_params ) {
+                        buf_push(varargs, resolved_arg(expr->pos, 0, arg_expr->type, arg_expr->val));
+
+                    /* @INFO: namen für positionsargument aus dem typ ermitteln */
+                    } else {
+                        Type_Field *param = 0;
+                        size_t num_non_default_params = 0;
+                        for ( int j = 0; j < type->type_proc.num_params; ++j ) {
+                            if ( val_is_undefined(type->type_proc.params[j]->default_value) ) {
+                                ++num_non_default_params;
+                            }
                         }
-                    }
 
-                    if ( name ) {
-                        buf_push(params, name);
-                    }
+                        for ( int j = 0; j < type->type_proc.num_params; ++j ) {
+                            /* @INFO: ersten parameter ohne standardwert ermitteln und diesen nehmen, falls
+                             *        er nicht bereits in der nargs map eingetragen ist.
+                             */
+                            size_t num_remaining_args = expr->expr_call.num_args - i;
+                            if ( num_remaining_args > num_non_default_params ||
+                                 val_is_undefined(type->type_proc.params[j]->default_value) )
+                            {
+                                if ( !map_get(&nargs, type->type_proc.params[j]->name) ) {
+                                    param = type->type_proc.params[j];
+                                    break;
+                                }
+                            }
+                        }
 
-                    Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-                    Resolved_Arg *rarg = resolved_arg(arg_expr->pos, name, arg_expr->type, arg_expr->val);
-                    buf_push(args, rarg);
+                        if ( !param ) {
+                            param = type->type_proc.params[i];
+                        }
+
+                        assert(param);
+                        map_put(&nargs, param->name, resolved_arg(expr->pos, param->name, arg_expr->type, arg_expr->val));
+                    }
                 }
-
-                /* @AUFGABE: falls kein wert übergeben wurde für parameter, die einen standardwert
-                 *           haben, diesen standardwert in die parameterliste aufnehmen.
-                 *
-                 *           eine map erstellen und dort alle benamten und nicht benamten (mit entsprechendem
-                 *           namen aus der type parameterliste) abspeichern, damit sie im callback über den
-                 *           namen abrufbar sind.
-                 */
-
-                result = resolved_expr_call(call_expr, args, buf_len(args), varargs, buf_len(varargs), type);
             }
+
+            /* @INFO: alle typparameter durchgehen und für nicht gesetzte
+             *        parameter standardwerte setzen
+             */
+            for ( int i = 0; i < type->type_proc.num_params; ++i ) {
+                Type_Field *param = type->type_proc.params[i];
+
+                if ( !map_get(&nargs, param->name) ) {
+                    map_put(&nargs, param->name, resolved_arg(expr->pos, param->name, param->type, param->default_value));
+                }
+            }
+
+            result = resolved_expr_call(call_expr, nargs, kwargs, varargs, buf_len(varargs), type);
         } break;
 
         case EXPR_SUBSCRIPT: {

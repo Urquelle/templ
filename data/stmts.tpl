@@ -39,7 +39,7 @@ c[1][0] {{ c[1][0] }} {# sollte 7 rauskommen #}
     {% if i == 5 %}{% break %}{% endif %}
 {% endfor %}
 
-{% for it in range(7) %}
+{% for it in range(stop=7, start=1, step=2) %}
     {{ it }}
 {% endfor %}
 

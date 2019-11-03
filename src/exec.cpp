@@ -69,11 +69,8 @@ exec_macro(Resolved_Expr *expr) {
     for ( int i = 0; i < type->type_macro.num_params; ++i ) {
         Type_Field *field = type->type_macro.params[i];
 
-        if ( i < expr->expr_call.num_args ) {
-            field->sym->val = expr->expr_call.args[i]->val;
-        } else {
-            field->sym->val = field->default_value;
-        }
+        Resolved_Arg *arg = (Resolved_Arg *)map_get(&expr->expr_call.nargs, field->sym->name);
+        field->sym->val = arg->val;
     }
 
     char *old_gen_result = gen_result;
@@ -225,7 +222,7 @@ exec_expr(Resolved_Expr *expr) {
             if ( type->kind == TYPE_MACRO ) {
                 result = exec_macro(expr);
             } else {
-                result = type->type_proc.callback(expr->expr_call.args, expr->expr_call.num_args);
+                result = type->type_proc.callback(expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs);
             }
         } break;
 
@@ -594,28 +591,20 @@ PROC_CALLBACK(proc_cycle) {
     assert(global_for_stmt->kind == STMT_FOR);
 
     s32 loop_index = val_int(global_for_stmt->stmt_for.loop_index->val);
-    s32 arg_index  = loop_index % num_args;
+    s32 arg_index  = loop_index % num_varargs;
 
-    return args[arg_index]->val;
+    return varargs[arg_index]->val;
 }
 
 PROC_CALLBACK(proc_range) {
-    int start = 0;
-    if ( num_args > 1 ) {
-        start = val_int(args[0]->val);
-    }
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(&nargs, intern_str("start"));
+    int start = val_int(arg->val);
 
-    int stop  = 0;
-    if ( num_args == 1 ) {
-        stop = val_int(args[0]->val);
-    } else if ( num_args > 1 ) {
-        stop = val_int(args[1]->val);
-    }
+    arg = (Resolved_Arg *)map_get(&nargs, intern_str("stop"));
+    int stop  = val_int(arg->val);
 
-    int step = 1;
-    if ( num_args > 2 ) {
-        step = val_int(args[2]->val);
-    }
+    arg = (Resolved_Arg *)map_get(&nargs, intern_str("step"));
+    int step = val_int(arg->val);
 
     return val_range(start, stop, step);
 }
