@@ -64,6 +64,7 @@ struct Scope {
     size_t num_syms;
 };
 
+global_var Scope filter_scope;
 global_var Scope system_scope;
 global_var Scope global_scope;
 global_var Scope *current_scope = &global_scope;
@@ -1221,7 +1222,7 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
 internal_proc Sym *
 sym_push_filter(char *name, Type *type) {
     Scope *prev_scope = current_scope;
-    current_scope = &system_scope;
+    current_scope = &filter_scope;
 
     Sym *result = sym_push(SYM_PROC, name, type);
 
@@ -2884,7 +2885,12 @@ resolve_expr(Expr *expr) {
 
 internal_proc Resolved_Filter *
 resolve_filter(Filter *filter) {
+    Scope *prev_scope = current_scope;
+    current_scope = &filter_scope;
+
     Sym *sym = resolve_name(filter->name);
+
+    current_scope = prev_scope;
 
     if ( !sym ) {
         fatal(filter->pos.name, filter->pos.row, "symbol %s konnte nicht gefunden werden!", filter->name);
@@ -3053,6 +3059,7 @@ resolve_init_builtin_types() {
 
 internal_proc void
 resolve_init_scope() {
+    filter_scope.name = "filter scope";
     system_scope.name = "system scope";
     global_scope.name = "global scope";
     global_scope.parent = &system_scope;
