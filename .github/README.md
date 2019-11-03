@@ -21,12 +21,13 @@
     <tr>
         <th>status</th>
         <th>statistik</th>
+        <th>meta</th>
     </tr>
     <tr>
         <td>
             <table>
                 <tr>
-                    <td>travis build:</td>
+                    <td>travis:</td>
                     <td align="right">
                         <a href="https://travis-ci.org/NoobSaibot/templ">
                             <img src="https://travis-ci.org/NoobSaibot/templ.svg?branch=dev" />
@@ -34,7 +35,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>appveyor build:</td>
+                    <td>appveyor:</td>
                     <td align="right">
                         <a href="https://ci.appveyor.com/project/NoobSaibot/templ/branch/dev">
                             <img src="https://ci.appveyor.com/api/projects/status/d5vpfm3mtao94aow/branch/dev?svg=true" />
@@ -42,7 +43,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>github actions:</td>
+                    <td>github:</td>
                     <td align="right">
                         <img src="https://github.com/NoobSaibot/templ/workflows/windows-build/badge.svg" />
                     </td>
@@ -52,7 +53,7 @@
         <td>
             <table>
                 <tr>
-                    <td>offene aufgaben:</td>
+                    <td>aufgaben:</td>
                     <td align="right">
                         <a href="https://github.com/NoobSaibot/templ/issues">
                             <img src="https://img.shields.io/github/issues/NoobSaibot/templ" />
@@ -60,7 +61,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>code qualität:</td>
+                    <td>qualität:</td>
                     <td align="right">
                         <a href="https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade">
                             <img src="https://api.codacy.com/project/badge/Grade/f4e97144ea6d43b3a38fc34e9b5e50b7" />
@@ -68,14 +69,37 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>code zeilen:</td>
+                    <td>cloc:</td>
                     <td align="right"><img src="https://tokei.rs/b1/github/NoobSaibot/templ" /></td>
+                </tr>
+            </table>
+        </td>
+        <td>
+            <table>
+                <tr>
+                    <td>commits:</td>
+                    <td align="right">
+                        <a href="https://github.com/NoobSaibot/templ/commits/dev">
+                            <img src="https://img.shields.io/github/commits-since/NoobSaibot/templ/latest/dev" />
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>editor:</td>
+                    <td align="right">
+                        <a href="https://neovim.io/">
+                            <img src="https://img.shields.io/badge/powered%20by-neovim-green" />
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>platform:</td>
+                    <td align="right"><img src="https://img.shields.io/badge/platform-win-blue" /></td>
                 </tr>
             </table>
         </td>
     </tr>
 </table>
-
 ## einfaches beispiel
 
 nachfolgend ist ein einfaches beispiel, indem eine datenstruktur erstellt wird, die in den kontext der
