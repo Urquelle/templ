@@ -633,9 +633,14 @@ PROC_CALLBACK(proc_lipsum) {
     s32 min = val_int(arg->val);
 
     arg = (Resolved_Arg *)map_get(&nargs, intern_str("max"));
-    s32 max = val_int(arg->val);
+    s32 max = (s32)MIN(val_int(arg->val), utf8_strlen(global_lorem_ipsum));
 
-    return val_str(global_lorem_ipsum, 5);
+    char *result = "";
+    for ( int i = 0; i < n; ++i ) {
+        result = strf("%s%s%.*s%s", result, (html) ? "<div>" : "", max-min, global_lorem_ipsum, (html) ? "</div>" : "");
+    }
+
+    return val_str(result);
 }
 
 internal_proc void
