@@ -553,7 +553,7 @@ next_raw_token(Lexer *lex) {
             next(lex);
         }
 
-        lex->token.str_value = intern_str(start+utf8_char_size(start), utf8_char_end(lex->input));
+        lex->token.str_value = intern_str(start+utf8_char_size(start), utf8_char_lastbyte(lex->input));
         next(lex);
     } else if ( c == '#' ) {
         lex->token.kind = T_HASH;
@@ -584,7 +584,7 @@ next_raw_token(Lexer *lex) {
             next(lex);
         }
 
-        lex->token.name = intern_str(start, utf8_char_end(lex->input));
+        lex->token.name = intern_str(start, utf8_char_lastbyte(lex->input));
     } else if ( c == '|' ) {
         lex->token.kind = T_BAR;
         next(lex);
@@ -598,7 +598,7 @@ next_raw_token(Lexer *lex) {
         lex->token_raw      = lex->token;
     }
 
-    lex->token.literal = intern_str(start, utf8_char_end(lex->input));
+    lex->token.literal = intern_str(start, utf8_char_lastbyte(lex->input));
 }
 
 internal_proc void

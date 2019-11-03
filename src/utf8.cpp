@@ -100,7 +100,7 @@ utf8_char_offset(char *ptr, char *c) {
 }
 
 internal_proc char *
-utf8_char_end(char *input) {
+utf8_char_lastbyte(char *input) {
     char *result = input + utf8_char_size(input) - 1;
 
     return result;
@@ -121,32 +121,21 @@ utf8_char_goto(char *input, size_t count) {
     return result;
 }
 
-internal_proc wchar_t
-utf8_char_to_wchar(Utf8_Char c) {
-    wchar_t result = os_utf8_char_to_wchar(c.bytes, c.size);
-
-    return result;
-}
-
-internal_proc wchar_t
-utf8_char_to_wchar(char *c) {
-    Utf8_Char uc = utf8_char(c);
-    wchar_t result = utf8_char_to_wchar(uc);
-
-    return result;
-}
-
-enum { UTF8_MAX_BYTES = 6 };
 internal_proc char *
-utf8_char_to_uppercase(char *c) {
-    Utf8_Char utf8_c = utf8_char(c);
-    wchar_t wchar_lowercase = utf8_char_to_wchar(utf8_c);
+utf8_toupper(char *str) {
+    size_t size = utf8_char_size(str);
+    char *result = str;
 
-    /* @AUFGABE: nutzung von std entfernen */
-    wchar_t wchar_uppercase = std::toupper(wchar_lowercase, std::locale());
-
-    char *result = (char *)xcalloc(1, sizeof(char)*UTF8_MAX_BYTES);
-    os_utf8_wchar_to_char(wchar_uppercase, result, sizeof(char)*UTF8_MAX_BYTES);
+    if ( size == 1 && result[0] >= 'a' && result[0] <= 'z') {
+        result[0] = result[0] - 0x20;
+    } else if ( size == 2 ) {
+        /* @AUFGABE: implementieren */
+    } else if ( size == 3 ) {
+        /* @AUFGABE: implementieren */
+    } else if ( size == 4 ) {
+        /* @AUFGABE: implementieren */
+    }
 
     return result;
 }
+
