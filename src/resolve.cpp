@@ -2783,9 +2783,8 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_DICT: {
-            Scope *prev_scope = current_scope;
             Scope *scope = scope_new(0, "dict");
-            scope_set(scope);
+            Scope *prev_scope = scope_set(scope);
 
             char **keys = 0;
             for ( int i = 0; i < expr->expr_dict.num_pairs; ++i ) {

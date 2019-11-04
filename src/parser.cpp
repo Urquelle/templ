@@ -886,14 +886,14 @@ parse_stmt_from_import(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_raw(Parser *p) {
-    char *start = p->lex.input;
+    char *start = parser_input(p);
     char *end = start;
 
     expect_token(p, T_CODE_END);
 
     while ( status_is_not_error() ) {
         while ( !match_token(p, T_CODE_BEGIN) ) {
-            end = p->lex.input;
+            end = parser_input(p);
             next_token(&p->lex);
         }
 
