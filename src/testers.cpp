@@ -5,22 +5,24 @@ internal_proc TEST_CALLBACK(test_callable) {
 }
 
 internal_proc TEST_CALLBACK(test_defined) {
-    b32 result = !val_is_undefined(val);
+    b32 result = !val_is_undefined(operand);
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_divisibleby) {
-    b32 result = (val_int(val) % val_int(args[0]->val)) == 0;
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    s32 s = val_int(arg->val);
+
+    b32 result = (val_int(operand) % s) == 0;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_eq) {
-    assert(val);
-    assert(num_args == 1);
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
 
-    Val *result = val_bool(*val == *args[0]->val);
+    Val *result = val_bool(*operand == *arg->val);
 
     return result;
 }
@@ -32,25 +34,32 @@ internal_proc TEST_CALLBACK(test_escaped) {
 }
 
 internal_proc TEST_CALLBACK(test_even) {
-    b32 result = (val_int(val) & 0x1) != 0x1;
+    b32 result = (val_int(operand) & 0x1) != 0x1;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_ge) {
-    b32 result = val_int(val) >= val_int(args[0]->val);
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    s32 s = val_int(arg->val);
+
+    b32 result = val_int(operand) >= s;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_gt) {
-    b32 result = val_int(val) > val_int(args[0]->val);
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    s32 s = val_int(arg->val);
+
+    b32 result = val_int(operand) > s;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_in) {
-    Val *set = args[0]->val;
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Val *set = arg->val;
 
     if ( !set || set->kind != VAL_LIST ) {
         return val_bool(false);
@@ -60,7 +69,7 @@ internal_proc TEST_CALLBACK(test_in) {
     for ( int i = 0; i < set->len; ++i ) {
         Val *it = val_elem(set, i);
 
-        if ( *it == *val ) {
+        if ( *it == *operand ) {
             found = true;
             break;
         }
@@ -76,25 +85,34 @@ internal_proc TEST_CALLBACK(test_iterable) {
 }
 
 internal_proc TEST_CALLBACK(test_le) {
-    b32 result = val_int(val) <= val_int(args[0]->val);
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    s32 s = val_int(arg->val);
+
+    b32 result = val_int(operand) <= s;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_lt) {
-    b32 result = val_int(val) < val_int(args[0]->val);
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    s32 s = val_int(arg->val);
+
+    b32 result = val_int(operand) < s;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_ne) {
-    b32 result = val_int(val) != val_int(args[0]->val);
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    s32 s = val_int(arg->val);
+
+    b32 result = val_int(operand) != s;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_none) {
-    b32 result = val->kind == VAL_UNDEFINED;
+    b32 result = val_is_undefined(operand);
 
     return val_bool(result);
 }
@@ -106,25 +124,27 @@ internal_proc TEST_CALLBACK(test_number) {
 }
 
 internal_proc TEST_CALLBACK(test_odd) {
-    b32 result = (val_int(val) & 0x1) == 0x1;
+    b32 result = (val_int(operand) & 0x1) == 0x1;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_sameas) {
-    b32 result = val->ptr == args[0]->val->ptr;
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+
+    b32 result = operand->ptr == arg->val->ptr;
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_sequence) {
-    b32 result = test_iterable(val, type, 0, 0);
+    b32 result = test_iterable(operand, type, nargs, kwargs, varargs, num_varargs);
 
     return val_bool(result);
 }
 
 internal_proc TEST_CALLBACK(test_string) {
-    b32 result = val->kind == VAL_STR;
+    b32 result = operand->kind == VAL_STR;
 
     return val_bool(result);
 }

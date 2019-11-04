@@ -1,33 +1,33 @@
 internal_proc FILTER_CALLBACK(filter_abs) {
-    assert(val->kind == VAL_INT);
-    s32 i = abs(val_int(val));
+    assert(operand->kind == VAL_INT);
+    s32 i = abs(val_int(operand));
 
     return val_int(i);
 }
 
 internal_proc FILTER_CALLBACK(filter_capitalize) {
-    assert(val->kind == VAL_STR);
+    assert(operand->kind == VAL_STR);
 
-    char first_letter = ((char *)val->ptr)[0];
-    ((char *)val->ptr)[0] = std::toupper(first_letter, std::locale());
+    char first_letter = ((char *)operand->ptr)[0];
+    ((char *)operand->ptr)[0] = std::toupper(first_letter, std::locale());
 
-    return val_str( val_str(val) );
+    return operand;
 }
 
 internal_proc FILTER_CALLBACK(filter_default) {
-    assert(val->kind == VAL_STR);
-    assert(num_args > 0);
+    assert(operand->kind == VAL_STR);
 
-    if ( !val->len ) {
-        return args[0]->val;
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    if ( !operand->len ) {
+        return arg->val;
     }
 
-    return val;
+    return operand;
 }
 
 internal_proc FILTER_CALLBACK(filter_upper) {
-    assert(val->kind == VAL_STR);
-    char *str = val_str(val);
+    assert(operand->kind == VAL_STR);
+    char *str = val_str(operand);
     char *result = "";
 
     size_t offset = 0;
@@ -45,8 +45,8 @@ internal_proc FILTER_CALLBACK(filter_upper) {
 internal_proc FILTER_CALLBACK(filter_escape) {
     char *result = "";
 
-    for ( int i = 0; i < val->len; ++i ) {
-        char c = ((char *)val->ptr)[i];
+    for ( int i = 0; i < operand->len; ++i ) {
+        char c = ((char *)operand->ptr)[i];
 
         erstes_if ( c == '<' ) {
             result = strf("%s%s", result, "&lt;");
@@ -65,9 +65,9 @@ internal_proc FILTER_CALLBACK(filter_escape) {
 }
 
 internal_proc FILTER_CALLBACK(filter_format) {
-    assert(val->kind == VAL_STR);
+    assert(operand->kind == VAL_STR);
 
-    char *format = val_str(val);
+    char *format = val_str(operand);
     int num_arg = 0;
     char *result = "";
 
@@ -89,8 +89,8 @@ internal_proc FILTER_CALLBACK(filter_format) {
             }
 
             if ( format[0] == 's' ) {
-                if ( num_arg < num_args ) {
-                    Resolved_Arg *arg = args[num_arg];
+                if ( num_arg < num_varargs ) {
+                    Resolved_Arg *arg = varargs[num_arg];
 
                     if ( arg->val->kind != VAL_STR ) {
                         fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss string sein", arg->name);
@@ -98,9 +98,9 @@ internal_proc FILTER_CALLBACK(filter_format) {
 
                     result = strf("%s%s", result, val_to_char(arg->val));
                 } else {
-                    if ( num_args ) {
-                        Resolved_Arg *arg = args[0];
-                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_args);
+                    if ( num_varargs ) {
+                        Resolved_Arg *arg = varargs[0];
+                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_varargs);
                     } else {
                         warn(0, 0, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
                     }
@@ -109,8 +109,8 @@ internal_proc FILTER_CALLBACK(filter_format) {
 
                 num_arg++;
             } else if ( format[0] == 'd' ) {
-                if ( num_arg < num_args ) {
-                    Resolved_Arg *arg = args[num_arg];
+                if ( num_arg < num_varargs ) {
+                    Resolved_Arg *arg = varargs[num_arg];
 
                     if ( arg->val->kind != VAL_INT ) {
                         fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss int sein", arg->name);
@@ -118,9 +118,9 @@ internal_proc FILTER_CALLBACK(filter_format) {
 
                     result = strf("%s%s", result, val_to_char(arg->val));
                 } else {
-                    if ( num_args ) {
-                        Resolved_Arg *arg = args[0];
-                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_args);
+                    if ( num_varargs ) {
+                        Resolved_Arg *arg = varargs[0];
+                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_varargs);
                     } else {
                         warn(0, 0, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
                     }
@@ -129,8 +129,8 @@ internal_proc FILTER_CALLBACK(filter_format) {
 
                 num_arg++;
             } else if ( format[0] == 'f' ) {
-                if ( num_arg < num_args ) {
-                    Resolved_Arg *arg = args[num_arg];
+                if ( num_arg < num_varargs ) {
+                    Resolved_Arg *arg = varargs[num_arg];
 
                     if ( arg->val->kind != VAL_FLOAT ) {
                         fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss float sein", arg->name);
@@ -138,9 +138,9 @@ internal_proc FILTER_CALLBACK(filter_format) {
 
                     result = strf("%s%.*f", result, size, val_float(arg->val));
                 } else {
-                    if ( num_args ) {
-                        Resolved_Arg *arg = args[0];
-                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_args);
+                    if ( num_varargs ) {
+                        Resolved_Arg *arg = varargs[0];
+                        warn(arg->pos.name, arg->pos.row, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente: %d", num_varargs);
                     } else {
                         warn(0, 0, "anzahl formatierungsparameter ist größer als die anzahl der übergebenen argumente");
                     }
@@ -162,7 +162,7 @@ internal_proc FILTER_CALLBACK(filter_format) {
 }
 
 internal_proc FILTER_CALLBACK(filter_truncate) {
-    assert(val->kind == VAL_STR);
+    assert(operand->kind == VAL_STR);
 
     return val_str("<!-- @AUFGABE: truncate implementieren -->");
 }

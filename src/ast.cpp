@@ -42,25 +42,6 @@ arg_new(Pos pos, char *name, Expr *expr) {
     return result;
 }
 
-struct Filter {
-    Pos pos;
-    char*  name;
-    Arg **args;
-    size_t num_args;
-};
-
-internal_proc Filter *
-filter_new(Pos pos, char *name, Arg **args, size_t num_args) {
-    Filter *result = (Filter *)xcalloc(1, sizeof(Filter));
-
-    result->pos  = pos;
-    result->name = name;
-    result->args = args;
-    result->num_args = num_args;
-
-    return result;
-}
-
 enum Expr_Kind {
     EXPR_NONE,
     EXPR_PAREN,
@@ -78,7 +59,6 @@ enum Expr_Kind {
     EXPR_CALL,
     EXPR_IS,
     EXPR_NOT,
-    EXPR_IN,
     EXPR_IF,
     EXPR_TUPLE,
     EXPR_LIST,
@@ -88,7 +68,7 @@ enum Expr_Kind {
 struct Expr {
     Expr_Kind kind;
     Pos pos;
-    Filter **filters;
+    Expr **filters;
     size_t num_filters;
 
     union {
@@ -155,19 +135,13 @@ struct Expr {
         } expr_call;
 
         struct {
-            Expr *var;
-            Expr *test;
-            Expr **args;
-            size_t num_args;
+            Expr *operand;
+            Expr *tester;
         } expr_is;
 
         struct {
             Expr *expr;
         } expr_not;
-
-        struct {
-            Expr *set;
-        } expr_in;
 
         struct {
             Expr *cond;
@@ -331,14 +305,11 @@ expr_call(Pos pos, Expr *expr, Arg **args, size_t num_args) {
 }
 
 internal_proc Expr *
-expr_is(Pos pos, Expr *var, Expr *test, Expr **args = 0, size_t num_args = 0)
-{
+expr_is(Pos pos, Expr *operand, Expr *tester) {
     Expr *result = expr_new(pos, EXPR_IS);
 
-    result->expr_is.var = var;
-    result->expr_is.test = test;
-    result->expr_is.args = (Expr **)AST_DUP(args);
-    result->expr_is.num_args = num_args;
+    result->expr_is.operand = operand;
+    result->expr_is.tester = tester;
 
     return result;
 }
@@ -348,15 +319,6 @@ expr_not(Pos pos, Expr *expr) {
     Expr *result = expr_new(pos, EXPR_NOT);
 
     result->expr_not.expr = expr;
-
-    return result;
-}
-
-internal_proc Expr *
-expr_in(Pos pos, Expr *set) {
-    Expr *result = expr_new(pos, EXPR_IN);
-
-    result->expr_in.set  = set;
 
     return result;
 }
@@ -515,7 +477,7 @@ struct Stmt {
         } stmt_set;
 
         struct {
-            Filter **filter;
+            Expr **filter;
             size_t num_filter;
             Stmt **stmts;
             size_t num_stmts;
@@ -687,10 +649,10 @@ stmt_set(Expr **names, size_t num_names, Expr *expr) {
 }
 
 internal_proc Stmt *
-stmt_filter(Filter **filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
+stmt_filter(Expr **filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_FILTER);
 
-    result->stmt_filter.filter = (Filter **)AST_DUP(filter);
+    result->stmt_filter.filter = (Expr **)AST_DUP(filter);
     result->stmt_filter.num_filter = num_filter;
     result->stmt_filter.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_filter.num_stmts = num_stmts;

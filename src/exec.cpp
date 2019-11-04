@@ -57,7 +57,7 @@ exec_macro(Resolved_Expr *expr) {
     for ( int i = 0; i < type->type_macro.num_params; ++i ) {
         Type_Field *field = type->type_macro.params[i];
 
-        Resolved_Arg *arg = (Resolved_Arg *)map_get(&expr->expr_call.nargs, field->sym->name);
+        Resolved_Arg *arg = (Resolved_Arg *)map_get(expr->expr_call.nargs, field->sym->name);
         field->sym->val = arg->val;
     }
 
@@ -193,15 +193,12 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_IS: {
-            Val *var_val = exec_expr(expr->expr_is.expr);
-            Type *type = expr->expr_is.test->type;
+            Val *operand = exec_expr(expr->expr_is.operand);
+            Type *type = expr->expr_is.tester->type;
             assert(type->kind == TYPE_TEST);
+            Resolved_Expr *tester = expr->expr_is.tester;
 
-            result = type->type_test.callback(var_val, type, expr->expr_is.args, expr->expr_is.num_args);
-        } break;
-
-        case EXPR_IN: {
-            result = exec_expr(expr->expr_in.set);
+            result = type->type_test.callback(operand, type, tester->expr_call.nargs, tester->expr_call.kwargs, tester->expr_call.varargs, tester->expr_call.num_varargs);
         } break;
 
         case EXPR_CALL: {
@@ -268,8 +265,9 @@ exec_expr(Resolved_Expr *expr) {
     }
 
     for ( int i = 0; i < expr->num_filters; ++i ) {
-        Resolved_Filter *filter = expr->filters[i];
-        result = filter->proc(result, filter->args, filter->num_args);
+        Resolved_Expr *filter = expr->filters[i];
+        Type *type = filter->type;
+        result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
     }
 
     return result;
@@ -530,8 +528,9 @@ exec_stmt(Resolved_Stmt *stmt) {
 
             Val *result = val_str(gen_result);
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
-                Resolved_Filter *filter = stmt->stmt_filter.filter[i];
-                result = filter->proc(result, filter->args, filter->num_args);
+                Resolved_Expr *filter = stmt->stmt_filter.filter[i];
+                Type *type = filter->type;
+                result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
             }
 
             gen_result = old_gen_result;

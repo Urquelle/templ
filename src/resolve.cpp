@@ -9,7 +9,9 @@ struct Scope {
 
 global_var Scope filter_scope;
 global_var Scope system_scope;
+global_var Scope tester_scope;
 global_var Scope global_scope;
+
 global_var Scope *current_scope = &global_scope;
 
 internal_proc Scope *
@@ -448,17 +450,17 @@ operator*(Val left, Val right) {
     } else if ( left.kind == VAL_STR && right.kind == VAL_INT ) {
         result.kind = VAL_STR;
 
-        int len = val_int(&right);
-        size_t size = len * sizeof(char);
-
         result.ptr = "";
         char *str_to_repeat = val_str(&left);
 
-        for ( int i = 0; i < len; ++i ) {
+        int count  = val_int(&right);
+        size_t len = count * utf8_strlen(str_to_repeat);
+
+        for ( int i = 0; i < count; ++i ) {
             result.ptr = strf("%s%s", result.ptr, str_to_repeat);
         }
 
-        result.size = size;
+        result.size = len*sizeof(char);
         result.len  = len;
     } else if ( left.kind == VAL_INT && right.kind == VAL_STR ) {
         result.kind = VAL_STR;
@@ -1175,36 +1177,27 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
 
 internal_proc Sym *
 sym_push_filter(char *name, Type *type) {
-    Scope *prev_scope = current_scope;
-    current_scope = &filter_scope;
-
+    Scope *prev_scope = scope_set(&filter_scope);
     Sym *result = sym_push(SYM_PROC, name, type);
-
-    current_scope = prev_scope;
+    scope_set(prev_scope);
 
     return result;
 }
 
 internal_proc Sym *
 sym_push_test(char *name, Type *type) {
-    Scope *prev_scope = current_scope;
-    current_scope = &system_scope;
-
+    Scope *prev_scope = scope_set(&tester_scope);
     Sym *result = sym_push(SYM_PROC, name, type);
-
-    current_scope = prev_scope;
+    scope_set(prev_scope);
 
     return result;
 }
 
 internal_proc Sym *
 sym_push_sysproc(char *name, Type *type) {
-    Scope *prev_scope = current_scope;
-    current_scope = &system_scope;
-
+    Scope *prev_scope = scope_set(&system_scope);
     Sym *result = sym_push(SYM_PROC, name, type);
-
-    current_scope = prev_scope;
+    scope_set(prev_scope);
 
     return result;
 }
@@ -1236,27 +1229,10 @@ internal_proc Resolved_Arg *
 resolved_arg(Pos pos, char *name, Type *type, Val *val) {
     Resolved_Arg *result = ALLOC_STRUCT(&resolve_arena, Resolved_Arg);
 
+    result->pos = pos;
     result->name = name;
     result->type = type;
     result->val = val;
-
-    return result;
-}
-/* }}} */
-/* resolved_filter {{{ */
-struct Resolved_Filter {
-    Resolved_Arg **args;
-    size_t num_args;
-    Filter_Callback *proc;
-};
-
-internal_proc Resolved_Filter *
-resolved_filter(Resolved_Arg **args, size_t num_args, Filter_Callback *proc) {
-    Resolved_Filter *result = ALLOC_STRUCT(&resolve_arena, Resolved_Filter);
-
-    result->args = args;
-    result->num_args = num_args;
-    result->proc = proc;
 
     return result;
 }
@@ -1271,7 +1247,7 @@ struct Resolved_Expr {
 
     Resolved_Stmt *stmt;
 
-    Resolved_Filter **filters;
+    Resolved_Expr **filters;
     size_t num_filters;
 
     b32 is_const;
@@ -1323,10 +1299,8 @@ struct Resolved_Expr {
         } expr_binary;
 
         struct {
-            Resolved_Expr *expr;
-            Resolved_Expr *test;
-            Resolved_Expr **args;
-            size_t num_args;
+            Resolved_Expr *operand;
+            Resolved_Expr *tester;
         } expr_is;
 
         struct {
@@ -1339,8 +1313,8 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *expr;
-            Map nargs;
-            Map kwargs;
+            Map *nargs;
+            Map *kwargs;
             Resolved_Arg **varargs;
             size_t num_varargs;
         } expr_call;
@@ -1361,7 +1335,6 @@ struct Resolved_Expr {
         } expr_list;
 
         struct {
-            Map *map;
             char **keys;
             size_t num_keys;
         } expr_dict;
@@ -1484,15 +1457,11 @@ resolved_expr_binary(Token_Kind op, Type *type, Resolved_Expr *left, Resolved_Ex
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_is(Resolved_Expr *expr, Resolved_Expr *test, Resolved_Expr **args,
-        size_t num_args)
-{
+resolved_expr_is(Resolved_Expr *operand, Resolved_Expr *tester) {
     Resolved_Expr *result = resolved_expr_new(EXPR_IS, type_bool);
 
-    result->expr_is.expr = expr;
-    result->expr_is.test = test;
-    result->expr_is.args = args;
-    result->expr_is.num_args = num_args;
+    result->expr_is.operand = operand;
+    result->expr_is.tester  = tester;
 
     return result;
 }
@@ -1507,32 +1476,14 @@ resolved_expr_not(Resolved_Expr *expr) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_in(Resolved_Expr *set, Type *type) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_IN, type);
-
-    result->expr_in.set  = set;
-
-    return result;
-}
-
-internal_proc Resolved_Expr *
-resolved_expr_call(Resolved_Expr *expr, Map nargs, Map kwargs,
+resolved_expr_call(Resolved_Expr *expr, Map *nargs, Map *kwargs,
         Resolved_Arg **varargs, size_t num_varargs, Type *type)
 {
     Resolved_Expr *result = resolved_expr_new(EXPR_CALL, type);
 
     result->expr_call.expr        = expr;
-
-    result->expr_call.nargs.vals  = nargs.vals;
-    result->expr_call.nargs.keys  = nargs.keys;
-    result->expr_call.nargs.len   = nargs.len;
-    result->expr_call.nargs.cap   = nargs.cap;
-
-    result->expr_call.kwargs.vals  = kwargs.vals;
-    result->expr_call.kwargs.keys  = kwargs.keys;
-    result->expr_call.kwargs.len   = kwargs.len;
-    result->expr_call.kwargs.cap   = kwargs.cap;
-
+    result->expr_call.nargs       = nargs;
+    result->expr_call.kwargs      = kwargs;
     result->expr_call.varargs     = (Resolved_Arg **)AST_DUP(varargs);
     result->expr_call.num_varargs = num_varargs;
 
@@ -1654,7 +1605,7 @@ struct Resolved_Stmt {
         } stmt_set;
 
         struct {
-            Resolved_Filter **filter;
+            Resolved_Expr **filter;
             size_t num_filter;
             Resolved_Stmt **stmts;
             size_t num_stmts;
@@ -1822,7 +1773,7 @@ resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_filter(Resolved_Filter **filter, size_t num_filter,
+resolved_stmt_filter(Resolved_Expr **filter, size_t num_filter,
         Resolved_Stmt **stmts, size_t num_stmts)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FILTER);
@@ -2275,7 +2226,7 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_FILTER: {
-            Resolved_Filter **filter = 0;
+            Resolved_Expr **filter = 0;
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
                 buf_push(filter, resolve_filter(stmt->stmt_filter.filter[i]));
             }
@@ -2469,6 +2420,123 @@ resolve_expr_cond(Expr *expr) {
 }
 
 internal_proc Resolved_Expr *
+resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
+    /* @INFO: das symbol für die expr könnte in anderen scopes liegen,
+     *        wie z. b. bei filtern und testern der fall ist. deshalb kann
+     *        und wird ein scope übergeben um nach dem symbol in anderen
+     *        scopes zu suchen
+     */
+    Scope *prev_scope = scope_set(name_scope);
+    Resolved_Expr *call_expr = resolve_expr(expr->expr_call.expr);
+    scope_set(prev_scope);
+
+    Type *type = call_expr->type;
+
+    if ( !type_is_callable(type) ) {
+        fatal(call_expr->pos.name, call_expr->pos.row, "aufruf einer nicht-prozedur");
+    }
+
+    /* benamte argumente */
+    Map *nargs = (Map *)xcalloc(1, sizeof(Map));
+    /* benamte argumente, die nicht im typen definiert wurden */
+    Map *kwargs = (Map *)xcalloc(1, sizeof(Map));
+    /* mehr übergebener argumente als vom typ vorgegeben */
+    Resolved_Arg **varargs = 0;
+    b32 must_be_named = false;
+
+    /* @INFO: alle übergebenen argumente durchgehen */
+    for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
+        Arg *arg = expr->expr_call.args[i];
+
+        if ( must_be_named && !arg->name ) {
+            fatal(expr->pos.name, expr->pos.row, "nach benamten parameter müssen alle folgende parameter benamt sein");
+        }
+
+        char *name = 0;
+        if ( arg->name ) {
+            name = arg->name;
+        }
+
+        Resolved_Expr *arg_expr = resolve_expr(arg->expr);
+
+        /* @INFO: wenn benamtes argument */
+        if ( name ) {
+            must_be_named = true;
+
+            Type_Field *matching_param = 0;
+            for ( int j = 0; j < type->type_proc.num_params; ++j ) {
+                Type_Field *param = type->type_proc.params[j];
+                if ( name == param->name ) {
+                    matching_param = param;
+                    break;
+                }
+            }
+
+            if ( matching_param ) {
+                map_put(nargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
+            } else {
+                map_put(kwargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
+            }
+
+        /* @INFO: wenn unbenamtes argument */
+        } else {
+            /* @INFO: mehr positionsargumente als im typ angegeben kommen
+                *        in die varargs sammlung
+                */
+            if ( i >= type->type_proc.num_params ) {
+                buf_push(varargs, resolved_arg(expr->pos, 0, arg_expr->type, arg_expr->val));
+
+            /* @INFO: namen für positionsargument aus dem typ ermitteln */
+            } else {
+                Type_Field *param = 0;
+                size_t num_non_default_params = 0;
+                for ( int j = 0; j < type->type_proc.num_params; ++j ) {
+                    if ( val_is_undefined(type->type_proc.params[j]->default_value) ) {
+                        ++num_non_default_params;
+                    }
+                }
+
+                for ( int j = 0; j < type->type_proc.num_params; ++j ) {
+                    /* @INFO: ersten parameter ohne standardwert ermitteln und diesen nehmen, falls
+                        *        er nicht bereits in der nargs map eingetragen ist.
+                        */
+                    size_t num_remaining_args = expr->expr_call.num_args - i;
+                    if ( num_remaining_args > num_non_default_params ||
+                            val_is_undefined(type->type_proc.params[j]->default_value) )
+                    {
+                        if ( !map_get(nargs, type->type_proc.params[j]->name) ) {
+                            param = type->type_proc.params[j];
+                            break;
+                        }
+                    }
+                }
+
+                if ( !param ) {
+                    param = type->type_proc.params[i];
+                }
+
+                assert(param);
+                Resolved_Arg *r_arg = resolved_arg(expr->pos, param->name, arg_expr->type, arg_expr->val);
+                map_put(nargs, param->name, r_arg);
+            }
+        }
+    }
+
+    /* @INFO: alle typparameter durchgehen und für nicht gesetzte
+        *        parameter standardwerte setzen
+        */
+    for ( int i = 0; i < type->type_proc.num_params; ++i ) {
+        Type_Field *param = type->type_proc.params[i];
+
+        if ( !map_get(nargs, param->name) ) {
+            map_put(nargs, param->name, resolved_arg(expr->pos, param->name, param->type, param->default_value));
+        }
+    }
+
+    return resolved_expr_call(call_expr, nargs, kwargs, varargs, buf_len(varargs), type);
+}
+
+internal_proc Resolved_Expr *
 resolve_expr(Expr *expr) {
     Resolved_Expr *result = &resolved_expr_illegal;
 
@@ -2508,8 +2576,10 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *type = 0;
 
             if ( is_eql(expr->expr_binary.op) ) {
+                /* @AUFGABE: aufräumen */
                 unify_scalar_operands(left, right);
             } else {
+                /* @AUFGABE: aufräumen */
                 unify_arithmetic_operands(left, right);
             }
 
@@ -2596,110 +2666,7 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_CALL: {
-            Resolved_Expr *call_expr = resolve_expr(expr->expr_call.expr);
-            Type *type = call_expr->type;
-
-            if ( !type_is_callable(type) ) {
-                fatal(call_expr->pos.name, call_expr->pos.row, "aufruf einer nicht-prozedur");
-            }
-
-            /* benamte argumente */
-            Map nargs = {};
-            /* benamte argumente, die nicht im typen definiert wurden */
-            Map kwargs = {};
-            /* mehr übergebener argumente als vom typ vorgegeben */
-            Resolved_Arg **varargs = 0;
-            b32 must_be_named = false;
-
-            /* @INFO: alle übergebenen argumente durchgehen */
-            for ( int i = 0; i < expr->expr_call.num_args; ++i ) {
-                Arg *arg = expr->expr_call.args[i];
-
-                if ( must_be_named && !arg->name ) {
-                    fatal(expr->pos.name, expr->pos.row, "nach benamten parameter müssen alle folgende parameter benamt sein");
-                }
-
-                char *name = 0;
-                if ( arg->name ) {
-                    name = arg->name;
-                }
-
-                Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-
-                /* @INFO: wenn benamtes argument */
-                if ( name ) {
-                    must_be_named = true;
-
-                    Type_Field *matching_param = 0;
-                    for ( int j = 0; j < type->type_proc.num_params; ++j ) {
-                        Type_Field *param = type->type_proc.params[j];
-                        if ( name == param->name ) {
-                            matching_param = param;
-                            break;
-                        }
-                    }
-
-                    if ( matching_param ) {
-                        map_put(&nargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
-                    } else {
-                        map_put(&kwargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
-                    }
-
-                /* @INFO: wenn unbenamtes argument */
-                } else {
-                    /* @INFO: mehr positionsargumente als im typ angegeben kommen
-                     *        in die varargs sammlung
-                     */
-                    if ( i >= type->type_proc.num_params ) {
-                        buf_push(varargs, resolved_arg(expr->pos, 0, arg_expr->type, arg_expr->val));
-
-                    /* @INFO: namen für positionsargument aus dem typ ermitteln */
-                    } else {
-                        Type_Field *param = 0;
-                        size_t num_non_default_params = 0;
-                        for ( int j = 0; j < type->type_proc.num_params; ++j ) {
-                            if ( val_is_undefined(type->type_proc.params[j]->default_value) ) {
-                                ++num_non_default_params;
-                            }
-                        }
-
-                        for ( int j = 0; j < type->type_proc.num_params; ++j ) {
-                            /* @INFO: ersten parameter ohne standardwert ermitteln und diesen nehmen, falls
-                             *        er nicht bereits in der nargs map eingetragen ist.
-                             */
-                            size_t num_remaining_args = expr->expr_call.num_args - i;
-                            if ( num_remaining_args > num_non_default_params ||
-                                 val_is_undefined(type->type_proc.params[j]->default_value) )
-                            {
-                                if ( !map_get(&nargs, type->type_proc.params[j]->name) ) {
-                                    param = type->type_proc.params[j];
-                                    break;
-                                }
-                            }
-                        }
-
-                        if ( !param ) {
-                            param = type->type_proc.params[i];
-                        }
-
-                        assert(param);
-                        map_put(&nargs, param->name, resolved_arg(expr->pos, param->name, arg_expr->type, arg_expr->val));
-                    }
-                }
-            }
-
-            /* @INFO: alle typparameter durchgehen und für nicht gesetzte
-             *        parameter standardwerte setzen
-             */
-            for ( int i = 0; i < type->type_proc.num_params; ++i ) {
-                Type_Field *param = type->type_proc.params[i];
-
-                if ( !map_get(&nargs, param->name) ) {
-                    map_put(&nargs, param->name, resolved_arg(expr->pos, param->name, param->type, param->default_value));
-                }
-            }
-
-            result = resolved_expr_call(call_expr, nargs, kwargs, varargs, buf_len(varargs), type);
+            result = resolve_expr_call(expr);
         } break;
 
         case EXPR_SUBSCRIPT: {
@@ -2711,31 +2678,15 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_IS: {
-            Resolved_Expr *test_expr = resolve_expr(expr->expr_is.var);
-            Resolved_Expr *test_proc = resolve_expr(expr->expr_is.test);
+            Resolved_Expr *operand = resolve_expr(expr->expr_is.operand);
+            Resolved_Expr *tester  = resolve_tester(expr->expr_is.tester);
 
-            assert(test_proc);
+            assert(tester);
 
-            Type *type = test_proc->type;
+            Type *type = tester->type;
             assert(type->kind == TYPE_TEST);
 
-            if ( type->type_test.num_params != expr->expr_is.num_args+1 ) {
-                fatal(test_proc->pos.name, test_proc->pos.row, "falsche anzahl übergebener parameter");
-            }
-
-            Resolved_Expr **args = 0;
-            for ( int i = 1; i < type->type_test.num_params; ++i ) {
-                Resolved_Expr *arg = resolve_expr(expr->expr_is.args[i-1]);
-                buf_push(args, arg);
-            }
-
-            result = resolved_expr_is(test_expr, test_proc, args, buf_len(args));
-        } break;
-
-        case EXPR_IN: {
-            Resolved_Expr *set = resolve_expr(expr->expr_in.set);
-
-            result = resolved_expr_in(set, set->type);
+            result = resolved_expr_is(operand, tester);
         } break;
 
         case EXPR_IF: {
@@ -2806,7 +2757,7 @@ resolve_expr(Expr *expr) {
         } break;
     }
 
-    Resolved_Filter **filters = 0;
+    Resolved_Expr **filters = 0;
     for ( int i = 0; i < expr->num_filters; ++i ) {
         buf_push(filters, resolve_filter(expr->filters[i]));
     }
@@ -2818,56 +2769,20 @@ resolve_expr(Expr *expr) {
     return result;
 }
 
-internal_proc Resolved_Filter *
-resolve_filter(Filter *filter) {
-    Scope *prev_scope = current_scope;
-    current_scope = &filter_scope;
+internal_proc Resolved_Expr *
+resolve_tester(Expr *expr) {
+    assert(expr->kind == EXPR_CALL);
+    Resolved_Expr *result = resolve_expr_call(expr, &tester_scope);
 
-    Sym *sym = resolve_name(filter->name);
+    return result;
+}
 
-    current_scope = prev_scope;
+internal_proc Resolved_Expr *
+resolve_filter(Expr *expr) {
+    assert(expr->kind == EXPR_CALL);
+    Resolved_Expr *result = resolve_expr_call(expr, &filter_scope);
 
-    if ( !sym ) {
-        fatal(filter->pos.name, filter->pos.row, "symbol %s konnte nicht gefunden werden!", filter->name);
-    }
-
-    size_t num_args = filter->num_args;
-
-    assert(sym->type);
-    assert(sym->type->kind == TYPE_FILTER);
-    Type *type = sym->type;
-
-    Resolved_Arg **args = 0;
-    if ( type->type_filter.variadic ) {
-        for ( int i = 0; i < filter->num_args; ++i ) {
-            Arg *arg = filter->args[i];
-            Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-            buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->type, arg_expr->val));
-        }
-    } else {
-        if ( type->type_filter.num_params-1 < num_args ) {
-            fatal(filter->pos.name, filter->pos.row, "zu viele argumente: erwartet %d, bekommen %d", type->type_filter.num_params-1, num_args);
-        }
-
-        for ( int i = 1; i < type->type_filter.num_params; ++i ) {
-            Type_Field *param = type->type_filter.params[i];
-
-            if ( !param->default_value && (i-1 >= num_args) ) {
-                fatal(filter->pos.name, filter->pos.row, "zu wenige parameter übergeben");
-            }
-
-            if ( i-1 < num_args ) {
-                Arg *arg = filter->args[i-1];
-                Resolved_Expr *arg_expr = resolve_expr(arg->expr);
-                if (arg_expr->type != param->type) {
-                    fatal(arg_expr->pos.name, arg_expr->pos.row, "datentyp des arguments stimmt nicht");
-                }
-                buf_push(args, resolved_arg(arg->pos, arg->name, arg_expr->type, arg_expr->val));
-            }
-        }
-    }
-
-    return resolved_filter(args, buf_len(args), type->type_filter.callback);
+    return result;
 }
 
 internal_proc void
@@ -2884,54 +2799,48 @@ resolve_add_block(char *name, Resolved_Stmt *block) {
 internal_proc void
 resolve_init_builtin_filter() {
     Type_Field *str_type[] = { type_field("s", type_str) };
-    Type_Field *int_type[] = { type_field("s", type_int) };
-    Type_Field *str2_type[] = { type_field("value", type_str), type_field("default_value", type_str) };
     Type_Field *trunc_type[] = {
-        type_field("s", type_str),
         type_field("length", type_int, val_int(255)),
         type_field("end", type_str, val_str("...")),
         type_field("killwords", type_bool, val_bool(false)),
         type_field("leeway", type_int, val_int(0)),
     };
 
-    sym_push_filter("abs",        type_filter(int_type,   1, type_str, filter_abs));
-    sym_push_filter("capitalize", type_filter(str_type,   1, type_str, filter_capitalize));
-    sym_push_filter("default",    type_filter(str2_type,  2, type_str, filter_default));
-    sym_push_filter("d",          type_filter(str2_type,  2, type_str, filter_default));
-    sym_push_filter("escape",     type_filter(str_type,   1, type_str, filter_escape));
-    sym_push_filter("e",          type_filter(str_type,   1, type_str, filter_escape));
-    sym_push_filter("format",     type_filter(str_type,   1, type_str, filter_format, true));
-    sym_push_filter("truncate",   type_filter(trunc_type, 5, type_str, filter_truncate));
-    sym_push_filter("upper",      type_filter(str_type,   1, type_str, filter_upper));
+    sym_push_filter("abs",        type_filter(0,          0, type_str, filter_abs));
+    sym_push_filter("capitalize", type_filter(0,          0, type_str, filter_capitalize));
+    sym_push_filter("default",    type_filter(str_type,   1, type_str, filter_default));
+    sym_push_filter("d",          type_filter(str_type,   1, type_str, filter_default));
+    sym_push_filter("escape",     type_filter(0,          0, type_str, filter_escape));
+    sym_push_filter("e",          type_filter(0,          0, type_str, filter_escape));
+    sym_push_filter("format",     type_filter(0,          0, type_str, filter_format));
+    sym_push_filter("truncate",   type_filter(trunc_type, 4, type_str, filter_truncate));
+    sym_push_filter("upper",      type_filter(0,          0, type_str, filter_upper));
 }
 
 internal_proc void
 resolve_init_builtin_tests() {
-    Type_Field *str_type[]  = { type_field("s",    type_str) };
     Type_Field *int_type[]  = { type_field("s",    type_int) };
-    Type_Field *int2_type[] = { type_field("left", type_int), type_field("right", type_int) };
     Type_Field *any_type[]  = { type_field("s",    type_any) };
-    Type_Field *any2_type[] = { type_field("left", type_any), type_field("right", type_any) };
 
-    sym_push_test("callable",    type_test(str_type,  1, test_callable));
-    sym_push_test("defined",     type_test(str_type,  1, test_defined));
-    sym_push_test("divisibleby", type_test(int2_type, 2, test_divisibleby));
-    sym_push_test("eq",          type_test(int2_type, 2, test_eq));
-    sym_push_test("escaped",     type_test(str_type,  1, test_escaped));
-    sym_push_test("even",        type_test(int_type,  1, test_even));
-    sym_push_test("ge",          type_test(int2_type, 2, test_ge));
-    sym_push_test("gt",          type_test(int2_type, 2, test_gt));
-    sym_push_test("in",          type_test(any_type,  2, test_in));
-    sym_push_test("iterable",    type_test(any_type,  1, test_iterable));
-    sym_push_test("le",          type_test(int2_type, 2, test_le));
-    sym_push_test("lt",          type_test(int2_type, 2, test_lt));
-    sym_push_test("ne",          type_test(int2_type, 2, test_ne));
-    sym_push_test("none",        type_test(any_type,  1, test_none));
-    sym_push_test("number",      type_test(any_type,  1, test_number));
-    sym_push_test("odd",         type_test(int_type,  1, test_odd));
-    sym_push_test("sameas",      type_test(any2_type, 2, test_sameas));
-    sym_push_test("sequence",    type_test(any_type,  1, test_sequence));
-    sym_push_test("string",      type_test(any_type,  1, test_string));
+    sym_push_test("callable",    type_test(0,         0, test_callable));
+    sym_push_test("defined",     type_test(0,         0, test_defined));
+    sym_push_test("divisibleby", type_test(int_type,  1, test_divisibleby));
+    sym_push_test("eq",          type_test(int_type,  1, test_eq));
+    sym_push_test("escaped",     type_test(0,         0, test_escaped));
+    sym_push_test("even",        type_test(0,         0, test_even));
+    sym_push_test("ge",          type_test(int_type,  1, test_ge));
+    sym_push_test("gt",          type_test(int_type,  1, test_gt));
+    sym_push_test("in",          type_test(any_type,  1, test_in));
+    sym_push_test("iterable",    type_test(0,         0, test_iterable));
+    sym_push_test("le",          type_test(int_type,  1, test_le));
+    sym_push_test("lt",          type_test(int_type,  1, test_lt));
+    sym_push_test("ne",          type_test(int_type,  1, test_ne));
+    sym_push_test("none",        type_test(0,         0, test_none));
+    sym_push_test("number",      type_test(0,         0, test_number));
+    sym_push_test("odd",         type_test(0,         0, test_odd));
+    sym_push_test("sameas",      type_test(any_type,  1, test_sameas));
+    sym_push_test("sequence",    type_test(0,         0, test_sequence));
+    sym_push_test("string",      type_test(0,         0, test_string));
 }
 
 internal_proc void
@@ -2996,7 +2905,9 @@ internal_proc void
 resolve_init_scope() {
     filter_scope.name = "filter scope";
     system_scope.name = "system scope";
+    tester_scope.name = "tester scope";
     global_scope.name = "global scope";
+
     global_scope.parent = &system_scope;
 }
 
@@ -3037,7 +2948,7 @@ resolve(Parsed_Templ *parsed_templ, b32 with_context) {
 
     result->num_stmts = buf_len(result->stmts);
     if ( !with_context ) {
-        current_scope = prev_scope;
+        scope_set(prev_scope);
     }
 
     return result;

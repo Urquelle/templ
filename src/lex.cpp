@@ -76,185 +76,51 @@ struct Token {
 internal_proc char *
 tokenkind_to_str(Token_Kind kind) {
     switch ( kind ) {
-        case T_EOF: {
-            return "<EOF>";
-        } break;
-
-        case T_INT: {
-            return "<INT>";
-        } break;
-
-        case T_FLOAT: {
-            return "<FLOAT>";
-        } break;
-
-        case T_STR: {
-            return "<STRING>";
-        } break;
-
-        case T_NAME: {
-            return "<NAME>";
-        } break;
-
-        case T_LIT: {
-            return "<LITERAL>";
-        } break;
-
-        case T_DOT: {
-            return "<.>";
-        } break;
-
-        case T_COMMA: {
-            return "<,>";
-        } break;
-
-        case T_RANGE: {
-            return "<..>";
-        } break;
-
-        case T_LPAREN: {
-            return "<(>";
-        } break;
-
-        case T_RPAREN: {
-            return "<)>";
-        } break;
-
-        case T_LBRACKET: {
-            return "<[>";
-        } break;
-
-        case T_RBRACKET: {
-            return "<]>";
-        } break;
-
-        case T_LBRACE: {
-            return "<{>";
-        } break;
-
-        case T_RBRACE: {
-            return "<}>";
-        } break;
-
-        case T_BAR: {
-            return "<|>";
-        } break;
-
-        case T_HASH: {
-            return "<#>";
-        } break;
-
-        case T_PERCENT: {
-            return "<%>";
-        } break;
-
-        case T_QMARK: {
-            return "<?>";
-        } break;
-
-        case T_ASSIGN: {
-            return "<=>";
-        } break;
-
-        case T_COLON: {
-            return "<:>";
-        } break;
-
-        case T_MUL: {
-            return "<*>";
-        } break;
-
-        case T_POT: {
-            return "<**>";
-        } break;
-
-        case T_DIV: {
-            return "</>";
-        } break;
-
-        case T_DIV_TRUNC: {
-            return "<//>";
-        } break;
-
-        case T_BANG: {
-            return "<!>";
-        } break;
-
-        case T_MINUS: {
-            return "<->";
-        } break;
-
-        case T_PLUS: {
-            return "<+>";
-        } break;
-
-        case T_SPACE: {
-            return "<SPACE>";
-        } break;
-
-        case T_TAB: {
-            return "<TAB>";
-        } break;
-
-        case T_NEWLINE: {
-            return "<NEWLINE>";
-        } break;
-
-        case T_COMMENT: {
-            return "<COMMENT>";
-        } break;
-
-        case T_LT: {
-            return "<<>";
-        } break;
-
-        case T_LEQ: {
-            return "<<=>";
-        } break;
-
-        case T_EQL: {
-            return "<==>";
-        } break;
-
-        case T_NEQ: {
-            return "<!=>";
-        } break;
-
-        case T_GEQ: {
-            return "<>=>";
-        } break;
-
-        case T_GT: {
-            return "<>>";
-        } break;
-
-        case T_AND: {
-            return "<&&>";
-        } break;
-
-        case T_OR: {
-            return "<||>";
-        } break;
-
-        case T_VAR_BEGIN: {
-            return "<{{>";
-        } break;
-
-        case T_VAR_END: {
-            return "<}}>";
-        } break;
-
-        case T_CODE_BEGIN: {
-            return "<{%>";
-        } break;
-
-        case T_CODE_END: {
-            return "<%}>";
-        } break;
-
-        default: {
-            return "<UNKNOWN>";
-        } break;
+        case T_EOF:        { return "<EOF>";     } break;
+        case T_INT:        { return "<INT>";     } break;
+        case T_FLOAT:      { return "<FLOAT>";   } break;
+        case T_STR:        { return "<STRING>";  } break;
+        case T_NAME:       { return "<NAME>";    } break;
+        case T_LIT:        { return "<LITERAL>"; } break;
+        case T_DOT:        { return "<.>";       } break;
+        case T_COMMA:      { return "<,>";       } break;
+        case T_RANGE:      { return "<..>";      } break;
+        case T_LPAREN:     { return "<(>";       } break;
+        case T_RPAREN:     { return "<)>";       } break;
+        case T_LBRACKET:   { return "<[>";       } break;
+        case T_RBRACKET:   { return "<]>";       } break;
+        case T_LBRACE:     { return "<{>";       } break;
+        case T_RBRACE:     { return "<}>";       } break;
+        case T_BAR:        { return "<|>";       } break;
+        case T_HASH:       { return "<#>";       } break;
+        case T_PERCENT:    { return "<%>";       } break;
+        case T_QMARK:      { return "<?>";       } break;
+        case T_ASSIGN:     { return "<=>";       } break;
+        case T_COLON:      { return "<:>";       } break;
+        case T_MUL:        { return "<*>";       } break;
+        case T_POT:        { return "<**>";      } break;
+        case T_DIV:        { return "</>";       } break;
+        case T_DIV_TRUNC:  { return "<//>";      } break;
+        case T_BANG:       { return "<!>";       } break;
+        case T_MINUS:      { return "<->";       } break;
+        case T_PLUS:       { return "<+>";       } break;
+        case T_SPACE:      { return "<SPACE>";   } break;
+        case T_TAB:        { return "<TAB>";     } break;
+        case T_NEWLINE:    { return "<NEWLINE>"; } break;
+        case T_COMMENT:    { return "<COMMENT>"; } break;
+        case T_LT:         { return "<<>";       } break;
+        case T_LEQ:        { return "<<=>";      } break;
+        case T_EQL:        { return "<==>";      } break;
+        case T_NEQ:        { return "<!=>";      } break;
+        case T_GEQ:        { return "<>=>";      } break;
+        case T_GT:         { return "<>>";       } break;
+        case T_AND:        { return "<&&>";      } break;
+        case T_OR:         { return "<||>";      } break;
+        case T_VAR_BEGIN:  { return "<{{>";      } break;
+        case T_VAR_END:    { return "<}}>";      } break;
+        case T_CODE_BEGIN: { return "<{%>";      } break;
+        case T_CODE_END:   { return "<%}>";      } break;
+        default:           { return "<UNKNOWN>"; } break;
     }
 }
 
@@ -550,6 +416,10 @@ next_raw_token(Lexer *lex) {
         next(lex);
 
         while (at0(lex) != '"' && at0(lex) != '\'') {
+            if ( at0(lex) == '\\' ) {
+                next(lex);
+            }
+
             next(lex);
         }
 

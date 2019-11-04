@@ -401,16 +401,8 @@ parse_expr_is(Parser *p) {
             not = true;
         }
 
-        Expr *expr = parse_expr_range(p);
-        Expr **args = 0;
-
-        while ( !is_keyword(p, keyword_else) && !is_keyword(p, keyword_and) &&
-                !is_keyword(p, keyword_or) && !is_token(p, T_CODE_END) )
-        {
-            buf_push(args, parse_expr_range(p));
-        }
-
-        left = expr_is(p->lex.pos, left, expr, args, buf_len(args));
+        Expr *tester = parse_tester(p);
+        left = expr_is(p->lex.pos, left, tester);
 
         if ( not ) {
             left = expr_not(p->lex.pos, left);
@@ -434,26 +426,12 @@ parse_expr_not(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_in(Parser *p) {
-    Expr *left = 0;
-
-    if ( match_keyword(p, keyword_in) ) {
-        Expr *set = parse_expr_not(p);
-        left = expr_in(p->lex.pos, set);
-    } else {
-        left = parse_expr_not(p);
-    }
-
-    return left;
-}
-
-internal_proc Expr *
 parse_expr_cmp(Parser *p) {
-    Expr *left = parse_expr_in(p);
+    Expr *left = parse_expr_not(p);
 
     while ( is_cmp(p->lex.token.kind) ) {
         Token op = eat_token(&p->lex);
-        left = expr_binary(p->lex.pos, op.kind, left, parse_expr_in(p));
+        left = expr_binary(p->lex.pos, op.kind, left, parse_expr_not(p));
     }
 
     return left;
@@ -494,9 +472,9 @@ parse_expr_ternary(Parser *p) {
     return left;
 }
 
-internal_proc Filter **
+internal_proc Expr **
 parse_filter(Parser *p) {
-    Filter **result = 0;
+    Expr **result = 0;
 
     do {
         Expr *call = parse_expr(p, false);
@@ -516,8 +494,32 @@ parse_filter(Parser *p) {
         assert(call->kind == EXPR_CALL);
         assert(call->expr_call.expr->kind == EXPR_NAME);
 
-        buf_push(result, filter_new(call->pos, call->expr_call.expr->expr_name.value, call->expr_call.args, call->expr_call.num_args));
+        buf_push(result, call);
     } while ( match_token(p, T_BAR) );
+
+    return result;
+}
+
+internal_proc Expr *
+parse_tester(Parser *p) {
+    Expr *result = parse_expr(p, false);
+
+    Arg **args = 0;
+    while ( !is_keyword(p, keyword_else) && !is_keyword(p, keyword_and) &&
+            !is_keyword(p, keyword_or) && !is_token(p, T_CODE_END) )
+    {
+        Expr *expr = parse_expr(p, false);
+        buf_push(args, arg_new(expr->pos, 0, expr));
+    }
+
+    size_t num_args = buf_len(args);
+
+    if ( result->kind != EXPR_CALL ) {
+        result = expr_call(p->lex.pos, result, args, num_args);
+    }
+
+    assert(result->kind == EXPR_CALL);
+    assert(result->expr_call.expr->kind == EXPR_NAME);
 
     return result;
 }
@@ -526,7 +528,7 @@ internal_proc Expr *
 parse_expr(Parser *p, b32 do_parse_filter) {
     Expr *expr = parse_expr_ternary(p);
 
-    Filter **filters = 0;
+    Expr **filters = 0;
     if ( do_parse_filter ) {
         if ( match_token(p, T_BAR) ) {
             filters = parse_filter(p);
@@ -573,6 +575,8 @@ parse_stmt_for(Parser *p) {
     do {
         buf_push(vars, parse_expr(p));
     } while ( match_token(p, T_COMMA) );
+
+    expect_str(p, "in");
 
     Expr *set = parse_expr(p);
 
@@ -772,7 +776,7 @@ parse_stmt_include(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_filter(Parser *p) {
-    Filter **filters = parse_filter(p);
+    Expr **filters = parse_filter(p);
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;

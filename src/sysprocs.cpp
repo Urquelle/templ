@@ -26,13 +26,13 @@ PROC_CALLBACK(proc_cycle) {
 }
 
 PROC_CALLBACK(proc_range) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(&nargs, intern_str("start"));
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("start"));
     int start = val_int(arg->val);
 
-    arg = (Resolved_Arg *)map_get(&nargs, intern_str("stop"));
+    arg = (Resolved_Arg *)map_get(nargs, intern_str("stop"));
     int stop  = val_int(arg->val);
 
-    arg = (Resolved_Arg *)map_get(&nargs, intern_str("step"));
+    arg = (Resolved_Arg *)map_get(nargs, intern_str("step"));
     int step = val_int(arg->val);
 
     return val_range(start, stop, step);
@@ -40,16 +40,16 @@ PROC_CALLBACK(proc_range) {
 
 global_var char *global_lorem_ipsum = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
 PROC_CALLBACK(proc_lipsum) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(&nargs, intern_str("n"));
+    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("n"));
     s32 n = val_int(arg->val);
 
-    arg = (Resolved_Arg *)map_get(&nargs, intern_str("html"));
+    arg = (Resolved_Arg *)map_get(nargs, intern_str("html"));
     b32 html = val_bool(arg->val);
 
-    arg = (Resolved_Arg *)map_get(&nargs, intern_str("min"));
+    arg = (Resolved_Arg *)map_get(nargs, intern_str("min"));
     s32 min = val_int(arg->val);
 
-    arg = (Resolved_Arg *)map_get(&nargs, intern_str("max"));
+    arg = (Resolved_Arg *)map_get(nargs, intern_str("max"));
     s32 max = (s32)MIN(val_int(arg->val), utf8_strlen(global_lorem_ipsum));
 
     char *result = "";

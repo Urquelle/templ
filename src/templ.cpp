@@ -22,9 +22,9 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
-#define FILTER_CALLBACK(name) Val * name(Val *val, Resolved_Arg **args, size_t num_args)
-#define PROC_CALLBACK(name) Val * name(Map nargs, Map kwargs, Resolved_Arg **varargs, size_t num_varargs)
-#define TEST_CALLBACK(name) Val * name(Val *val, Type *type, Resolved_Expr **args, size_t num_args)
+#define PROC_CALLBACK(name)   Val * name(Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define FILTER_CALLBACK(name) Val * name(Val *operand, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define TEST_CALLBACK(name)   Val * name(Val *operand, Type *type, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
 #define erstes_if if
 #define genf(...)   gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
@@ -64,7 +64,6 @@ typedef uint64_t u64;
 typedef float    f32;
 
 struct Expr;
-struct Filter;
 struct Map;
 struct Stmt;
 struct Parser;
@@ -75,7 +74,6 @@ struct Val;
 struct Resolved_Templ;
 struct Resolved_Stmt;
 struct Resolved_Expr;
-struct Resolved_Filter;
 struct Resolved_Arg;
 
 typedef PROC_CALLBACK(Proc_Callback);
@@ -122,9 +120,11 @@ internal_proc Stmt            * parse_stmt_var(Parser *p);
 internal_proc Stmt            * parse_stmt_lit(Parser *p);
 internal_proc Parsed_Templ    * parse_file(char *filename);
 internal_proc char            * parse_str(Parser *p);
+internal_proc Expr            * parse_tester(Parser *p);
 internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
-internal_proc Resolved_Filter * resolve_filter(Filter *expr);
+internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
+internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
 internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
@@ -154,7 +154,7 @@ global_var Arena                templ_arena;
 #include "parser.cpp"
 #include "resolve.cpp"
 #include "filter.cpp"
-#include "tests.cpp"
+#include "testers.cpp"
 #include "sysprocs.cpp"
 #include "exec.cpp"
 
