@@ -14,7 +14,7 @@ internal_proc Iterator
 iterator_init(Val *container) {
     Iterator result = {};
 
-    assert(container->kind == VAL_RANGE || container->kind == VAL_LIST || container->kind == VAL_TUPLE);
+    assert(container->kind == VAL_RANGE || container->kind == VAL_LIST || container->kind == VAL_TUPLE || container->kind == VAL_DICT);
 
     result.container = container;
     result.pos = 0;
@@ -353,6 +353,7 @@ exec_stmt_set(Val *dest, Val *source) {
         dest->len  = source->len;
         dest->size = source->size;
         dest->ptr  = source->ptr;
+        dest->keys = source->keys;
     } else {
         fatal(0, 0, "nicht unterstützter datentyp wird in einer set anweisung verwendet");
     }

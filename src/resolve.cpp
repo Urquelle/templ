@@ -72,6 +72,9 @@ struct Val {
     size_t size;
     size_t len;
     void  *ptr;
+
+    /* @ACHTUNG: nur für dict */
+    char **keys;
 };
 
 internal_proc Val *
@@ -264,10 +267,12 @@ val_list(Val **vals, size_t num_vals) {
 }
 
 internal_proc Val *
-val_dict(Scope *scope) {
+val_dict(Scope *scope, char **keys, size_t num_keys) {
     Val *result = val_new(VAL_DICT, sizeof(Map));
 
+    result->len = num_keys;
     result->ptr = scope;
+    result->keys = (char **)AST_DUP(keys);
 
     return result;
 }
@@ -376,27 +381,6 @@ val_to_char(Val *val) {
         default: {
             fatal(0, 0, "datentyp kann nicht in zeichenkette umgewandelt werden.\n");
             return "";
-        } break;
-    }
-}
-
-internal_proc Val *
-val_elem(Val *val, int idx) {
-    switch ( val->kind ) {
-        case VAL_RANGE: {
-            return val_int(val_range0(val) + idx);
-        } break;
-
-        case VAL_LIST: {
-            return *((Val **)val->ptr + idx);
-        } break;
-
-        case VAL_TUPLE: {
-            return *((Val **)val->ptr + idx);
-        } break;
-
-        default: {
-            return val;
         } break;
     }
 }
@@ -1340,6 +1324,46 @@ struct Resolved_Expr {
         } expr_dict;
     };
 };
+
+internal_proc Val *
+val_elem(Val *val, int idx) {
+    Val *result = val;
+
+    switch ( val->kind ) {
+        case VAL_RANGE: {
+            result = val_int(val_range0(val) + idx);
+        } break;
+
+        case VAL_LIST: {
+            result = *((Val **)val->ptr + idx);
+        } break;
+
+        case VAL_TUPLE: {
+            result = *((Val **)val->ptr + idx);
+        } break;
+
+        case VAL_DICT: {
+            if ( idx < val->len ) {
+                Scope *scope = (Scope *)val->ptr;
+                Map *map = &scope->syms;
+                char *key = val->keys[idx];
+                Sym *sym = (Sym *)map_get(map, key);
+
+                Val **vals = 0;
+                buf_push(vals, val_str(key));
+                buf_push(vals, sym->val);
+
+                result = val_list(vals, buf_len(vals));
+            }
+        } break;
+
+        default: {
+            warn(0, 0, "nicht unterstützter datentyp übergeben");
+        }
+    }
+
+    return result;
+}
 
 global_var Resolved_Expr resolved_expr_illegal = { EXPR_NONE };
 
@@ -2749,7 +2773,7 @@ resolve_expr(Expr *expr) {
 
             scope_set(prev_scope);
 
-            result = resolved_expr_dict(keys, buf_len(keys), type_dict(scope), val_dict(scope));
+            result = resolved_expr_dict(keys, buf_len(keys), type_dict(scope), val_dict(scope, keys, buf_len(keys)));
         } break;
 
         default: {

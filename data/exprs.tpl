@@ -9,3 +9,6 @@
 "aシbcd"[1] = {{ "aシbcd"[1] }}
 {% set d = { 'a' : 'b', 'c' : 'd' } %}
 {{ d['a'] }}
+{% for key, value in d %}
+    key = {{ key }} val = {{ value }}
+{% endfor %}
