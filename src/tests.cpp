@@ -5,7 +5,7 @@ internal_proc TEST_CALLBACK(test_callable) {
 }
 
 internal_proc TEST_CALLBACK(test_defined) {
-    b32 result = type != &type_undefined;
+    b32 result = !val_is_undefined(val);
 
     return val_bool(result);
 }

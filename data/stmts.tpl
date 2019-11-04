@@ -17,7 +17,11 @@
     x = {{ x }}
     a = {{ a }}
 {% endwith %}
-x = {{ x }}
+{% if x is not defined %}
+    x ist nicht definiert
+{% else %}
+    x = {{ x }}
+{% endif %}
 
 {% set b = [1, 2, 3] %}
 b[1] = {{ b[1] }}
@@ -29,7 +33,7 @@ b[1] = {{ b[1] }}
 c[1][0] {{ c[1][0] }} {# sollte 7 rauskommen #}
 
 {% set d = "シ个abcd" %}
-{{ "{% set d = " }}"シ个abcd"{{ "%}" }} = {{ d }}
+{% raw %}{% set d = "シ个abcd" %}{% endraw %} = {{ d }}
 {% set d[3] = "个" %}
 {{ "{% set d[3] = " }} "个" {{ "%}" }} = {{ d }}
 

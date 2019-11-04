@@ -52,7 +52,101 @@
 
 namespace templ {
 
+typedef bool    b32;
+typedef int8_t  s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef float    f32;
+
+struct Expr;
+struct Filter;
+struct Map;
+struct Stmt;
+struct Parser;
+struct Parsed_Templ;
+struct Type;
+struct Sym;
+struct Val;
+struct Resolved_Templ;
+struct Resolved_Stmt;
+struct Resolved_Expr;
+struct Resolved_Filter;
+struct Resolved_Arg;
+
+typedef PROC_CALLBACK(Proc_Callback);
+typedef FILTER_CALLBACK(Filter_Callback);
+typedef TEST_CALLBACK(Test_Callback);
+
+internal_proc PROC_CALLBACK(proc_super);
+internal_proc PROC_CALLBACK(proc_cycle);
+internal_proc PROC_CALLBACK(proc_range);
+internal_proc PROC_CALLBACK(proc_lipsum);
+
+internal_proc FILTER_CALLBACK(filter_abs);
+internal_proc FILTER_CALLBACK(filter_capitalize);
+internal_proc FILTER_CALLBACK(filter_default);
+internal_proc FILTER_CALLBACK(filter_upper);
+internal_proc FILTER_CALLBACK(filter_escape);
+internal_proc FILTER_CALLBACK(filter_format);
+internal_proc FILTER_CALLBACK(filter_truncate);
+
+internal_proc TEST_CALLBACK(test_callable);
+internal_proc TEST_CALLBACK(test_defined);
+internal_proc TEST_CALLBACK(test_divisibleby);
+internal_proc TEST_CALLBACK(test_eq);
+internal_proc TEST_CALLBACK(test_escaped);
+internal_proc TEST_CALLBACK(test_even);
+internal_proc TEST_CALLBACK(test_ge);
+internal_proc TEST_CALLBACK(test_gt);
+internal_proc TEST_CALLBACK(test_in);
+internal_proc TEST_CALLBACK(test_iterable);
+internal_proc TEST_CALLBACK(test_le);
+internal_proc TEST_CALLBACK(test_lt);
+internal_proc TEST_CALLBACK(test_ne);
+internal_proc TEST_CALLBACK(test_none);
+internal_proc TEST_CALLBACK(test_number);
+internal_proc TEST_CALLBACK(test_odd);
+internal_proc TEST_CALLBACK(test_sameas);
+internal_proc TEST_CALLBACK(test_sequence);
+internal_proc TEST_CALLBACK(test_string);
+
+internal_proc Expr            * parse_expr(Parser *p, b32 do_parse_filter = true);
+internal_proc char            * parse_name(Parser *p);
+internal_proc Stmt            * parse_stmt(Parser *p);
+internal_proc Stmt            * parse_stmt_var(Parser *p);
+internal_proc Stmt            * parse_stmt_lit(Parser *p);
+internal_proc Parsed_Templ    * parse_file(char *filename);
+internal_proc char            * parse_str(Parser *p);
+internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
+internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
+internal_proc Resolved_Filter * resolve_filter(Filter *expr);
+internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
+internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
+internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
+internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
+internal_proc void              exec_stmt(Resolved_Stmt *stmt);
+internal_proc void              exec(Resolved_Templ *templ);
+
+global_var char               * gen_result = "";
+global_var int                  gen_indent   = 0;
+Resolved_Templ                * global_current_tmpl;
+Resolved_Stmt                 * global_for_stmt;
+global_var b32                  global_for_break;
+global_var b32                  global_for_continue;
+global_var Resolved_Stmt      * global_super_block;
+global_var Resolved_Templ     * current_templ;
+
 #include "common.cpp"
+
+global_var Arena                parse_arena;
+global_var Arena                resolve_arena;
+global_var Arena                templ_arena;
+
 #include "os.cpp"
 #include "utf8.cpp"
 #include "lex.cpp"
@@ -61,9 +155,8 @@ namespace templ {
 #include "resolve.cpp"
 #include "filter.cpp"
 #include "tests.cpp"
+#include "sysprocs.cpp"
 #include "exec.cpp"
-
-global_var Arena templ_arena;
 
 struct Templ_Var {
     char *name;

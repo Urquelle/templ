@@ -1,8 +1,3 @@
-struct Utf8_Char {
-    size_t size;
-    char  *bytes;
-};
-
 internal_proc size_t
 utf8_char_size(char *str) {
     erstes_if ( (*str & 0x80) == 0x00 ) {
@@ -50,28 +45,6 @@ internal_proc size_t
 utf8_str_size(char *str) {
     size_t len = utf8_strlen(str);
     size_t result = utf8_str_size(str, len);
-
-    return result;
-}
-
-internal_proc Utf8_Char
-utf8_char(size_t size, char *ptr) {
-    Utf8_Char result = {};
-
-    result.size  = size;
-    result.bytes = (char *)xcalloc(1, size);
-
-    for ( int i = 0; i < size; ++i ) {
-        result.bytes[i] = *(ptr+i);
-    }
-
-    return result;
-}
-
-internal_proc Utf8_Char
-utf8_char(char *input) {
-    size_t size = utf8_char_size(input);
-    Utf8_Char result = utf8_char(size, input);
 
     return result;
 }

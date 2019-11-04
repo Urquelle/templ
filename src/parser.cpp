@@ -16,16 +16,6 @@ parser_input(Parser *p) {
     return result;
 }
 
-global_var Arena parse_arena;
-
-internal_proc Expr * parse_expr(Parser *p, b32 do_parse_filter = true);
-internal_proc char * parse_name(Parser *p);
-internal_proc Stmt * parse_stmt(Parser *p);
-internal_proc Stmt * parse_stmt_var(Parser *p);
-internal_proc Stmt * parse_stmt_lit(Parser *p);
-internal_proc Parsed_Templ * parse_file(char *filename);
-internal_proc char * parse_str(Parser *p);
-
 global_var char ** keywords;
 global_var char *keyword_and;
 global_var char *keyword_or;

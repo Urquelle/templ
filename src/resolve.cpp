@@ -1,60 +1,3 @@
-struct Type;
-struct Sym;
-struct Val;
-struct Resolved_Stmt;
-struct Resolved_Expr;
-struct Resolved_Filter;
-struct Resolved_Templ;
-struct Resolved_Arg;
-
-typedef PROC_CALLBACK(Proc_Callback);
-typedef FILTER_CALLBACK(Filter_Callback);
-typedef TEST_CALLBACK(Test_Callback);
-
-internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
-internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
-internal_proc Resolved_Filter * resolve_filter(Filter *expr);
-internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
-internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
-internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
-internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
-
-internal_proc PROC_CALLBACK(proc_super);
-internal_proc PROC_CALLBACK(proc_cycle);
-internal_proc PROC_CALLBACK(proc_range);
-internal_proc PROC_CALLBACK(proc_lipsum);
-
-internal_proc FILTER_CALLBACK(filter_abs);
-internal_proc FILTER_CALLBACK(filter_capitalize);
-internal_proc FILTER_CALLBACK(filter_default);
-internal_proc FILTER_CALLBACK(filter_upper);
-internal_proc FILTER_CALLBACK(filter_escape);
-internal_proc FILTER_CALLBACK(filter_format);
-internal_proc FILTER_CALLBACK(filter_truncate);
-
-internal_proc TEST_CALLBACK(test_callable);
-internal_proc TEST_CALLBACK(test_defined);
-internal_proc TEST_CALLBACK(test_divisibleby);
-internal_proc TEST_CALLBACK(test_eq);
-internal_proc TEST_CALLBACK(test_escaped);
-internal_proc TEST_CALLBACK(test_even);
-internal_proc TEST_CALLBACK(test_ge);
-internal_proc TEST_CALLBACK(test_gt);
-internal_proc TEST_CALLBACK(test_in);
-internal_proc TEST_CALLBACK(test_iterable);
-internal_proc TEST_CALLBACK(test_le);
-internal_proc TEST_CALLBACK(test_lt);
-internal_proc TEST_CALLBACK(test_ne);
-internal_proc TEST_CALLBACK(test_none);
-internal_proc TEST_CALLBACK(test_number);
-internal_proc TEST_CALLBACK(test_odd);
-internal_proc TEST_CALLBACK(test_sameas);
-internal_proc TEST_CALLBACK(test_sequence);
-internal_proc TEST_CALLBACK(test_string);
-
-global_var Resolved_Templ *current_templ;
-global_var Arena           resolve_arena;
-
 /* scope {{{ */
 struct Scope {
     char*  name;
@@ -1177,6 +1120,7 @@ sym_new(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
 internal_proc Sym *
 sym_get(char *name) {
     /* @INFO: symbole werden in einer map ohne external chaining gespeichert! */
+    name = intern_str(name);
     for ( Scope *it = current_scope; it; it = it->parent ) {
         Sym *sym = (Sym *)map_get(&it->syms, name);
         if ( sym ) {
@@ -1981,7 +1925,8 @@ resolved_templ(char *name) {
     return result;
 }
 /* }}} */
-
+/* aufräumen block {{{ */
+/* @AUFGABE: aufräumen */
 internal_proc Resolved_Expr *
 operand_new(Type *type, Val *val) {
     Resolved_Expr *result = ALLOC_STRUCT(&resolve_arena, Resolved_Expr);
@@ -1994,16 +1939,7 @@ operand_new(Type *type, Val *val) {
     return result;
 }
 
-internal_proc Resolved_Expr *
-operand_lvalue(Type *type, Sym *sym = NULL, Val *val = 0) {
-    Resolved_Expr *result = operand_new(type, val);
-
-    result->is_lvalue = true;
-    result->sym = sym;
-
-    return result;
-}
-
+/* @AUFGABE: aufräumen */
 internal_proc Resolved_Expr *
 operand_rvalue(Type *type, Val *val = 0) {
     Resolved_Expr *result = operand_new(type, val);
@@ -2011,15 +1947,7 @@ operand_rvalue(Type *type, Val *val = 0) {
     return result;
 }
 
-internal_proc Resolved_Expr *
-operand_const(Type *type, Val *val) {
-    Resolved_Expr *result = operand_new(type, val);
-
-    result->is_const = true;
-
-    return result;
-}
-
+/* @AUFGABE: aufräumen */
 internal_proc b32
 unify_arithmetic_operands(Resolved_Expr *left, Resolved_Expr *right) {
     if ( type_is_arithmetic(left->type) && type_is_arithmetic(right->type) ) {
@@ -2033,31 +1961,7 @@ unify_arithmetic_operands(Resolved_Expr *left, Resolved_Expr *right) {
     return false;
 }
 
-internal_proc b32
-convert_operand(Resolved_Expr *op, Type *dest_type) {
-    b32 result = false;
-
-    if ( op->type->kind == dest_type->kind ) {
-        return true;
-    }
-
-    if ( op->type->kind == TYPE_ANY ) {
-        return true;
-    }
-
-    if ( op->type->kind == TYPE_INT ) {
-        if ( dest_type->kind == TYPE_FLOAT ) {
-            op->type = type_float;
-
-            return true;
-        } else if ( dest_type->kind == TYPE_BOOL ) {
-            return true;
-        }
-    }
-
-    return result;
-}
-
+/* @AUFGABE: aufräumen */
 internal_proc b32
 unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
     if ( type_is_scalar(left->type) && type_is_scalar(right->type) ) {
@@ -2076,6 +1980,86 @@ unify_scalar_operands(Resolved_Expr *left, Resolved_Expr *right) {
     return false;
 }
 
+/* @AUFGABE: aufräumen */
+internal_proc Resolved_Expr *
+eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
+    switch (op) {
+        case T_PLUS: {
+            switch ( left->val->kind ) {
+                case VAL_INT: {
+                    left->val = val_int(val_int(left->val) + val_int(right->val));
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(val_float(left->val) + val_float(right->val));
+                    return left;
+                } break;
+
+                default: {
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+
+        case T_MINUS: {
+            switch ( left->val->kind ) {
+                case VAL_INT: {
+                    left->val = val_int(val_int(left->val) - val_int(right->val));
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(val_float(left->val) - val_float(right->val));
+                    return left;
+                } break;
+
+                default: {
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+
+        case T_MUL: {
+            switch ( left->val->kind ) {
+                case VAL_INT: {
+                    left->val = val_int(val_int(left->val) * val_int(right->val));
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(val_float(left->val) * val_float(right->val));
+                    return left;
+                } break;
+
+                default: {
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+
+        case T_DIV: {
+            switch ( left->val->kind ) {
+                case VAL_INT: {
+                    left->val = val_int(val_int(left->val) / val_int(right->val));
+                    return left;
+                } break;
+
+                case VAL_FLOAT: {
+                    left->val = val_float(val_float(left->val) / val_float(right->val));
+                    return left;
+                } break;
+
+                default: {
+                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
+                } break;
+            }
+        } break;
+    }
+
+    return left;
+}
+/* }}} */
 internal_proc Sym *
 resolve_name(char *name) {
     Sym *result = sym_get(name);
@@ -2199,6 +2183,7 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
+            /* @AUFGABE: prüfen ob blocks eigenen scope haben */
             scope_enter(stmt->stmt_block.name);
 
             Resolved_Stmt **stmts = 0;
@@ -2223,8 +2208,9 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_EXTENDS: {
-            if ( sym_invalid(sym_get(intern_str("super"))) ) {
-                sym_push_proc("super", type_proc(0, 0, 0, proc_super));
+            char *name = "super";
+            if ( sym_invalid(sym_get(name)) ) {
+                sym_push_proc(name, type_proc(0, 0, 0, proc_super));
             }
 
             Resolved_Expr *if_expr = 0;
@@ -2474,85 +2460,6 @@ resolve_expr_cond(Expr *expr) {
 }
 
 internal_proc Resolved_Expr *
-eval_binary_op(Token_Kind op, Resolved_Expr *left, Resolved_Expr *right) {
-    switch (op) {
-        case T_PLUS: {
-            switch ( left->val->kind ) {
-                case VAL_INT: {
-                    left->val = val_int(val_int(left->val) + val_int(right->val));
-                    return left;
-                } break;
-
-                case VAL_FLOAT: {
-                    left->val = val_float(val_float(left->val) + val_float(right->val));
-                    return left;
-                } break;
-
-                default: {
-                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
-                } break;
-            }
-        } break;
-
-        case T_MINUS: {
-            switch ( left->val->kind ) {
-                case VAL_INT: {
-                    left->val = val_int(val_int(left->val) - val_int(right->val));
-                    return left;
-                } break;
-
-                case VAL_FLOAT: {
-                    left->val = val_float(val_float(left->val) - val_float(right->val));
-                    return left;
-                } break;
-
-                default: {
-                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
-                } break;
-            }
-        } break;
-
-        case T_MUL: {
-            switch ( left->val->kind ) {
-                case VAL_INT: {
-                    left->val = val_int(val_int(left->val) * val_int(right->val));
-                    return left;
-                } break;
-
-                case VAL_FLOAT: {
-                    left->val = val_float(val_float(left->val) * val_float(right->val));
-                    return left;
-                } break;
-
-                default: {
-                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
-                } break;
-            }
-        } break;
-
-        case T_DIV: {
-            switch ( left->val->kind ) {
-                case VAL_INT: {
-                    left->val = val_int(val_int(left->val) / val_int(right->val));
-                    return left;
-                } break;
-
-                case VAL_FLOAT: {
-                    left->val = val_float(val_float(left->val) / val_float(right->val));
-                    return left;
-                } break;
-
-                default: {
-                    fatal(left->pos.name, left->pos.row, "nicht unterstützer datentyp");
-                } break;
-            }
-        } break;
-    }
-
-    return left;
-}
-
-internal_proc Resolved_Expr *
 resolve_expr(Expr *expr) {
     Resolved_Expr *result = &resolved_expr_illegal;
 
@@ -2598,10 +2505,13 @@ resolve_expr(Expr *expr) {
             }
 
             if ( is_cmp(expr->expr_binary.op) ) {
+                /* @AUFGABE: aufräumen */
                 type = operand_rvalue(type_bool);
             } else if ( left->is_const && right->is_const ) {
+                /* @AUFGABE: aufräumen */
                 type = eval_binary_op(expr->expr_binary.op, left, right);
             } else {
+                /* @AUFGABE: aufräumen */
                 type = operand_rvalue(left->type);
             }
 
@@ -2617,6 +2527,7 @@ resolve_expr(Expr *expr) {
                 fatal(left->pos.name, left->pos.row, "beide datentypen der zuweisung müssen gleich sein");
             }
 
+            /* @AUFGABE: aufräumen */
             result = operand_rvalue(middle->type);
         } break;
 
