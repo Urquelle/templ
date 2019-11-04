@@ -1079,7 +1079,7 @@ parse_stmt_lit(Parser *p) {
         next(&p->lex);
     }
 
-    Stmt *result = ( lit ) ? stmt_lit(lit, utf8_strlen(lit)) : 0;
+    Stmt *result = ( lit ) ? stmt_lit(lit, utf8_str_size(lit)) : 0;
     next_token(&p->lex);
 
     return result;
