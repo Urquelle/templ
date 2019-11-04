@@ -13,6 +13,21 @@ ast_dup(void *src, size_t size) {
     return ptr;
 }
 
+struct Pair {
+    char *key;
+    Expr *value;
+};
+
+internal_proc Pair *
+pair_new(char *key, Expr *value) {
+    Pair *result = (Pair *)xcalloc(1, sizeof(Pair));
+
+    result->key = key;
+    result->value = value;
+
+    return result;
+}
+
 struct Arg {
     Pos pos;
     char *name;
@@ -173,9 +188,8 @@ struct Expr {
         } expr_list;
 
         struct {
-            Map *map;
-            char **keys;
-            size_t num_keys;
+            Pair **pairs;
+            size_t num_pairs;
         } expr_dict;
     };
 };
@@ -381,12 +395,11 @@ expr_list(Pos pos, Expr **expr, size_t num_expr) {
 }
 
 internal_proc Expr *
-expr_dict(Pos pos, Map *map, char **keys, size_t num_keys) {
+expr_dict(Pos pos, Pair **pairs, size_t num_pairs) {
     Expr *result = expr_new(pos, EXPR_DICT);
 
-    result->expr_dict.map = map;
-    result->expr_dict.keys = (char **)AST_DUP(keys);
-    result->expr_dict.num_keys = num_keys;
+    result->expr_dict.pairs = (Pair **)AST_DUP(pairs);
+    result->expr_dict.num_pairs = num_pairs;
 
     return result;
 }

@@ -216,21 +216,19 @@ parse_expr_base(Parser *p) {
             next_token(lex);
         }
     } else if ( match_token(p, T_LBRACE) ) {
-        Map *map = (Map *)xcalloc(1, sizeof(Map));
-        char **keys = 0;
+        Pair **pairs = 0;
 
         do {
             char *key = parse_str(p);
             expect_token(p, T_COLON);
-            char *value = parse_str(p);
+            Expr *value = parse_expr(p);
 
-            map_put(map, key, value);
-            buf_push(keys, key);
+            buf_push(pairs, pair_new(key, value));
         } while ( match_token(p, T_COMMA) );
 
         expect_token(p, T_RBRACE);
 
-        result = expr_dict(pos, map, keys, buf_len(keys));
+        result = expr_dict(pos, pairs, buf_len(pairs));
 
     } else if ( match_token(p, T_LPAREN) ) {
         Expr **exprs = 0;

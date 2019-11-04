@@ -61,7 +61,8 @@ enum Val_Kind {
     VAL_RANGE,
     VAL_TUPLE,
     VAL_LIST,
-    VAL_ITERABLE_END = VAL_LIST,
+    VAL_DICT,
+    VAL_ITERABLE_END = VAL_DICT,
 };
 
 struct Val {
@@ -256,6 +257,15 @@ val_list(Val **vals, size_t num_vals) {
 
     result->ptr = (Val **)AST_DUP(vals);
     result->len = num_vals;
+
+    return result;
+}
+
+internal_proc Val *
+val_dict(Scope *scope) {
+    Val *result = val_new(VAL_DICT, sizeof(Map));
+
+    result->ptr = scope;
 
     return result;
 }
@@ -1573,11 +1583,10 @@ resolved_expr_list(Resolved_Expr **expr, size_t num_expr, Val *val) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_dict(Map *map, char **keys, size_t num_keys, Val *val) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_DICT);
+resolved_expr_dict(char **keys, size_t num_keys, Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_DICT, type);
 
     result->val = val;
-    result->expr_dict.map = map;
     result->expr_dict.keys = keys;
     result->expr_dict.num_keys = num_keys;
 
@@ -2774,7 +2783,23 @@ resolve_expr(Expr *expr) {
         } break;
 
         case EXPR_DICT: {
-            implement_me();
+            Scope *prev_scope = current_scope;
+            Scope *scope = scope_new(0, "dict");
+            scope_set(scope);
+
+            char **keys = 0;
+            for ( int i = 0; i < expr->expr_dict.num_pairs; ++i ) {
+                Pair *pair = expr->expr_dict.pairs[i];
+
+                Resolved_Expr *value = resolve_expr(pair->value);
+
+                sym_push_var(pair->key, value->type, value->val);
+                buf_push(keys, pair->key);
+            }
+
+            scope_set(prev_scope);
+
+            result = resolved_expr_dict(keys, buf_len(keys), type_dict(scope), val_dict(scope));
         } break;
 
         default: {

@@ -246,8 +246,19 @@ exec_expr(Resolved_Expr *expr) {
             Val *set = exec_expr(expr->expr_subscript.expr);
             Val *index = exec_expr(expr->expr_subscript.index);
 
-            assert(index->kind == VAL_INT);
-            result = val_subscript(set, val_int(index));
+            if ( set->kind == VAL_DICT ) {
+                assert(index->kind == VAL_STR);
+
+                Scope *scope = (Scope *)set->ptr;
+                Map *map = &scope->syms;
+                char *key = val_str(index);
+
+                Sym *sym = (Sym *)map_get(map, key);
+                result = sym->val;
+            } else {
+                assert(index->kind == VAL_INT);
+                result = val_subscript(set, val_int(index));
+            }
         } break;
 
         default: {

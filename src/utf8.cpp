@@ -97,10 +97,9 @@ utf8_char_goto(char *input, size_t count) {
 internal_proc char *
 utf8_toupper(char *str) {
     size_t size = utf8_char_size(str);
-    char *result = str;
 
-    if ( size == 1 && result[0] >= 'a' && result[0] <= 'z') {
-        result[0] = result[0] - 0x20;
+    if ( size == 1 && *str >= 'a' && *str <= 'z') {
+        *str -= 0x20;
     } else if ( size == 2 ) {
         /* @AUFGABE: implementieren */
     } else if ( size == 3 ) {
@@ -109,6 +108,6 @@ utf8_toupper(char *str) {
         /* @AUFGABE: implementieren */
     }
 
-    return result;
+    return str;
 }
 
