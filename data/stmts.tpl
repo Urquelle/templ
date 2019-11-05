@@ -24,6 +24,13 @@
 {% endwith %}
 
 {# if mit else #}
+{% set var_none = none %}
+{% if var_none is none %}
+    var_none ist none
+{% else %}
+    var_none ist nicht none
+{% endif %}
+
 {% if x is not defined %}
     x ist nicht definiert
 {% else %}
@@ -61,8 +68,8 @@ c[1][0] {{ c[1][0] }}
 {# for schleife mit continue und break #}
 {% for i in 1..10 %}
     {% if i == 2 %}{% continue %}{% endif %}
-    {{ i }}
     {% if i == 5 %}{% break %}{% endif %}
+    {{ i }}
 {% endfor %}
 
 {% for eins, zwei in [("eins", "zwei"), ("drei", "vier")] %}

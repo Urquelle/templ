@@ -21,6 +21,7 @@ global_var char *keyword_and;
 global_var char *keyword_or;
 global_var char *keyword_true;
 global_var char *keyword_false;
+global_var char *keyword_none;
 global_var char *keyword_if;
 global_var char *keyword_elif;
 global_var char *keyword_else;
@@ -57,6 +58,7 @@ init_keywords() {
     ADD_KEYWORD(or);
     ADD_KEYWORD(true);
     ADD_KEYWORD(false);
+    ADD_KEYWORD(none);
     ADD_KEYWORD(if);
     ADD_KEYWORD(elif);
     ADD_KEYWORD(else);
@@ -113,6 +115,13 @@ is_token(Parser *p, Token_Kind kind) {
 internal_proc b32
 is_prev_token(Parser *p, Token_Kind kind) {
     b32 result = p->lex.token_prev.kind == kind;
+
+    return result;
+}
+
+internal_proc char *
+token_literal(Parser *p) {
+    char *result = p->lex.token.literal;
 
     return result;
 }
@@ -208,9 +217,11 @@ parse_expr_base(Parser *p) {
         next_token(lex);
     } else if ( is_token(p, T_NAME) ) {
         if ( match_keyword(p, keyword_true) ) {
-            result = expr_bool(pos, true);
+            result = expr_bool(pos, 1);
         } else if ( match_keyword(p, keyword_false) ) {
-            result = expr_bool(pos, false);
+            result = expr_bool(pos, 0);
+        } else if ( match_keyword(p, keyword_none) ) {
+            result = expr_bool(pos, -1);
         } else {
             result = expr_name(pos, lex->token.name);
             next_token(lex);
@@ -502,7 +513,9 @@ parse_filter(Parser *p) {
 
 internal_proc Expr *
 parse_tester(Parser *p) {
-    Expr *result = parse_expr(p, false);
+    char *name = token_literal(p);
+    match_token(p, T_NAME);
+    Expr *result = expr_name(p->lex.pos, name);
 
     Arg **args = 0;
     while ( !is_keyword(p, keyword_else) && !is_keyword(p, keyword_and) &&

@@ -89,7 +89,7 @@ struct Expr {
         } expr_float;
 
         struct {
-            bool value;
+            s32 value;
         } expr_bool;
 
         struct {
@@ -223,7 +223,7 @@ expr_str(Pos pos, char *value) {
 }
 
 internal_proc Expr *
-expr_bool(Pos pos, bool value) {
+expr_bool(Pos pos, s32 value) {
     Expr *result = expr_new(pos, EXPR_BOOL);
 
     result->expr_bool.value = value;
@@ -440,7 +440,6 @@ struct Stmt {
 
         struct {
             Expr *cond;
-            Expr *test;
             Stmt **stmts;
             size_t num_stmts;
             Stmt **elseifs;

@@ -112,7 +112,7 @@ internal_proc TEST_CALLBACK(test_ne) {
 }
 
 internal_proc TEST_CALLBACK(test_none) {
-    b32 result = val_is_undefined(operand);
+    b32 result = val_bool(operand) == -1;
 
     return val_bool(result);
 }

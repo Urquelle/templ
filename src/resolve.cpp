@@ -126,25 +126,27 @@ val_copy(Val *val) {
 }
 
 internal_proc Val *
-val_bool(b32 val) {
+val_bool(s32 val) {
     Val *result = val_new(VAL_BOOL, sizeof(b32));
 
-    *((b32 *)result->ptr) = val;
+    *((s32 *)result->ptr) = val;
 
     return result;
 }
 
-internal_proc b32
+internal_proc s32
 val_bool(Val *val) {
-    return *(b32 *)val->ptr;
+    return *(s32 *)val->ptr;
 }
 
 internal_proc Val *
 val_neg(Val *val) {
     assert(val->kind == VAL_BOOL);
 
-    Val *result = val_new(VAL_BOOL, sizeof(b32));
-    *((b32 *)result->ptr) = !val_bool(val);
+    Val *result = val_new(VAL_BOOL, sizeof(s32));
+
+    s32 value = (s32)val_bool(val);
+    *((s32 *)result->ptr) = ~(value & 0x1);
 
     return result;
 }
@@ -293,7 +295,7 @@ val_set(Val *val, s32 value) {
 internal_proc void
 val_set(Val *val, b32 value) {
     assert(val->kind == VAL_BOOL);
-    *((b32 *)val->ptr) = value;
+    *((s32 *)val->ptr) = value;
 }
 
 internal_proc void
@@ -369,10 +371,12 @@ val_to_char(Val *val) {
         } break;
 
         case VAL_BOOL: {
-            if ( val_bool(val) ) {
+            erstes_if ( val_bool(val) > 0 ) {
                 return "true";
-            } else {
+            } else if ( val_bool(val) == 0 ) {
                 return "false";
+            } else {
+                return "none";
             }
         } break;
 
