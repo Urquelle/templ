@@ -98,7 +98,8 @@ parser_init(Parser *p, char *input, char *name) {
     p->lex.token.pos = p->lex.pos;
 
     p->lex.ignore_whitespace = false;
-    p->lex.trim_blocks = true;
+    p->lex.trim_blocks       = false;
+    p->lex.lstrip_blocks     = false;
 
     refill(&p->lex);
     init_keywords();
@@ -1087,13 +1088,24 @@ internal_proc Stmt *
 parse_stmt_lit(Parser *p) {
     char *lit = 0;
 
-    if ( !is_prev_token(p, T_CODE_END) || p->lex.token.literal[0] != '\n' ) {
+    if ( !p->lex.trim_blocks ||
+         !is_prev_token(p, T_CODE_END) ||
+          p->lex.token.literal[0] != '\n' )
+    {
         buf_printf(lit, "%s", p->lex.token.literal);
     }
 
     while ( parser_valid(p) && is_lit(&p->lex) ) {
-        buf_printf(lit, "%.*s", utf8_char_size(parser_input(p)), parser_input(p));
+        char *ptr = parser_input(p);
         next(&p->lex);
+
+#if 1
+        buf_printf(lit, "%.*s", utf8_char_size(ptr), ptr);
+#else
+        if ( is_lit(&p->lex) && !p->lex.lstrip_blocks ) {
+            buf_printf(lit, "%.*s", utf8_char_size(ptr), ptr);
+        }
+#endif
     }
 
     Stmt *result = ( lit ) ? stmt_lit(lit, utf8_str_size(lit)) : 0;
