@@ -19,7 +19,7 @@ main(int argc, char **argv) {
 
     templ_vars_add(&vars, user);
 
-    Parsed_Templ *templ1 = templ_compile_string("servus {{ user.name }} in {{ user.address.city }}");
+    Templ *templ1 = templ_compile_string("servus {{ user.name }} in {{ user.address.city }}");
     char *result1 = templ_render(templ1, &vars);
 
     if ( status_is_not_error() ) {
@@ -32,7 +32,7 @@ main(int argc, char **argv) {
 
     templ_reset();
 
-    Parsed_Templ *templ2 = templ_compile_file(argv[1]);
+    Templ *templ2 = templ_compile_file(argv[1]);
     char *result2 = templ_render(templ2, &vars);
 
     os_file_write("test2.html", result2, utf8_strlen(result2));

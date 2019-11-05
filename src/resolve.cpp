@@ -2167,8 +2167,10 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
+#if 0
             /* @AUFGABE: prüfen ob blocks eigenen scope haben */
             scope_enter(stmt->stmt_block.name);
+#endif
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
@@ -2178,7 +2180,9 @@ resolve_stmt(Stmt *stmt) {
                 }
             }
 
+#if 0
             scope_leave();
+#endif
 
             result = resolved_stmt_block(stmt->stmt_block.name, stmts, buf_len(stmts));
         } break;

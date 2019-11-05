@@ -68,7 +68,7 @@ status_error(char *filename, s64 line, char *message) {
     result->kind = STATUS_ERROR;
     result->filename = filename;
     result->line = line;
-    memcpy(result->message, message, _mbstrlen(message));
+    memcpy(result->message, message, utf8_strlen(message));
 
     return result;
 }
@@ -80,7 +80,7 @@ status_warning(char *filename, s64 line, char *message) {
     result->kind = STATUS_WARNING;
     result->filename = filename;
     result->line = line;
-    memcpy(result->message, message, _mbstrlen(message));
+    memcpy(result->message, message, utf8_strlen(message));
 
     return result;
 }
@@ -117,7 +117,7 @@ status_set(Status_Kind kind, char *filename, s64 line, char *message) {
     global_status.kind     = kind;
     global_status.filename = filename;
     global_status.line     = line;
-    memcpy(global_status.message, message, _mbstrlen(message));
+    memcpy(global_status.message, message, utf8_strlen(message));
 }
 
 internal_proc void
@@ -507,7 +507,7 @@ intern_str(char *start, char *end) {
 
 internal_proc char *
 intern_str(char *value) {
-    size_t len = _mbstrlen(value);
+    size_t len = utf8_strlen(value);
     return intern_str(value, value + len);
 }
 

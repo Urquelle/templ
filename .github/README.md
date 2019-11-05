@@ -118,7 +118,7 @@ main(int argc, char **argv) {
     Templ_Var *name = templ_var("name", val_str("noob"));
     templ_vars_add(&vars, name);
 
-    Parsed_Templ *templ = templ_compile_string("hallo {{ name }}");
+    Templ *templ = templ_compile_string("hallo {{ name }}");
     char *result = templ_render(templ, &vars);
 
     if ( status_is_not_error() ) {

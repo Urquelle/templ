@@ -76,6 +76,8 @@ struct Resolved_Stmt;
 struct Resolved_Expr;
 struct Resolved_Arg;
 
+typedef Parsed_Templ Templ;
+
 typedef PROC_CALLBACK(Proc_Callback);
 typedef FILTER_CALLBACK(Filter_Callback);
 typedef TEST_CALLBACK(Test_Callback);
@@ -141,14 +143,14 @@ global_var b32                  global_for_continue;
 global_var Resolved_Stmt      * global_super_block;
 global_var Resolved_Templ     * current_templ;
 
+#include "os.cpp"
+#include "utf8.cpp"
 #include "common.cpp"
 
 global_var Arena                parse_arena;
 global_var Arena                resolve_arena;
 global_var Arena                templ_arena;
 
-#include "os.cpp"
-#include "utf8.cpp"
 #include "lex.cpp"
 #include "ast.cpp"
 #include "parser.cpp"
@@ -240,38 +242,41 @@ templ_vars_add(Templ_Vars *vars, Templ_Var *var) {
     vars->num_vars = buf_len(vars->vars);
 }
 
-user_api Parsed_Templ *
+user_api Templ *
 templ_compile_file(char *filename) {
-    Parsed_Templ *result = parse_file(filename);
+    Templ *result = parse_file(filename);
 
     return result;
 }
 
-user_api Parsed_Templ *
+user_api Templ *
 templ_compile_string(char *content) {
-    Parsed_Templ *result = parse_string(content);
+    Templ *result = parse_string(content);
 
     return result;
 }
 
 user_api char *
-templ_render(Parsed_Templ *templ, Templ_Vars *vars = 0) {
+templ_render(Templ *templ, Templ_Vars *vars = 0) {
     if ( vars ) {
         for ( int i = 0; i < vars->num_vars; ++i ) {
             Templ_Var *var = vars->vars[i];
 
             if ( var->scope ) {
                 Sym *sym = sym_push_var(var->name, type_dict(var->scope));
+                sym->type = type_dict(var->scope);
                 sym->scope = var->scope;
             } else {
                 assert(var->val);
                 Sym *sym = sym_push_var(var->name, type_any, var->val);
+                sym->val = var->val;
+                sym->type = type_any;
             }
         }
     }
 
-    Resolved_Templ *result = resolve(templ);
-    exec(result);
+    Resolved_Templ *t = resolve(templ);
+    exec(t);
 
     return gen_result;
 }
@@ -291,8 +296,8 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
 }
 
 namespace api {
-    using templ::Parsed_Templ;
     using templ::Status;
+    using templ::Templ;
     using templ::Templ_Var;
     using templ::Templ_Vars;
     using templ::os_file_write;
@@ -316,7 +321,6 @@ namespace api {
     using templ::templ_vars;
     using templ::templ_vars_add;
     using templ::utf8_strlen;
-    using templ::val_undefined;
 }
 
 } /* namespace templ */
