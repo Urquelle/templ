@@ -1,7 +1,15 @@
 <div>stmts.tpl</div>
 
 {# set anweisung #}
-{% set a = 10 %}
+{%  set a = 10  %}
+{%- set a = 20  %}
+{%  set a = 30 -%}
+{%- set a = 40 -%}
+
+{%  set a = 10  %}
+{%+ set a = 20  %}
+{%  set a = 30 +%}
+{%+ set a = 40 +%}
 
 {# if mit elif #}
 {% if 3 <= 5 %}

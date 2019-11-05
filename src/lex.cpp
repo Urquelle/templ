@@ -132,6 +132,7 @@ struct Lexer {
 
     b32 ignore_whitespace;
     b32 trim_blocks;
+    b32 lstrip_blocks;
 
     Pos pos;
     char *input;
@@ -357,9 +358,21 @@ next_raw_token(Lexer *lex) {
     } else if ( c == '+' ) {
         lex->token.kind = T_PLUS;
         next(lex);
+
+        if ( at0(lex) == '%' && at1(lex) == '}' ) {
+            lex->lstrip_blocks = true;
+            lex->token.kind = T_CODE_END;
+            next(lex, 2);
+        }
     } else if ( c == '-' ) {
         lex->token.kind = T_MINUS;
         next(lex);
+
+        if ( at0(lex) == '%' && at1(lex) == '}' ) {
+            lex->lstrip_blocks = true;
+            lex->token.kind = T_CODE_END;
+            next(lex, 2);
+        }
     } else if ( c == '*' ) {
         lex->token.kind = T_MUL;
         next(lex);
@@ -401,6 +414,14 @@ next_raw_token(Lexer *lex) {
             lex->ignore_whitespace = true;
             lex->token.kind = T_CODE_BEGIN;
             next(lex);
+
+            if ( at0(lex) == '-' ) {
+                lex->lstrip_blocks = true;
+                next(lex);
+            } else if ( at0(lex) == '+' ) {
+                lex->lstrip_blocks = false;
+                next(lex);
+            }
         }
     } else if ( c == '}' ) {
         lex->token.kind = T_RBRACE;
