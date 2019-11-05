@@ -246,12 +246,15 @@ exec_expr(Resolved_Expr *expr) {
             if ( set->kind == VAL_DICT ) {
                 assert(index->kind == VAL_STR);
 
-                Scope *scope = (Scope *)set->ptr;
-                Map *map = &scope->syms;
-                char *key = val_str(index);
+                for ( int i = 0; i < set->len; ++i ) {
+                    Val *v = ((Val **)set->ptr)[i];
+                    Resolved_Pair *pair = (Resolved_Pair *)v->ptr;
 
-                Sym *sym = (Sym *)map_get(map, key);
-                result = sym->val;
+                    if ( *pair->key == *index ) {
+                        result = pair->value;
+                        break;
+                    }
+                }
             } else {
                 assert(index->kind == VAL_INT);
                 result = val_subscript(set, val_int(index));
@@ -353,7 +356,6 @@ exec_stmt_set(Val *dest, Val *source) {
         dest->len  = source->len;
         dest->size = source->size;
         dest->ptr  = source->ptr;
-        dest->keys = source->keys;
     } else {
         fatal(0, 0, "nicht unterstützter datentyp wird in einer set anweisung verwendet");
     }

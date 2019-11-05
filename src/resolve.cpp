@@ -58,6 +58,7 @@ enum Val_Kind {
     VAL_INT,
     VAL_FLOAT,
     VAL_CHAR,
+    VAL_PAIR,
     VAL_STR,
     VAL_ITERABLE_START = VAL_STR,
     VAL_RANGE,
@@ -72,9 +73,6 @@ struct Val {
     size_t size;
     size_t len;
     void  *ptr;
-
-    /* @ACHTUNG: nur für dict */
-    char **keys;
 };
 
 internal_proc Val *
@@ -210,6 +208,16 @@ val_str(Val *val) {
 }
 
 internal_proc Val *
+val_pair(Resolved_Pair *pair) {
+    Val *result = val_new(VAL_PAIR, sizeof(Resolved_Pair*));
+
+    result->len = 1;
+    result->ptr = pair;
+
+    return result;
+}
+
+internal_proc Val *
 val_range(int min, int max, int step = 1) {
     Val *result = val_new(VAL_RANGE, sizeof(int)*3);
 
@@ -267,12 +275,11 @@ val_list(Val **vals, size_t num_vals) {
 }
 
 internal_proc Val *
-val_dict(Scope *scope, char **keys, size_t num_keys) {
+val_dict(Val **pairs, size_t num_pairs) {
     Val *result = val_new(VAL_DICT, sizeof(Map));
 
-    result->len = num_keys;
-    result->ptr = scope;
-    result->keys = (char **)AST_DUP(keys);
+    result->len = num_pairs;
+    result->ptr = pairs;
 
     return result;
 }
@@ -431,35 +438,21 @@ operator*(Val left, Val right) {
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         result.kind = VAL_RANGE;
         val_set(&result, val_range0(&left) * val_range0(&right), val_range1(&left) * val_range1(&right));
-    } else if ( left.kind == VAL_STR && right.kind == VAL_INT ) {
+    } else if (( left.kind == VAL_STR && right.kind == VAL_INT ) ||
+               ( left.kind == VAL_INT && right.kind == VAL_STR ))
+    {
         result.kind = VAL_STR;
-
         result.ptr = "";
-        char *str_to_repeat = val_str(&left);
 
-        int count  = val_int(&right);
-        size_t len = count * utf8_strlen(str_to_repeat);
+        char  *str   = (right.kind == VAL_STR) ? val_str(&right) : val_str(&left);
+        int    count = (right.kind == VAL_INT) ? val_int(&right) : val_int(&left);
+        size_t len   = count * utf8_strlen(str);
 
-        for ( int i = 0; i < count; ++i ) {
-            result.ptr = strf("%s%s", result.ptr, str_to_repeat);
+        for ( int i = 0; i < len; ++i ) {
+            result.ptr = strf("%s%s", result.ptr, str);
         }
 
         result.size = len*sizeof(char);
-        result.len  = len;
-    } else if ( left.kind == VAL_INT && right.kind == VAL_STR ) {
-        result.kind = VAL_STR;
-
-        int len = val_int(&left);
-        size_t size = len * sizeof(char);
-
-        result.ptr = "";
-        char *str_to_repeat = val_str(&right);
-
-        for ( int i = 0; i < len; ++i ) {
-            result.ptr = strf("%s%s", result.ptr, str_to_repeat);
-        }
-
-        result.size = size;
         result.len  = len;
     } else {
         illegal_path();
@@ -1221,6 +1214,24 @@ resolved_arg(Pos pos, char *name, Type *type, Val *val) {
     return result;
 }
 /* }}} */
+/* resolved_pair {{{ */
+struct Resolved_Pair {
+    Pos pos;
+    Val *key;
+    Val *value;
+};
+
+internal_proc Resolved_Pair *
+resolved_pair(Pos pos, Val *key, Val *value) {
+    Resolved_Pair *result = ALLOC_STRUCT(&resolve_arena, Resolved_Pair);
+
+    result->pos = pos;
+    result->key = key;
+    result->value = value;
+
+    return result;
+}
+/* }}} */
 /* resolved_expr {{{ */
 struct Resolved_Expr {
     Expr_Kind kind;
@@ -1344,16 +1355,16 @@ val_elem(Val *val, int idx) {
 
         case VAL_DICT: {
             if ( idx < val->len ) {
-                Scope *scope = (Scope *)val->ptr;
-                Map *map = &scope->syms;
-                char *key = val->keys[idx];
-                Sym *sym = (Sym *)map_get(map, key);
+                result = ((Val **)val->ptr)[idx];
+            }
+        } break;
 
-                Val **vals = 0;
-                buf_push(vals, val_str(key));
-                buf_push(vals, sym->val);
-
-                result = val_list(vals, buf_len(vals));
+        case VAL_PAIR: {
+            idx %= 2;
+            if ( idx == 0 ) {
+                result = ((Resolved_Pair *)val->ptr)->key;
+            } else {
+                result = ((Resolved_Pair *)val->ptr)->value;
             }
         } break;
 
@@ -1365,7 +1376,7 @@ val_elem(Val *val, int idx) {
     return result;
 }
 
-global_var Resolved_Expr resolved_expr_illegal = { EXPR_NONE };
+global_var Resolved_Expr resolved_expr_undefined = { EXPR_NONE, {}, &type_undefined, &sym_undefined, val_undefined() };
 
 internal_proc Resolved_Expr *
 resolved_expr_new(Expr_Kind kind, Type *type = 0) {
@@ -2566,7 +2577,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
 
 internal_proc Resolved_Expr *
 resolve_expr(Expr *expr) {
-    Resolved_Expr *result = &resolved_expr_illegal;
+    Resolved_Expr *result = &resolved_expr_undefined;
 
     switch (expr->kind) {
         case EXPR_NAME: {
@@ -2653,15 +2664,15 @@ resolve_expr(Expr *expr) {
                 scope_set(prev_scope);
 
                 result = resolved_expr_field(base, sym, sym->type, sym->val);
-            } else {
-                assert(type->kind == TYPE_MODULE);
-
+            } else if ( type->kind == TYPE_MODULE ) {
                 Scope *prev_scope = scope_set(type->type_module.scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
                 assert(sym);
                 scope_set(prev_scope);
 
                 result = resolved_expr_field(base, sym, sym->type, sym->val);
+            } else {
+                result = resolved_expr_field(base, 0, &type_undefined, 0);
             }
         } break;
 
@@ -2766,18 +2777,20 @@ resolve_expr(Expr *expr) {
             Scope *prev_scope = scope_set(scope);
 
             char **keys = 0;
+            Val **pairs = 0;
             for ( int i = 0; i < expr->expr_dict.num_pairs; ++i ) {
                 Pair *pair = expr->expr_dict.pairs[i];
 
                 Resolved_Expr *value = resolve_expr(pair->value);
 
                 sym_push_var(pair->key, value->type, value->val);
+                buf_push(pairs, val_pair(resolved_pair(expr->pos, val_str(pair->key), value->val)));
                 buf_push(keys, pair->key);
             }
 
             scope_set(prev_scope);
 
-            result = resolved_expr_dict(keys, buf_len(keys), type_dict(scope), val_dict(scope, keys, buf_len(keys)));
+            result = resolved_expr_dict(keys, buf_len(keys), type_dict(scope), val_dict(pairs, buf_len(pairs)));
         } break;
 
         default: {

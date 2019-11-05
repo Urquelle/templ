@@ -75,6 +75,7 @@ struct Resolved_Templ;
 struct Resolved_Stmt;
 struct Resolved_Expr;
 struct Resolved_Arg;
+struct Resolved_Pair;
 
 typedef Parsed_Templ Templ;
 
