@@ -15,11 +15,14 @@ internal_proc FILTER_CALLBACK(filter_capitalize) {
 }
 
 internal_proc FILTER_CALLBACK(filter_default) {
-    assert(operand->kind == VAL_STR);
-
     Resolved_Arg *arg = narg("s");
-    if ( !operand->len ) {
-        return arg->val;
+    char *default_value = val_str(arg->val);
+
+    arg = narg("boolean");
+    b32 boolean = val_bool(arg->val);
+
+    if ( val_is_undefined(operand) || boolean && !val_is_true(operand) ) {
+        return val_str(default_value);
     }
 
     return operand;

@@ -87,13 +87,6 @@ val_new(Val_Kind kind, size_t size) {
     return result;
 }
 
-internal_proc b32
-val_is_undefined(Val *val) {
-    b32 result = ( !val || val->kind == VAL_UNDEFINED );
-
-    return result;
-}
-
 internal_proc Val *
 val_undefined() {
     Val *result = val_new(VAL_UNDEFINED, 0);
@@ -420,6 +413,21 @@ val_subscript(Val *val, int idx) {
             return val;
         } break;
     }
+}
+
+internal_proc b32
+val_is_undefined(Val *val) {
+    b32 result = ( !val || val->kind == VAL_UNDEFINED );
+
+    return result;
+}
+
+internal_proc b32
+val_is_true(Val *val) {
+    b32 result = val && ( val->kind == VAL_BOOL && val_bool(val) ||
+                          val->kind == VAL_INT && val_int(val) != 0 );
+
+    return result;
 }
 
 internal_proc Val
@@ -2848,6 +2856,7 @@ resolve_add_block(char *name, Resolved_Stmt *block) {
 internal_proc void
 resolve_init_builtin_filter() {
     Type_Field *str_type[] = { type_field("s", type_str) };
+    Type_Field *default_type[] = { type_field("s", type_str), type_field("boolean", type_bool, val_bool(False)) };
     Type_Field *trunc_type[] = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
@@ -2855,15 +2864,15 @@ resolve_init_builtin_filter() {
         type_field("leeway", type_int, val_int(0)),
     };
 
-    sym_push_filter("abs",        type_filter(0,          0, type_str, filter_abs));
-    sym_push_filter("capitalize", type_filter(0,          0, type_str, filter_capitalize));
-    sym_push_filter("default",    type_filter(str_type,   1, type_str, filter_default));
-    sym_push_filter("d",          type_filter(str_type,   1, type_str, filter_default));
-    sym_push_filter("escape",     type_filter(0,          0, type_str, filter_escape));
-    sym_push_filter("e",          type_filter(0,          0, type_str, filter_escape));
-    sym_push_filter("format",     type_filter(0,          0, type_str, filter_format));
-    sym_push_filter("truncate",   type_filter(trunc_type, 4, type_str, filter_truncate));
-    sym_push_filter("upper",      type_filter(0,          0, type_str, filter_upper));
+    sym_push_filter("abs",        type_filter(0,            0, type_str, filter_abs));
+    sym_push_filter("capitalize", type_filter(0,            0, type_str, filter_capitalize));
+    sym_push_filter("default",    type_filter(default_type, 2, type_str, filter_default));
+    sym_push_filter("d",          type_filter(default_type, 2, type_str, filter_default));
+    sym_push_filter("escape",     type_filter(0,            0, type_str, filter_escape));
+    sym_push_filter("e",          type_filter(0,            0, type_str, filter_escape));
+    sym_push_filter("format",     type_filter(0,            0, type_str, filter_format));
+    sym_push_filter("truncate",   type_filter(trunc_type,   4, type_str, filter_truncate));
+    sym_push_filter("upper",      type_filter(0,            0, type_str, filter_upper));
 }
 
 internal_proc void
