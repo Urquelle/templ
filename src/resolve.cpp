@@ -2890,6 +2890,7 @@ resolve_init_builtin_tests() {
     sym_push_test("sameas",      type_test(any_type,  1, test_sameas));
     sym_push_test("sequence",    type_test(0,         0, test_sequence));
     sym_push_test("string",      type_test(0,         0, test_string));
+    sym_push_test("undefined",   type_test(0,         0, test_undefined));
 }
 
 internal_proc void

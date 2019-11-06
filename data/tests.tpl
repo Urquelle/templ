@@ -24,3 +24,9 @@
 {% if 1 is string %}
 {% endif %}
 
+{% if var is undefined %}
+    var ist nicht definiert
+{% else %}
+    var ist definiert
+{% endif %}
+

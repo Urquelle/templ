@@ -118,6 +118,7 @@ internal_proc TEST_CALLBACK(test_odd);
 internal_proc TEST_CALLBACK(test_sameas);
 internal_proc TEST_CALLBACK(test_sequence);
 internal_proc TEST_CALLBACK(test_string);
+internal_proc TEST_CALLBACK(test_undefined);
 
 internal_proc Expr            * parse_expr(Parser *p, b32 do_parse_filter = true);
 internal_proc char            * parse_name(Parser *p);
