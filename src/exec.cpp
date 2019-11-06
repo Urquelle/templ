@@ -50,7 +50,7 @@ iterator_next(Iterator *it) {
 }
 
 internal_proc Val *
-exec_macro(Resolved_Expr *expr) {
+exec_macro(Resolved_Expr *expr, Resolved_Templ *templ) {
     Type *type = expr->type;
     assert(type->kind == TYPE_MACRO);
 
@@ -67,7 +67,7 @@ exec_macro(Resolved_Expr *expr) {
 
     for ( int i = 0; i < type->type_macro.num_stmts; ++i ) {
         Resolved_Stmt *stmt = type->type_macro.stmts[i];
-        exec_stmt(stmt);
+        exec_stmt(stmt, templ);
     }
 
     Val *result = val_str(gen_result);
@@ -77,7 +77,7 @@ exec_macro(Resolved_Expr *expr) {
 }
 
 internal_proc Val *
-exec_expr(Resolved_Expr *expr) {
+exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
     Val *result = 0;
 
     switch (expr->kind) {
@@ -102,7 +102,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_UNARY: {
-            result = val_op(expr->expr_unary.op, exec_expr(expr->expr_unary.expr));
+            result = val_op(expr->expr_unary.op, exec_expr(expr->expr_unary.expr, templ));
         } break;
 
         case EXPR_FIELD: {
@@ -112,77 +112,77 @@ exec_expr(Resolved_Expr *expr) {
         case EXPR_BINARY: {
             switch ( expr->expr_binary.op ) {
                 case T_MUL: {
-                    Val calc = *exec_expr(expr->expr_binary.left) * *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) * *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_DIV: {
-                    Val calc = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) / *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_DIV_TRUNC: {
-                    Val calc = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) / *exec_expr(expr->expr_binary.right, templ);
                     result = val_int((int)*(float *)calc.ptr);
                 } break;
 
                 case T_PLUS: {
-                    Val calc = *exec_expr(expr->expr_binary.left) + *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) + *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_MINUS: {
-                    Val calc = *exec_expr(expr->expr_binary.left) - *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) - *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_LT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) < *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) < *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_LEQ: {
-                    Val calc = *exec_expr(expr->expr_binary.left) <= *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) <= *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_GT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) > *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) > *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_GEQ: {
-                    Val calc = *exec_expr(expr->expr_binary.left) >= *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) >= *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_AND: {
-                    b32 calc = *exec_expr(expr->expr_binary.left) && *exec_expr(expr->expr_binary.right);
+                    b32 calc = *exec_expr(expr->expr_binary.left, templ) && *exec_expr(expr->expr_binary.right, templ);
                     result = val_bool(calc);
                 } break;
 
                 case T_OR: {
-                    b32 calc = *exec_expr(expr->expr_binary.left) || *exec_expr(expr->expr_binary.right);
+                    b32 calc = *exec_expr(expr->expr_binary.left, templ) || *exec_expr(expr->expr_binary.right, templ);
                     result = val_bool(calc);
                 } break;
 
                 case T_PERCENT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) % *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) % *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_POT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) ^ *exec_expr(expr->expr_binary.right);
+                    Val calc = *exec_expr(expr->expr_binary.left, templ) ^ *exec_expr(expr->expr_binary.right, templ);
                     result = val_copy(&calc);
                 } break;
 
                 case T_EQL: {
-                    b32 calc = *exec_expr(expr->expr_binary.left) == *exec_expr(expr->expr_binary.right);
+                    b32 calc = *exec_expr(expr->expr_binary.left, templ) == *exec_expr(expr->expr_binary.right, templ);
                     result = val_bool(calc);
                 } break;
 
                 case T_NEQ: {
-                    b32 calc = *exec_expr(expr->expr_binary.left) != *exec_expr(expr->expr_binary.right);
+                    b32 calc = *exec_expr(expr->expr_binary.left, templ) != *exec_expr(expr->expr_binary.right, templ);
                     result = val_bool(!calc);
                 } break;
 
@@ -193,7 +193,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_IS: {
-            Val *operand = exec_expr(expr->expr_is.operand);
+            Val *operand = exec_expr(expr->expr_is.operand, templ);
             Type *type = expr->expr_is.tester->type;
             assert(type->kind == TYPE_TEST);
             Resolved_Expr *tester = expr->expr_is.tester;
@@ -205,15 +205,15 @@ exec_expr(Resolved_Expr *expr) {
             Type *type = expr->type;
 
             if ( type->kind == TYPE_MACRO ) {
-                result = exec_macro(expr);
+                result = exec_macro(expr, templ);
             } else {
-                result = type->type_proc.callback(expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs);
+                result = type->type_proc.callback(templ, expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs);
             }
         } break;
 
         case EXPR_TUPLE: {
             for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
-                val_set(expr->val, exec_expr(expr->expr_list.expr[i]), i);
+                val_set(expr->val, exec_expr(expr->expr_list.expr[i], templ), i);
             }
 
             result = expr->val;
@@ -221,7 +221,7 @@ exec_expr(Resolved_Expr *expr) {
 
         case EXPR_LIST: {
             for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
-                val_set(expr->val, exec_expr(expr->expr_list.expr[i]), i);
+                val_set(expr->val, exec_expr(expr->expr_list.expr[i], templ), i);
             }
 
             result = expr->val;
@@ -236,12 +236,12 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_NOT: {
-            result = val_neg(exec_expr(expr->expr_not.expr));
+            result = val_neg(exec_expr(expr->expr_not.expr, templ));
         } break;
 
         case EXPR_SUBSCRIPT: {
-            Val *set = exec_expr(expr->expr_subscript.expr);
-            Val *index = exec_expr(expr->expr_subscript.index);
+            Val *set = exec_expr(expr->expr_subscript.expr, templ);
+            Val *index = exec_expr(expr->expr_subscript.index, templ);
 
             if ( set->kind == VAL_DICT ) {
                 assert(index->kind == VAL_STR);
@@ -277,21 +277,20 @@ exec_expr(Resolved_Expr *expr) {
 }
 
 internal_proc b32
-if_expr_cond(Resolved_Expr *if_expr) {
+if_expr_cond(Resolved_Expr *if_expr, Resolved_Templ *templ) {
     if ( !if_expr ) {
         return true;
     }
 
-    Val *if_val = exec_expr(if_expr->expr_if.cond);
+    Val *if_val = exec_expr(if_expr->expr_if.cond, templ);
     assert(if_val->kind == VAL_BOOL);
 
     return val_bool(if_val);
 }
 
+#if 0
 internal_proc void
-exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
-    assert(stmt->kind == STMT_EXTENDS);
-
+exec_extends(Resolved_Templ *templ) {
     for ( int i = 0; i < templ->num_stmts; ++i ) {
         Resolved_Stmt *parent_stmt = templ->stmts[i];
         exec_stmt(parent_stmt);
@@ -310,13 +309,16 @@ exec_extends(Resolved_Stmt *stmt, Resolved_Templ *templ) {
         }
     }
 }
+#endif
 
 internal_proc void
 exec_stmt_set(Val *dest, Val *source) {
+    /* @AUFGABE: überarbeiten und anhand der quelle entscheiden was getan werden muss */
+
     if ( dest->kind == VAL_INT ) {
         val_set(dest, val_int(source));
     } else if ( dest->kind == VAL_STR ) {
-        dest = source;
+        dest->ptr = source->ptr;
     } else if ( dest->kind == VAL_LIST ) {
         dest->ptr = source->ptr;
     } else if ( dest->kind == VAL_TUPLE ) {
@@ -362,7 +364,7 @@ exec_stmt_set(Val *dest, Val *source) {
 }
 
 internal_proc void
-exec_stmt(Resolved_Stmt *stmt) {
+exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
     switch ( stmt->kind ) {
         case STMT_LIT: {
             genf("%s", stmt->stmt_lit.lit);
@@ -371,13 +373,13 @@ exec_stmt(Resolved_Stmt *stmt) {
         case STMT_VAR: {
             Resolved_Expr *if_expr = stmt->stmt_var.if_expr;
 
-            if ( !if_expr || if_expr_cond(if_expr) ) {
-                Val *value = exec_expr(stmt->stmt_var.expr);
+            if ( !if_expr || if_expr_cond(if_expr, templ) ) {
+                Val *value = exec_expr(stmt->stmt_var.expr, templ);
 
                 genf("%s", val_to_char(value));
             } else {
                 if ( if_expr->expr_if.else_expr ) {
-                    Val *else_val = exec_expr(if_expr->expr_if.else_expr);
+                    Val *else_val = exec_expr(if_expr->expr_if.else_expr, templ);
 
                     genf("%s", val_to_char(else_val));
                 }
@@ -385,28 +387,33 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
-            Resolved_Stmt *block = (Resolved_Stmt *)map_get(&global_current_tmpl->blocks, stmt->stmt_block.name);
-            if ( block ) {
-                global_super_block = stmt;
-            } else {
-                block = stmt;
-            }
+            if ( !stmt->stmt_block.executed ) {
+                Resolved_Stmt *parent_block = stmt->stmt_block.parent_block;
+                global_super_block = parent_block;
 
-            genln();
-
-            for ( int i = 0; i < block->stmt_block.num_stmts; ++i ) {
-                exec_stmt(block->stmt_block.stmts[i]);
+                if ( stmt->stmt_block.child_block ) {
+                    Resolved_Stmt *block = stmt->stmt_block.child_block;
+                    global_super_block = stmt;
+                    for ( int i = 0; i < block->stmt_block.num_stmts; ++i ) {
+                        exec_stmt(block->stmt_block.stmts[i], templ);
+                    }
+                    block->stmt_block.executed = true;
+                } else {
+                    for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
+                        exec_stmt(stmt->stmt_block.stmts[i], templ);
+                    }
+                }
             }
         } break;
 
         case STMT_SET: {
             if ( stmt->stmt_set.num_names == 1 ) {
-                Val *dest   = exec_expr(stmt->stmt_set.names[0]);
-                Val *source = exec_expr(stmt->stmt_set.expr);
+                Val *dest   = exec_expr(stmt->stmt_set.names[0], templ);
+                Val *source = exec_expr(stmt->stmt_set.expr, templ);
 
                 exec_stmt_set(dest, source);
             } else {
-                Val *source = exec_expr(stmt->stmt_set.expr);
+                Val *source = exec_expr(stmt->stmt_set.expr, templ);
 
                 for ( int i = 0; i < stmt->stmt_set.num_names; ++i ) {
                     Val *dest = stmt->stmt_set.names[i]->val;
@@ -416,7 +423,7 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_FOR: {
-            Val *list = exec_expr(stmt->stmt_for.set);
+            Val *list = exec_expr(stmt->stmt_for.set, templ);
 
             if ( list->len ) {
                 global_for_stmt = stmt;
@@ -433,7 +440,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                     val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));
 
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
-                        exec_stmt(stmt->stmt_for.stmts[j]);
+                        exec_stmt(stmt->stmt_for.stmts[j], templ);
                         if ( global_for_break ) {
                             break;
                         }
@@ -459,27 +466,27 @@ exec_stmt(Resolved_Stmt *stmt) {
                 }
             } else if ( stmt->stmt_for.else_stmts ) {
                 for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
-                    exec_stmt(stmt->stmt_for.else_stmts[i]);
+                    exec_stmt(stmt->stmt_for.else_stmts[i], templ);
                 }
             }
         } break;
 
         case STMT_IF: {
-            Val *val = exec_expr(stmt->stmt_if.expr);
+            Val *val = exec_expr(stmt->stmt_if.expr, templ);
 
             if ( val_bool(val) ) {
                 for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
-                    exec_stmt(stmt->stmt_if.stmts[i]);
+                    exec_stmt(stmt->stmt_if.stmts[i], templ);
                 }
             } else {
                 b32 elseif_matched = false;
                 for ( int i = 0; i < stmt->stmt_if.num_elseifs; ++i ) {
                     Resolved_Stmt *elseif = stmt->stmt_if.elseifs[i];
-                    val = exec_expr(elseif->stmt_if.expr);
+                    val = exec_expr(elseif->stmt_if.expr, templ);
 
                     if ( val_bool(val) ) {
                         for ( int j = 0; j < elseif->stmt_if.num_stmts; ++j ) {
-                            exec_stmt(elseif->stmt_if.stmts[j]);
+                            exec_stmt(elseif->stmt_if.stmts[j], templ);
                         }
                         elseif_matched = true;
                         break;
@@ -489,7 +496,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                 if ( !elseif_matched && stmt->stmt_if.else_stmt ) {
                     Resolved_Stmt *else_stmt = stmt->stmt_if.else_stmt;
                     for ( int i = 0; i < else_stmt->stmt_if.num_stmts; ++i ) {
-                        exec_stmt(else_stmt->stmt_if.stmts[i]);
+                        exec_stmt(else_stmt->stmt_if.stmts[i], templ);
                     }
                 }
             }
@@ -498,24 +505,24 @@ exec_stmt(Resolved_Stmt *stmt) {
         case STMT_EXTENDS: {
             if ( stmt->stmt_extends.if_expr ) {
                 Resolved_Expr *if_expr = stmt->stmt_extends.if_expr;
-                Val *if_cond = exec_expr(if_expr->expr_if.cond);
+                Val *if_cond = exec_expr(if_expr->expr_if.cond, templ);
                 assert(if_cond->kind == VAL_BOOL);
 
                 if ( val_bool(if_cond) ) {
-                    exec_extends(stmt, stmt->stmt_extends.tmpl);
+                    exec(stmt->stmt_extends.tmpl);
                 } else if ( if_expr->expr_if.else_expr ) {
-                    exec_extends(stmt, stmt->stmt_extends.else_tmpl);
+                    exec(stmt->stmt_extends.else_tmpl);
                 }
             } else {
-                exec_extends(stmt, stmt->stmt_extends.tmpl);
+                exec(stmt->stmt_extends.tmpl);
             }
         } break;
 
         case STMT_INCLUDE: {
             for ( int i = 0; i < stmt->stmt_include.num_templ; ++i ) {
-                Resolved_Templ *templ = stmt->stmt_include.templ[i];
-                for ( int j = 0; j < templ->num_stmts; ++j ) {
-                    exec_stmt(templ->stmts[j]);
+                Resolved_Templ *t = stmt->stmt_include.templ[i];
+                for ( int j = 0; j < t->num_stmts; ++j ) {
+                    exec_stmt(t->stmts[j], templ);
                 }
             }
         } break;
@@ -526,7 +533,7 @@ exec_stmt(Resolved_Stmt *stmt) {
             gen_result = temp;
 
             for ( int i = 0; i < stmt->stmt_filter.num_stmts; ++i ) {
-                exec_stmt(stmt->stmt_filter.stmts[i]);
+                exec_stmt(stmt->stmt_filter.stmts[i], templ);
             }
 
             Val *result = val_str(gen_result);
@@ -546,7 +553,7 @@ exec_stmt(Resolved_Stmt *stmt) {
 
         case STMT_WITH: {
             for ( int i = 0; i < stmt->stmt_with.num_stmts; ++i ) {
-                exec_stmt(stmt->stmt_with.stmts[i]);
+                exec_stmt(stmt->stmt_with.stmts[i], templ);
             }
         } break;
 
@@ -561,14 +568,14 @@ exec_stmt(Resolved_Stmt *stmt) {
         case STMT_FROM_IMPORT: {
             for ( int i = 0; i < stmt->stmt_module.num_stmts; ++i ) {
                 Resolved_Stmt *imported_stmt = stmt->stmt_module.stmts[i];
-                exec_stmt(imported_stmt);
+                exec_stmt(imported_stmt, templ);
             }
         } break;
 
         case STMT_IMPORT: {
             for ( int i = 0; i < stmt->stmt_module.num_stmts; ++i ) {
                 Resolved_Stmt *imported_stmt = stmt->stmt_module.stmts[i];
-                exec_stmt(imported_stmt);
+                exec_stmt(imported_stmt, templ);
             }
         } break;
 
@@ -592,23 +599,13 @@ exec_reset() {
 
 internal_proc void
 exec(Resolved_Templ *templ) {
-    global_current_tmpl = templ;
-
     for ( int i = 0; i < templ->num_stmts; ++i ) {
         Resolved_Stmt *stmt = templ->stmts[i];
+
         if ( !stmt ) {
             continue;
         }
 
-        if ( stmt->kind == STMT_EXTENDS && i > 0 ) {
-            fatal(stmt->pos.name, stmt->pos.row, "extends anweisung muss die erste anweisung des templates sein");
-        }
-
-        exec_stmt(stmt);
-
-        /* @AUFGABE: wird das noch benötigt? */
-        if ( stmt->kind == STMT_EXTENDS ) {
-            break;
-        }
+        exec_stmt(stmt, templ);
     }
 }

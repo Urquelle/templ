@@ -22,7 +22,7 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
-#define PROC_CALLBACK(name)   Val * name(Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
 #define FILTER_CALLBACK(name) Val * name(Val *operand, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
 #define TEST_CALLBACK(name)   Val * name(Val *operand, Type *type, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
@@ -128,11 +128,11 @@ internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
 internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
-internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt);
+internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt, Resolved_Templ *templ);
 internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
 internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
-internal_proc void              exec_stmt(Resolved_Stmt *stmt);
+internal_proc void              exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ);
 internal_proc void              exec(Resolved_Templ *templ);
 
 global_var char               * gen_result = "";
@@ -148,6 +148,7 @@ global_var Resolved_Templ     * current_templ;
 #include "utf8.cpp"
 #include "common.cpp"
 
+global_var Map                  global_blocks;
 global_var Arena                parse_arena;
 global_var Arena                resolve_arena;
 global_var Arena                templ_arena;
@@ -242,6 +243,10 @@ templ_vars_add(Templ_Vars *vars, Templ_Var *var) {
     buf_push(vars->vars, var);
     vars->num_vars = buf_len(vars->vars);
 }
+
+struct Context {
+    Scope *scope;
+};
 
 user_api Templ *
 templ_compile_file(char *filename) {

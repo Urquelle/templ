@@ -7,7 +7,7 @@ PROC_CALLBACK(proc_super) {
     gen_result = temp;
 
     for ( int i = 0; i < global_super_block->stmt_block.num_stmts; ++i ) {
-        exec_stmt(global_super_block->stmt_block.stmts[i]);
+        exec_stmt(global_super_block->stmt_block.stmts[i], templ);
     }
 
     Val *result = val_str(gen_result);

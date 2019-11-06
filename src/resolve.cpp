@@ -1624,9 +1624,12 @@ struct Resolved_Stmt {
         } stmt_if;
 
         struct {
+            Resolved_Stmt *parent_block;
+            Resolved_Stmt *child_block;
             char *name;
             Resolved_Stmt **stmts;
             size_t num_stmts;
+            b32 executed;
         } stmt_block;
 
         struct {
@@ -1799,14 +1802,20 @@ resolved_stmt_set(Resolved_Expr **names, size_t num_names, Resolved_Expr *expr) 
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts) {
+resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts,
+        Resolved_Stmt *parent_block)
+{
     Resolved_Stmt *result = resolved_stmt_new(STMT_BLOCK);
 
     result->stmt_block.name = name;
     result->stmt_block.stmts = stmts;
     result->stmt_block.num_stmts = num_stmts;
+    result->stmt_block.parent_block = parent_block;
+    result->stmt_block.child_block = 0;
+    result->stmt_block.executed = false;
 
-    resolve_add_block(name, result);
+    if ( !parent_block ) {
+    }
 
     return result;
 }
@@ -2067,7 +2076,7 @@ resolve_name(char *name) {
 }
 
 internal_proc Resolved_Stmt *
-resolve_stmt(Stmt *stmt) {
+resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
     Resolved_Stmt *result = 0;
     Pos pos = stmt->pos;
 
@@ -2121,12 +2130,12 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_for.num_stmts; ++i ) {
-                buf_push(stmts, resolve_stmt(stmt->stmt_for.stmts[i]));
+                buf_push(stmts, resolve_stmt(stmt->stmt_for.stmts[i], templ));
             }
 
             Resolved_Stmt **else_stmts = 0;
             for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {
-                buf_push(else_stmts, resolve_stmt(stmt->stmt_for.else_stmts[i]));
+                buf_push(else_stmts, resolve_stmt(stmt->stmt_for.else_stmts[i], templ));
             }
 
             scope_leave();
@@ -2142,7 +2151,7 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
-                buf_push(stmts, resolve_stmt(stmt->stmt_if.stmts[i]));
+                buf_push(stmts, resolve_stmt(stmt->stmt_if.stmts[i], templ));
             }
             scope_leave();
 
@@ -2155,7 +2164,7 @@ resolve_stmt(Stmt *stmt) {
 
                     Resolved_Stmt **elseif_stmts = 0;
                     for ( int j = 0; j < elseif->stmt_if.num_stmts; ++j ) {
-                        Resolved_Stmt *resolved_elseif = resolve_stmt(elseif->stmt_if.stmts[j]);
+                        Resolved_Stmt *resolved_elseif = resolve_stmt(elseif->stmt_if.stmts[j], templ);
                         buf_push(elseif_stmts, resolved_elseif);
                     }
                     scope_leave();
@@ -2171,7 +2180,7 @@ resolve_stmt(Stmt *stmt) {
 
                 Resolved_Stmt **else_stmts = 0;
                 for ( int i = 0; i < else_stmt->stmt_if.num_stmts; ++i ) {
-                    buf_push(else_stmts, resolve_stmt(else_stmt->stmt_if.stmts[i]));
+                    buf_push(else_stmts, resolve_stmt(else_stmt->stmt_if.stmts[i], templ));
                 }
                 scope_leave();
 
@@ -2182,24 +2191,25 @@ resolve_stmt(Stmt *stmt) {
         } break;
 
         case STMT_BLOCK: {
-#if 0
-            /* @AUFGABE: prüfen ob blocks eigenen scope haben */
-            scope_enter(stmt->stmt_block.name);
-#endif
+            Scope *prev_scope = scope_set(&global_scope);
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_block.num_stmts; ++i ) {
-                Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_block.stmts[i]);
+                Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_block.stmts[i], templ);
                 if ( resolved_stmt ) {
                     buf_push(stmts, resolved_stmt);
                 }
             }
 
-#if 0
-            scope_leave();
-#endif
+            scope_set(prev_scope);
+            Resolved_Stmt *parent_block = (Resolved_Stmt *)map_get(&global_blocks, stmt->stmt_block.name);
+            result = resolved_stmt_block(stmt->stmt_block.name, stmts, buf_len(stmts), parent_block);
 
-            result = resolved_stmt_block(stmt->stmt_block.name, stmts, buf_len(stmts));
+            if ( !parent_block ) {
+                map_put(&global_blocks, result->stmt_block.name, result);
+            } else {
+                parent_block->stmt_block.child_block = result;
+            }
         } break;
 
         case STMT_LIT: {
@@ -2223,7 +2233,7 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Templ *prev_templ = current_templ;
 
-            Resolved_Templ *templ = resolve(stmt->stmt_extends.templ);
+            Resolved_Templ *t = resolve(stmt->stmt_extends.templ);
             Resolved_Templ *else_templ = 0;
             if ( stmt->stmt_extends.else_templ ) {
                 else_templ = resolve(stmt->stmt_extends.else_templ);
@@ -2231,7 +2241,7 @@ resolve_stmt(Stmt *stmt) {
 
             current_templ = prev_templ;
 
-            result = resolved_stmt_extends(stmt->stmt_extends.name, templ, else_templ, if_expr);
+            result = resolved_stmt_extends(stmt->stmt_extends.name, t, else_templ, if_expr);
         } break;
 
         case STMT_SET: {
@@ -2276,22 +2286,22 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_filter.num_stmts; ++i ) {
-                buf_push(stmts, resolve_stmt(stmt->stmt_filter.stmts[i]));
+                buf_push(stmts, resolve_stmt(stmt->stmt_filter.stmts[i], templ));
             }
 
             result = resolved_stmt_filter(filter, buf_len(filter), stmts, buf_len(stmts));
         } break;
 
         case STMT_INCLUDE: {
-            Resolved_Templ **templ = 0;
+            Resolved_Templ **t = 0;
             Resolved_Templ *prev_templ = current_templ;
 
             for ( int i = 0; i < stmt->stmt_include.num_templ; ++i ) {
-                buf_push(templ, resolve(stmt->stmt_include.templ[i], stmt->stmt_include.with_context));
+                buf_push(t, resolve(stmt->stmt_include.templ[i], stmt->stmt_include.with_context));
             }
 
             current_templ = prev_templ;
-            result = resolved_stmt_include(templ, buf_len(templ));
+            result = resolved_stmt_include(t, buf_len(t));
         } break;
 
         case STMT_MACRO: {
@@ -2330,7 +2340,7 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_macro.num_stmts; ++i ) {
-                buf_push(stmts, resolve_stmt(stmt->stmt_macro.stmts[i]));
+                buf_push(stmts, resolve_stmt(stmt->stmt_macro.stmts[i], templ));
             }
 
             type->type_macro.stmts = stmts;
@@ -2346,20 +2356,20 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Templ *prev_templ = current_templ;
             Scope *scope = scope_enter(stmt->stmt_import.name);
-            Resolved_Templ *templ = resolve(stmt->stmt_import.templ);
+            Resolved_Templ *t = resolve(stmt->stmt_import.templ);
             scope_leave();
             current_templ = prev_templ;
 
             sym->type->type_module.scope = scope;
-            result = resolved_stmt_import(sym, templ->stmts, templ->num_stmts);
+            result = resolved_stmt_import(sym, t->stmts, t->num_stmts);
         } break;
 
         case STMT_FROM_IMPORT: {
-            Parsed_Templ *templ = stmt->stmt_from_import.templ;
+            Parsed_Templ *t = stmt->stmt_from_import.templ;
             Resolved_Stmt **stmts = 0;
 
-            for ( int i = 0; i < templ->num_stmts; ++i ) {
-                Stmt *parsed_stmt = templ->stmts[i];
+            for ( int i = 0; i < t->num_stmts; ++i ) {
+                Stmt *parsed_stmt = t->stmts[i];
 
                 for ( int j = 0; j < stmt->stmt_from_import.num_syms; ++j ) {
                     Imported_Sym *import_sym = stmt->stmt_from_import.syms[j];
@@ -2367,7 +2377,7 @@ resolve_stmt(Stmt *stmt) {
                     if ( parsed_stmt->kind == STMT_MACRO ) {
                         if ( import_sym->name == parsed_stmt->stmt_macro.name ) {
                             parsed_stmt->stmt_macro.alias = import_sym->alias;
-                            resolve_stmt(parsed_stmt);
+                            resolve_stmt(parsed_stmt, templ);
                         }
                     } else if ( parsed_stmt->kind == STMT_LIT ) {
                         /* nichts tun */
@@ -2379,7 +2389,7 @@ resolve_stmt(Stmt *stmt) {
 
                             if ( import_sym->name == name->expr_name.value ) {
                                 parsed_stmt->stmt_macro.alias = import_sym->alias;
-                                buf_push(stmts, resolve_stmt(parsed_stmt));
+                                buf_push(stmts, resolve_stmt(parsed_stmt, templ));
                             }
                         }
                     }
@@ -2413,7 +2423,7 @@ resolve_stmt(Stmt *stmt) {
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_with.num_stmts; ++i ) {
-                Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_with.stmts[i]);
+                Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_with.stmts[i], templ);
                 buf_push(stmts, resolved_stmt);
             }
 
@@ -2832,13 +2842,6 @@ resolve_filter(Expr *expr) {
 
 internal_proc void
 resolve_add_block(char *name, Resolved_Stmt *block) {
-    Resolved_Stmt *entry = (Resolved_Stmt *)map_get(&current_templ->blocks, name);
-
-    if ( entry ) {
-        fatal(block->pos.name, block->pos.row, "block %s existiert bereits in %s zeile %lld", name, entry->pos.name, entry->pos.row);
-    }
-
-    map_put(&current_templ->blocks, name, block);
 }
 
 internal_proc void
@@ -2984,7 +2987,7 @@ resolve(Parsed_Templ *parsed_templ, b32 with_context) {
     for ( int i = 0; i < parsed_templ->num_stmts; ++i ) {
         Stmt *parsed_stmt = parsed_templ->stmts[i];
 
-        Resolved_Stmt *stmt = ( parsed_stmt ) ? resolve_stmt(parsed_templ->stmts[i]) : 0;
+        Resolved_Stmt *stmt = ( parsed_stmt ) ? resolve_stmt(parsed_templ->stmts[i], result) : 0;
 
         if ( stmt ) {
             buf_push(result->stmts, stmt);
