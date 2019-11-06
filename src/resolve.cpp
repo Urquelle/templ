@@ -2867,7 +2867,7 @@ resolve_init_builtin_filter() {
 }
 
 internal_proc void
-resolve_init_builtin_tests() {
+resolve_init_builtin_testers() {
     Type_Field *int_type[]  = { type_field("s",    type_int) };
     Type_Field *any_type[]  = { type_field("s",    type_any) };
 
@@ -2883,6 +2883,7 @@ resolve_init_builtin_tests() {
     sym_push_test("iterable",    type_test(0,         0, test_iterable));
     sym_push_test("le",          type_test(int_type,  1, test_le));
     sym_push_test("lt",          type_test(int_type,  1, test_lt));
+    sym_push_test("mapping",     type_test(0,         0, test_mapping));
     sym_push_test("ne",          type_test(int_type,  1, test_ne));
     sym_push_test("none",        type_test(0,         0, test_none));
     sym_push_test("number",      type_test(0,         0, test_number));
@@ -2973,7 +2974,7 @@ resolve_init() {
     resolve_init_builtin_types();
     resolve_init_builtin_procs();
     resolve_init_builtin_filter();
-    resolve_init_builtin_tests();
+    resolve_init_builtin_testers();
 }
 
 internal_proc Resolved_Templ *

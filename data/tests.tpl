@@ -7,6 +7,14 @@
 {% if "a" is in ["c", "b", "a"] %}
 {% endif %}
 
+{% if 1 is mapping %}
+    1 ist ein mapping
+{% elif [1, 2, 3] is mapping %}
+    liste ist ein mapping
+{% else %}
+    nichts ist ein mapping
+{% endif %}
+
 {% if 5 is number %}
 {% endif %}
 

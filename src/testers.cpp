@@ -102,6 +102,12 @@ internal_proc TEST_CALLBACK(test_lt) {
     return val_bool(result);
 }
 
+internal_proc TEST_CALLBACK(test_mapping) {
+    b32 result = operand->kind == VAL_DICT || operand->kind == VAL_TUPLE || operand->kind == VAL_LIST;
+
+    return val_bool(result);
+}
+
 internal_proc TEST_CALLBACK(test_ne) {
     Resolved_Arg *arg = narg("s");
     s32 s = val_int(arg->val);

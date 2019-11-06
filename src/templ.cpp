@@ -111,6 +111,7 @@ internal_proc TEST_CALLBACK(test_in);
 internal_proc TEST_CALLBACK(test_iterable);
 internal_proc TEST_CALLBACK(test_le);
 internal_proc TEST_CALLBACK(test_lt);
+internal_proc TEST_CALLBACK(test_mapping);
 internal_proc TEST_CALLBACK(test_ne);
 internal_proc TEST_CALLBACK(test_none);
 internal_proc TEST_CALLBACK(test_number);
