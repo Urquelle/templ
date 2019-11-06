@@ -81,6 +81,7 @@ val_new(Val_Kind kind, size_t size) {
 
     result->kind = kind;
     result->size = size;
+    result->len  = 0;
     result->ptr  = (void *)ALLOC_SIZE(&resolve_arena, size);
 
     return result;
@@ -2596,7 +2597,7 @@ resolve_expr(Expr *expr) {
     switch (expr->kind) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
-            result = resolved_expr_name(sym, sym->type, sym->val);
+            result = resolved_expr_name(sym, sym->type, (sym != &sym_undefined) ? sym->val : val_undefined());
         } break;
 
         case EXPR_STR: {
