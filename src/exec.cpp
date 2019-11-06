@@ -313,17 +313,26 @@ exec_extends(Resolved_Templ *templ) {
 
 internal_proc void
 exec_stmt_set(Val *dest, Val *source) {
-    /* @AUFGABE: überarbeiten und anhand der quelle entscheiden was getan werden muss */
-
-    if ( dest->kind == VAL_INT ) {
+    erstes_if ( source->kind == VAL_INT ) {
+        dest->kind = VAL_INT;
+        dest->size = source->size;
         val_set(dest, val_int(source));
-    } else if ( dest->kind == VAL_STR ) {
-        dest->ptr = source->ptr;
-    } else if ( dest->kind == VAL_LIST ) {
-        dest->ptr = source->ptr;
-    } else if ( dest->kind == VAL_TUPLE ) {
-        dest->ptr = source->ptr;
-    } else if ( dest->kind == VAL_CHAR ) {
+    } else if ( source->kind == VAL_STR && dest->kind != VAL_CHAR ) {
+        dest->kind = VAL_STR;
+        dest->ptr  = source->ptr;
+        dest->len  = source->len;
+        dest->size = source->size;
+    } else if ( source->kind == VAL_LIST ) {
+        dest->kind = VAL_LIST;
+        dest->ptr  = source->ptr;
+        dest->len  = source->len;
+        dest->size = source->size;
+    } else if ( source->kind == VAL_TUPLE ) {
+        dest->kind = VAL_TUPLE;
+        dest->ptr  = source->ptr;
+        dest->len  = source->len;
+        dest->size = source->size;
+    } else if ( source->kind == VAL_STR && dest->kind == VAL_CHAR ) {
         Val *orig = (Val *)dest->ptr;
 
         char * old_char_loc  = utf8_char_goto((char *)orig->ptr, dest->len);
