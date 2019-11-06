@@ -98,7 +98,7 @@ parser_init(Parser *p, char *input, char *name) {
     p->lex.token.pos = p->lex.pos;
 
     p->lex.ignore_whitespace = false;
-    p->lex.trim_blocks       = false;
+    p->lex.trim_blocks       = true;
     p->lex.lstrip_blocks     = false;
 
     refill(&p->lex);

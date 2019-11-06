@@ -17,7 +17,7 @@ internal_proc FILTER_CALLBACK(filter_capitalize) {
 internal_proc FILTER_CALLBACK(filter_default) {
     assert(operand->kind == VAL_STR);
 
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     if ( !operand->len ) {
         return arg->val;
     }
@@ -162,8 +162,55 @@ internal_proc FILTER_CALLBACK(filter_format) {
 }
 
 internal_proc FILTER_CALLBACK(filter_truncate) {
-    assert(operand->kind == VAL_STR);
+    Resolved_Arg *arg = narg("length");
+    size_t len = MIN(operand->len, val_int(arg->val));
 
-    return val_str("<!-- @AUFGABE: truncate implementieren -->");
+    arg = narg("leeway");
+    s32 leeway = val_int(arg->val);
+    u64 diff = abs((s64)(len - operand->len));
+    if ( diff <= leeway ) {
+        return operand;
+    }
+
+    char *result = "";
+    char *ptr = val_str(operand);
+
+    arg = narg("killwords");
+    b32 killwords = val_bool(arg->val);
+    if ( !killwords ) {
+        char *ptrend = utf8_char_goto(ptr, operand->len-1);
+        u32 char_count = 0;
+        for ( size_t i = operand->len-1; i >= len; --i ) {
+            if ( *ptrend == ' ' ) {
+                char_count = 0;
+            } else {
+                char_count += 1;
+            }
+            ptrend = utf8_char_goto(ptr, i-1);
+        }
+
+        if ( char_count && ptrend != ptr ) {
+            size_t pos = len;
+            while ( ptrend != ptr && *ptrend != ' ' ) {
+                ptrend = utf8_char_goto(ptr, --pos);
+            }
+            len = pos;
+        }
+    }
+
+    for ( int i = 0; i < len; ++i ) {
+        result = strf("%s%.*s", result, utf8_char_size(ptr), ptr);
+        ptr += utf8_char_size(ptr);
+    }
+
+    arg = narg("end");
+    char *end = val_str(arg->val);
+    size_t end_len = utf8_strlen(end);
+    for ( int i = 0; i < end_len; ++i ) {
+        result = strf("%s%.*s", result, utf8_char_size(end), end);
+        end += utf8_char_size(end);
+    }
+
+    return val_str(result);
 }
 

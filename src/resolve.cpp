@@ -2849,8 +2849,8 @@ resolve_init_builtin_filter() {
     Type_Field *str_type[] = { type_field("s", type_str) };
     Type_Field *trunc_type[] = {
         type_field("length", type_int, val_int(255)),
+        type_field("killwords", type_bool, val_bool(False)),
         type_field("end", type_str, val_str("...")),
-        type_field("killwords", type_bool, val_bool(false)),
         type_field("leeway", type_int, val_int(0)),
     };
 

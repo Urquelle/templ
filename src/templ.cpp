@@ -35,6 +35,7 @@
 #define implement_me() assert(0)
 #define internal_proc static
 #define user_api
+#define narg(name) (Resolved_Arg *)map_get(nargs, intern_str(name))
 
 #define GB(X) (MB(X)*1024)
 #define KB(X) (  (X)*1024)
@@ -82,6 +83,8 @@ typedef Parsed_Templ Templ;
 typedef PROC_CALLBACK(Proc_Callback);
 typedef FILTER_CALLBACK(Filter_Callback);
 typedef TEST_CALLBACK(Test_Callback);
+
+enum { True = 1, False = 0, None = -1 };
 
 internal_proc PROC_CALLBACK(proc_super);
 internal_proc PROC_CALLBACK(proc_cycle);

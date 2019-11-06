@@ -288,29 +288,6 @@ if_expr_cond(Resolved_Expr *if_expr, Resolved_Templ *templ) {
     return val_bool(if_val);
 }
 
-#if 0
-internal_proc void
-exec_extends(Resolved_Templ *templ) {
-    for ( int i = 0; i < templ->num_stmts; ++i ) {
-        Resolved_Stmt *parent_stmt = templ->stmts[i];
-        exec_stmt(parent_stmt);
-    }
-
-    for ( int i = 0; i < global_current_tmpl->num_stmts; ++i ) {
-        Resolved_Stmt *child_stmt = global_current_tmpl->stmts[i];
-
-        if ( !child_stmt || child_stmt->kind == STMT_EXTENDS || child_stmt->kind == STMT_LIT ) {
-            continue;
-        }
-
-        Resolved_Stmt *block = (Resolved_Stmt *)map_get(&templ->blocks, child_stmt->stmt_block.name);
-        if ( !block ) {
-            exec_stmt(child_stmt);
-        }
-    }
-}
-#endif
-
 internal_proc void
 exec_stmt_set(Val *dest, Val *source) {
     erstes_if ( source->kind == VAL_INT ) {

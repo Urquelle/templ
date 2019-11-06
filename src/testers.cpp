@@ -11,7 +11,7 @@ internal_proc TEST_CALLBACK(test_defined) {
 }
 
 internal_proc TEST_CALLBACK(test_divisibleby) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     s32 s = val_int(arg->val);
 
     b32 result = (val_int(operand) % s) == 0;
@@ -20,7 +20,7 @@ internal_proc TEST_CALLBACK(test_divisibleby) {
 }
 
 internal_proc TEST_CALLBACK(test_eq) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
 
     Val *result = val_bool(*operand == *arg->val);
 
@@ -40,7 +40,7 @@ internal_proc TEST_CALLBACK(test_even) {
 }
 
 internal_proc TEST_CALLBACK(test_ge) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     s32 s = val_int(arg->val);
 
     b32 result = val_int(operand) >= s;
@@ -49,7 +49,7 @@ internal_proc TEST_CALLBACK(test_ge) {
 }
 
 internal_proc TEST_CALLBACK(test_gt) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     s32 s = val_int(arg->val);
 
     b32 result = val_int(operand) > s;
@@ -58,7 +58,7 @@ internal_proc TEST_CALLBACK(test_gt) {
 }
 
 internal_proc TEST_CALLBACK(test_in) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     Val *set = arg->val;
 
     if ( !set || set->kind != VAL_LIST ) {
@@ -85,7 +85,7 @@ internal_proc TEST_CALLBACK(test_iterable) {
 }
 
 internal_proc TEST_CALLBACK(test_le) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     s32 s = val_int(arg->val);
 
     b32 result = val_int(operand) <= s;
@@ -94,7 +94,7 @@ internal_proc TEST_CALLBACK(test_le) {
 }
 
 internal_proc TEST_CALLBACK(test_lt) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     s32 s = val_int(arg->val);
 
     b32 result = val_int(operand) < s;
@@ -103,7 +103,7 @@ internal_proc TEST_CALLBACK(test_lt) {
 }
 
 internal_proc TEST_CALLBACK(test_ne) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
     s32 s = val_int(arg->val);
 
     b32 result = val_int(operand) != s;
@@ -130,7 +130,7 @@ internal_proc TEST_CALLBACK(test_odd) {
 }
 
 internal_proc TEST_CALLBACK(test_sameas) {
-    Resolved_Arg *arg = (Resolved_Arg *)map_get(nargs, intern_str("s"));
+    Resolved_Arg *arg = narg("s");
 
     b32 result = operand->ptr == arg->val->ptr;
 
