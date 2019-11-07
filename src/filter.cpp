@@ -5,6 +5,27 @@ internal_proc FILTER_CALLBACK(filter_abs) {
     return val_int(i);
 }
 
+internal_proc FILTER_CALLBACK(filter_attr) {
+    Resolved_Arg *arg = narg("name");
+    Val *result = 0;
+
+    /* @AUFGABE: in eigene methode subs auslagern */
+    if ( operand->kind == VAL_DICT ) {
+        for ( int i = 0; i < operand->len; ++i ) {
+            Val *v = ((Val **)operand->ptr)[i];
+            Resolved_Pair *pair = (Resolved_Pair *)v->ptr;
+
+            if ( *pair->key == *arg->val ) {
+                result = pair->value;
+                break;
+            }
+        }
+    }
+
+    /* @AUFGABE: standardwert zurückgeben */
+    return result;
+}
+
 internal_proc FILTER_CALLBACK(filter_capitalize) {
     assert(operand->kind == VAL_STR);
 

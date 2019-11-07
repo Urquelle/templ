@@ -2866,7 +2866,8 @@ resolve_add_block(char *name, Resolved_Stmt *block) {
 
 internal_proc void
 resolve_init_builtin_filter() {
-    Type_Field *str_type[] = { type_field("s", type_str) };
+    Type_Field *str_type[]  = { type_field("s", type_str) };
+    Type_Field *name_type[] = { type_field("name", type_str) };
     Type_Field *default_type[] = { type_field("s", type_str), type_field("boolean", type_bool, val_bool(False)) };
     Type_Field *trunc_type[] = {
         type_field("length", type_int, val_int(255)),
@@ -2876,6 +2877,7 @@ resolve_init_builtin_filter() {
     };
 
     sym_push_filter("abs",        type_filter(0,            0, type_str, filter_abs));
+    sym_push_filter("attr",       type_filter(name_type,    1, type_str, filter_attr));
     sym_push_filter("capitalize", type_filter(0,            0, type_str, filter_capitalize));
     sym_push_filter("default",    type_filter(default_type, 2, type_str, filter_default));
     sym_push_filter("d",          type_filter(default_type, 2, type_str, filter_default));

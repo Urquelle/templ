@@ -1,3 +1,10 @@
+<h2>filter.tpl</h2>
+
+{{ -5 | abs }}
+
+{% set set = {'a': 10, 'b': "bla"} %}
+{{ set | attr('b') }}
+
 {% filter upper %}
     test des filters upper
 {% endfilter %}
