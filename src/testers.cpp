@@ -144,7 +144,7 @@ internal_proc TEST_CALLBACK(test_sameas) {
 }
 
 internal_proc TEST_CALLBACK(test_sequence) {
-    b32 result = test_iterable(operand, type, nargs, kwargs, varargs, num_varargs);
+    b32 result = test_iterable(operand, type, nargs, kwargs, num_kwargs, varargs, num_varargs);
 
     return val_bool(result);
 }

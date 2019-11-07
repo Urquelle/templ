@@ -1322,7 +1322,8 @@ struct Resolved_Expr {
         struct {
             Resolved_Expr *expr;
             Map *nargs;
-            Map *kwargs;
+            Resolved_Arg **kwargs;
+            size_t num_kwargs;
             Resolved_Arg **varargs;
             size_t num_varargs;
         } expr_call;
@@ -1524,14 +1525,16 @@ resolved_expr_not(Resolved_Expr *expr) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_call(Resolved_Expr *expr, Map *nargs, Map *kwargs,
-        Resolved_Arg **varargs, size_t num_varargs, Type *type)
+resolved_expr_call(Resolved_Expr *expr, Map *nargs, Resolved_Arg **kwargs,
+        size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs,
+        Type *type)
 {
     Resolved_Expr *result = resolved_expr_new(EXPR_CALL, type);
 
     result->expr_call.expr        = expr;
     result->expr_call.nargs       = nargs;
-    result->expr_call.kwargs      = kwargs;
+    result->expr_call.kwargs      = (Resolved_Arg **)AST_DUP(kwargs);
+    result->expr_call.num_kwargs  = num_kwargs;
     result->expr_call.varargs     = (Resolved_Arg **)AST_DUP(varargs);
     result->expr_call.num_varargs = num_varargs;
 
@@ -2501,7 +2504,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
     /* benamte argumente */
     Map *nargs = (Map *)xcalloc(1, sizeof(Map));
     /* benamte argumente, die nicht im typen definiert wurden */
-    Map *kwargs = (Map *)xcalloc(1, sizeof(Map));
+    Resolved_Arg **kwargs = 0;
     /* mehr übergebener argumente als vom typ vorgegeben */
     Resolved_Arg **varargs = 0;
     b32 must_be_named = false;
@@ -2537,7 +2540,8 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
             if ( matching_param ) {
                 map_put(nargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
             } else {
-                map_put(kwargs, name, resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val));
+                Resolved_Arg *kwarg = resolved_arg(expr->pos, name, arg_expr->type, arg_expr->val);
+                buf_push(kwargs, kwarg);
             }
 
         /* @INFO: wenn unbenamtes argument */
@@ -2595,7 +2599,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
         }
     }
 
-    return resolved_expr_call(call_expr, nargs, kwargs, varargs, buf_len(varargs), type);
+    return resolved_expr_call(call_expr, nargs, kwargs, buf_len(kwargs), varargs, buf_len(varargs), type);
 }
 
 internal_proc Resolved_Expr *

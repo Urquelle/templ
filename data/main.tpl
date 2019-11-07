@@ -11,7 +11,7 @@
     {% include "exprs.tpl"    without context %}
     {% include "stmts.tpl"    without context %}
     {% include "utf8.tpl"     without context %}
-    {% include "filter.tpl" %}
+    {% include "filter.tpl"   with    context %}
     {% include "tests.tpl"    without context %}
     {% include "macros.tpl"   without context %}
 

@@ -198,7 +198,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
             assert(type->kind == TYPE_TEST);
             Resolved_Expr *tester = expr->expr_is.tester;
 
-            result = type->type_test.callback(operand, type, tester->expr_call.nargs, tester->expr_call.kwargs, tester->expr_call.varargs, tester->expr_call.num_varargs);
+            result = type->type_test.callback(operand, type, tester->expr_call.nargs, tester->expr_call.kwargs, tester->expr_call.num_kwargs, tester->expr_call.varargs, tester->expr_call.num_varargs);
         } break;
 
         case EXPR_CALL: {
@@ -207,7 +207,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
             if ( type->kind == TYPE_MACRO ) {
                 result = exec_macro(expr, templ);
             } else {
-                result = type->type_proc.callback(templ, expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs);
+                result = type->type_proc.callback(templ, expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.num_kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs);
             }
         } break;
 
@@ -270,7 +270,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
     for ( int i = 0; i < expr->num_filters; ++i ) {
         Resolved_Expr *filter = expr->filters[i];
         Type *type = filter->type;
-        result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
+        result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.num_kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
     }
 
     return result;
@@ -526,7 +526,7 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
                 Resolved_Expr *filter = stmt->stmt_filter.filter[i];
                 Type *type = filter->type;
-                result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
+                result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.num_kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
             }
 
             gen_result = old_gen_result;

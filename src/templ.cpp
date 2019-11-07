@@ -22,9 +22,9 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
-#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
-#define FILTER_CALLBACK(name) Val * name(Val *operand, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
-#define TEST_CALLBACK(name)   Val * name(Val *operand, Type *type, Map *nargs, Map *kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define FILTER_CALLBACK(name) Val * name(Val *operand, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define TEST_CALLBACK(name)   Val * name(Val *operand, Type *type, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
 #define erstes_if if
 #define genf(...)   gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
