@@ -91,6 +91,10 @@ internal_proc Val *
 val_undefined() {
     Val *result = val_new(VAL_UNDEFINED, 0);
 
+    result->size = 0;
+    result->len  = 0;
+    result->ptr  = 0;
+
     return result;
 }
 
@@ -2266,8 +2270,10 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
                 if ( sym_invalid(resolved_name->sym) && name->kind == EXPR_NAME ) {
                     resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_undefined());
+                    resolved_name->val = resolved_name->sym->val;
                 } else if ( !sym_invalid(resolved_name->sym) ) {
                     resolved_name->sym->type = expr->type;
+                    resolved_name->type = expr->type;
                 }
 
                 buf_push(names, resolved_name);
@@ -2277,10 +2283,11 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                     Resolved_Expr *resolved_name = resolve_expr(name);
 
                     if ( sym_invalid(resolved_name->sym) && name->kind == EXPR_NAME ) {
-                        resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_copy(val_elem(expr->val, i)));
+                        resolved_name->sym = sym_push_var(name->expr_name.value, expr->type, val_undefined());
+                        resolved_name->val = resolved_name->sym->val;
                     } else if ( !sym_invalid(resolved_name->sym) ) {
                         resolved_name->sym->type = expr->type;
-                        resolved_name->sym->val = val_copy(val_elem(expr->val, i));
+                        resolved_name->type = expr->type;
                     }
 
                     buf_push(names, resolved_name);

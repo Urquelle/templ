@@ -293,6 +293,7 @@ exec_stmt_set(Val *dest, Val *source) {
     erstes_if ( source->kind == VAL_INT ) {
         dest->kind = VAL_INT;
         dest->size = source->size;
+        dest->ptr  = xmalloc(sizeof(s32));
         val_set(dest, val_int(source));
     } else if ( source->kind == VAL_STR && dest->kind != VAL_CHAR ) {
         dest->kind = VAL_STR;
