@@ -53,7 +53,7 @@ b[1] = {{ b[1] }}
 
 {# tupel #}
 {% set tuple = ("europa" | upper, "asien", "amerika") %}
-{% for kontinent in tuple %}
+{% for kontinent in tuple if kontinent == "EUROPA" %}
     idx: {{ loop.index }} idx0: {{ loop.index0 }}
     revidx: {{ loop.revindex }} revidx0: {{ loop.revindex0 }}
     first: {{ loop.first }} last: {{ loop.last }}

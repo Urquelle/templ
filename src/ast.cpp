@@ -430,6 +430,7 @@ struct Stmt {
             Expr **vars;
             size_t num_vars;
             Expr *set;
+            Expr *if_expr;
 
             Stmt **stmts;
             size_t num_stmts;
@@ -542,14 +543,15 @@ stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Stmt *
-stmt_for(Expr **vars, size_t num_vars, Expr *set, Stmt **stmts, size_t num_stmts,
-        Stmt **else_stmts, size_t num_else_stmts)
+stmt_for(Expr **vars, size_t num_vars, Expr *set, Expr *if_expr, Stmt **stmts,
+        size_t num_stmts, Stmt **else_stmts, size_t num_else_stmts)
 {
     Stmt *result = stmt_new(STMT_FOR);
 
     result->stmt_for.vars      = (Expr **)AST_DUP(vars);
     result->stmt_for.num_vars  = num_vars;
     result->stmt_for.set       = set;
+    result->stmt_for.if_expr   = if_expr;
 
     result->stmt_for.stmts     = (Stmt **)AST_DUP(stmts);
     result->stmt_for.num_stmts = num_stmts;

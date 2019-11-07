@@ -1614,6 +1614,7 @@ struct Resolved_Stmt {
             Sym **vars;
             size_t num_vars;
             Resolved_Expr *set;
+            Resolved_Expr *if_expr;
 
             Resolved_Stmt **stmts;
             size_t num_stmts;
@@ -1759,7 +1760,8 @@ resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_for(Sym **vars, size_t num_vars, Resolved_Expr *set, Resolved_Stmt **stmts,
+resolved_stmt_for(Sym **vars, size_t num_vars, Resolved_Expr *set,
+        Resolved_Expr *if_expr, Resolved_Stmt **stmts,
         size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts,
         Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0,
         Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle)
@@ -1769,6 +1771,7 @@ resolved_stmt_for(Sym **vars, size_t num_vars, Resolved_Expr *set, Resolved_Stmt
     result->stmt_for.vars = (Sym **)AST_DUP(vars);
     result->stmt_for.num_vars = num_vars;
     result->stmt_for.set = set;
+    result->stmt_for.if_expr = if_expr;
 
     result->stmt_for.stmts = stmts;
     result->stmt_for.num_stmts = num_stmts;
@@ -2122,6 +2125,11 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             num_vars = buf_len(vars);
             Resolved_Expr *set = resolve_expr(stmt->stmt_for.set);
 
+            Resolved_Expr *if_expr = 0;
+            if ( stmt->stmt_for.if_expr ) {
+                if_expr = resolve_expr(stmt->stmt_for.if_expr);
+            }
+
             /* loop variablen {{{ */
             Sym *loop = sym_push_var("loop", 0);
             Scope *scope = scope_enter();
@@ -2156,9 +2164,10 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             scope_leave();
 
-            result = resolved_stmt_for(vars, num_vars, set, stmts, buf_len(stmts), else_stmts, buf_len(else_stmts),
-                    loop_index, loop_index0, loop_revindex, loop_revindex0, loop_first, loop_last,
-                    loop_length, loop_cycle);
+            result = resolved_stmt_for(vars, num_vars, set, if_expr, stmts,
+                    buf_len(stmts), else_stmts, buf_len(else_stmts),
+                    loop_index, loop_index0, loop_revindex, loop_revindex0,
+                    loop_first, loop_last, loop_length, loop_cycle);
         } break;
 
         case STMT_IF: {

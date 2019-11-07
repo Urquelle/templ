@@ -82,7 +82,7 @@ internal_proc FILTER_CALLBACK(filter_upper) {
         offset += len;
     }
 
-    return val_str(result);
+    return val_str(intern_str(result));
 }
 
 internal_proc FILTER_CALLBACK(filter_escape) {

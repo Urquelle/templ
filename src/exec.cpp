@@ -201,6 +201,10 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
             result = type->type_test.callback(operand, type, tester->expr_call.nargs, tester->expr_call.kwargs, tester->expr_call.num_kwargs, tester->expr_call.varargs, tester->expr_call.num_varargs);
         } break;
 
+        case EXPR_IF: {
+            result = exec_expr(expr->expr_if.cond, templ);
+        } break;
+
         case EXPR_CALL: {
             Type *type = expr->type;
 
@@ -422,6 +426,14 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
                 for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
                     for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
                         stmt->stmt_for.vars[i]->val = val_elem(it.val, i);
+                    }
+
+                    if ( stmt->stmt_for.if_expr ) {
+                        Val *ret = exec_expr(stmt->stmt_for.if_expr, templ);
+
+                        if ( !val_bool(ret) ) {
+                            continue;
+                        }
                     }
 
                     val_set(stmt->stmt_for.loop_last->val, iterator_is_last(&it));

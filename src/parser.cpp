@@ -593,6 +593,10 @@ parse_stmt_for(Parser *p) {
     expect_str(p, "in");
 
     Expr *set = parse_expr(p);
+    Expr *if_expr = 0;
+    if ( match_keyword(p, keyword_if) ) {
+        if_expr = parse_expr_if(p);
+    }
 
     expect_token(p, T_CODE_END);
 
@@ -621,8 +625,8 @@ parse_stmt_for(Parser *p) {
         }
     }
 
-    Stmt *result = stmt_for(vars, buf_len(vars), set, stmts, buf_len(stmts),
-            else_stmts, buf_len(else_stmts));
+    Stmt *result = stmt_for(vars, buf_len(vars), set, if_expr, stmts,
+            buf_len(stmts), else_stmts, buf_len(else_stmts));
     buf_free(vars);
     buf_free(stmts);
 
