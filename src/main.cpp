@@ -35,7 +35,7 @@ main(int argc, char **argv) {
     Templ *templ2 = templ_compile_file(argv[1]);
     char *result2 = templ_render(templ2, &vars);
 
-    os_file_write("test2.html", result2, utf8_strlen(result2));
+    os_file_write("test2.html", result2, utf8_str_size(result2));
     if ( status_is_error() ) {
         for ( int i = 0; i < status_num_errors(); ++i ) {
             Status *error = status_error_get(i);

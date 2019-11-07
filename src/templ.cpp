@@ -332,6 +332,7 @@ namespace api {
     using templ::templ_vars;
     using templ::templ_vars_add;
     using templ::utf8_strlen;
+    using templ::utf8_str_size;
 }
 
 } /* namespace templ */

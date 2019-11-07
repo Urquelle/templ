@@ -122,7 +122,7 @@ main(int argc, char **argv) {
     char *result = templ_render(templ, &vars);
 
     if ( status_is_not_error() ) {
-        os_file_write("test.html", result, os_strlen(result));
+        os_file_write("test.html", result, utf8_str_size(result));
     } else {
         fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
         status_reset();
