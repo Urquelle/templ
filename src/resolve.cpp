@@ -2866,10 +2866,11 @@ resolve_add_block(char *name, Resolved_Stmt *block) {
 
 internal_proc void
 resolve_init_builtin_filter() {
-    Type_Field *str_type[]  = { type_field("s", type_str) };
-    Type_Field *name_type[] = { type_field("name", type_str) };
+    Type_Field *attr_type[]    = { type_field("name", type_str) };
+    Type_Field *batch_type[]   = { type_field("line_count", type_int), type_field("fill_with", type_str) };
+    Type_Field *center_type[]  = { type_field("width", type_int, val_int(80)) };
     Type_Field *default_type[] = { type_field("s", type_str), type_field("boolean", type_bool, val_bool(False)) };
-    Type_Field *trunc_type[] = {
+    Type_Field *trunc_type[]   = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
         type_field("end", type_str, val_str("...")),
@@ -2877,8 +2878,10 @@ resolve_init_builtin_filter() {
     };
 
     sym_push_filter("abs",        type_filter(0,            0, type_str, filter_abs));
-    sym_push_filter("attr",       type_filter(name_type,    1, type_str, filter_attr));
+    sym_push_filter("attr",       type_filter(attr_type,    1, type_str, filter_attr));
+    sym_push_filter("batch",      type_filter(batch_type,   1, type_str, filter_attr));
     sym_push_filter("capitalize", type_filter(0,            0, type_str, filter_capitalize));
+    sym_push_filter("center",     type_filter(center_type,  1, type_str, filter_center));
     sym_push_filter("default",    type_filter(default_type, 2, type_str, filter_default));
     sym_push_filter("d",          type_filter(default_type, 2, type_str, filter_default));
     sym_push_filter("escape",     type_filter(0,            0, type_str, filter_escape));

@@ -1,9 +1,17 @@
 <h2>filter.tpl</h2>
 
+{# abs #}
 {{ -5 | abs }}
 
+{# attr #}
 {% set set = {'a': 10, 'b': "bla"} %}
 {{ set | attr('b') }}
+
+{# capitalize #}
+{{ "abc" | capitalize }}
+
+{# center #}
+{{ "center me" | center }}
 
 {% filter upper %}
     test des filters upper

@@ -93,7 +93,9 @@ internal_proc PROC_CALLBACK(proc_lipsum);
 
 internal_proc FILTER_CALLBACK(filter_abs);
 internal_proc FILTER_CALLBACK(filter_attr);
+internal_proc FILTER_CALLBACK(filter_batch);
 internal_proc FILTER_CALLBACK(filter_capitalize);
+internal_proc FILTER_CALLBACK(filter_center);
 internal_proc FILTER_CALLBACK(filter_default);
 internal_proc FILTER_CALLBACK(filter_upper);
 internal_proc FILTER_CALLBACK(filter_escape);

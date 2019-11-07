@@ -26,6 +26,10 @@ internal_proc FILTER_CALLBACK(filter_attr) {
     return result;
 }
 
+internal_proc FILTER_CALLBACK(filter_batch) {
+    return val_str("/* @IMPLEMENT: filter batch */");
+}
+
 internal_proc FILTER_CALLBACK(filter_capitalize) {
     assert(operand->kind == VAL_STR);
 
@@ -33,6 +37,21 @@ internal_proc FILTER_CALLBACK(filter_capitalize) {
     ((char *)operand->ptr)[0] = std::toupper(first_letter, std::locale());
 
     return operand;
+}
+
+internal_proc FILTER_CALLBACK(filter_center) {
+    Resolved_Arg *arg = narg("width");
+    int width = val_int(arg->val);
+
+    if ( operand->len > width ) {
+        return operand;
+    }
+
+    s32 padding = (int)((width - operand->len) / 2);
+
+    char *result = strf("%*s%s%*s", padding, "", val_to_char(operand), padding, "");
+
+    return val_str(result);
 }
 
 internal_proc FILTER_CALLBACK(filter_default) {
