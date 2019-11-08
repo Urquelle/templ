@@ -542,6 +542,20 @@ internal_proc Expr *
 parse_expr(Parser *p, b32 do_parse_filter) {
     Expr *expr = parse_expr_ternary(p);
 
+    Expr *if_expr = 0;
+    if ( match_keyword(p, keyword_if) ) {
+        Expr *cond = parse_expr(p);
+        Expr *else_expr = 0;
+
+        if ( match_keyword(p, keyword_else) ) {
+            else_expr = parse_expr(p);
+        }
+
+        if_expr = expr_if(p->lex.pos, cond, else_expr);
+    }
+
+    expr->if_expr = if_expr;
+
     Expr **filters = 0;
     if ( do_parse_filter ) {
         if ( match_token(p, T_BAR) ) {
@@ -553,18 +567,6 @@ parse_expr(Parser *p, b32 do_parse_filter) {
     expr->num_filters = buf_len(filters);
 
     return expr;
-}
-
-internal_proc Expr *
-parse_expr_if(Parser *p) {
-    Expr *cond = parse_expr(p);
-    Expr *else_expr = 0;
-
-    if ( match_keyword(p, keyword_else) ) {
-        else_expr = parse_expr(p);
-    }
-
-    return expr_if(p->lex.pos, cond, else_expr);
 }
 
 internal_proc char *
@@ -593,10 +595,6 @@ parse_stmt_for(Parser *p) {
     expect_str(p, "in");
 
     Expr *set = parse_expr(p);
-    Expr *if_expr = 0;
-    if ( match_keyword(p, keyword_if) ) {
-        if_expr = parse_expr_if(p);
-    }
 
     expect_token(p, T_CODE_END);
 
@@ -625,8 +623,8 @@ parse_stmt_for(Parser *p) {
         }
     }
 
-    Stmt *result = stmt_for(vars, buf_len(vars), set, if_expr, stmts,
-            buf_len(stmts), else_stmts, buf_len(else_stmts));
+    Stmt *result = stmt_for(vars, buf_len(vars), set, stmts,
+            buf_len(stmts), else_stmts, buf_len(else_stmts), recursive);
     buf_free(vars);
     buf_free(stmts);
 
@@ -722,25 +720,21 @@ parse_stmt_block(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_extends(Parser *p) {
-    char *name = parse_str(p);
-
-    Expr *if_expr = 0;
-    if ( match_keyword(p, keyword_if) ) {
-        if_expr = parse_expr_if(p);
-    }
+    Expr *name = parse_expr(p);
+    assert(name->kind == EXPR_STR);
 
     expect_token(p, T_CODE_END);
 
-    Parsed_Templ *templ = parse_file(name);
+    Parsed_Templ *templ = parse_file(name->expr_str.value);
     Parsed_Templ *else_templ = 0;
-    if ( if_expr && if_expr->expr_if.else_expr ) {
-        Expr *else_expr = if_expr->expr_if.else_expr;
+    if ( name->if_expr && name->if_expr->expr_if.else_expr ) {
+        Expr *else_expr = name->if_expr->expr_if.else_expr;
         assert(else_expr->kind == EXPR_STR);
 
         else_templ = parse_file(else_expr->expr_str.value);
     }
 
-    return stmt_extends(name, templ, else_templ, if_expr);
+    return stmt_extends(name, templ, else_templ);
 }
 
 internal_proc Stmt *
@@ -1073,14 +1067,9 @@ internal_proc Stmt *
 parse_stmt_var(Parser *p) {
     Expr *expr = parse_expr(p);
 
-    Expr *if_expr = 0;
-    if ( match_keyword(p, keyword_if) ) {
-        if_expr = parse_expr_if(p);
-    }
-
     expect_token(p, T_VAR_END);
 
-    return stmt_var(expr, if_expr);
+    return stmt_var(expr);
 }
 
 internal_proc Stmt *

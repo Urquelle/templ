@@ -12,11 +12,18 @@
 {%+ set a = 40 +%}
 
 {# if mit elif #}
-    {% if 3 <= 5 %}
-        {{ "3 <= 5" }}
-    {% elif 3 > 5 %}
-        {{ 5 * 10 }}
-    {% endif %}
+{% if 3 <= 5 %}
+    {{ "3 <= 5" }}
+{% elif 3 > 5 %}
+    {{ 5 * 10 }}
+{% endif %}
+
+{% set b = 1 %}
+{% if not not true %}
+    {{ "heinrich" }}
+{% else %}
+    {{ "rumpelstilzchen" }}
+{% endif %}
 
 {# raw anweisung #}
 {% raw %}
@@ -91,6 +98,18 @@ c[1][0] {{ c[1][0] }}
 <h2>for mit array</h2>
 {% for it in ['grün', 'blau', 'weiss'] %}
     <li>{{ it }}</li>
+{% endfor %}
+
+{% for it in 0..5 %}
+    <div>{{ it }}</div>
+{% else %}
+    <div>menge ist leer</div>
+{% endfor %}
+
+{% for it in 0..0 %}
+    <div>{{ it }}</div>
+{% else %}
+    <div>menge ist leer</div>
 {% endfor %}
 
 <h2>set anweisung</h2>

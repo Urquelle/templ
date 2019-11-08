@@ -1257,6 +1257,9 @@ struct Resolved_Expr {
     Sym *sym;
     Val *val;
 
+    Resolved_Expr *if_expr;
+
+    /* @AUFGABE: wird das noch genutzt? */
     Resolved_Stmt *stmt;
 
     Resolved_Expr **filters;
@@ -1607,14 +1610,12 @@ struct Resolved_Stmt {
     union {
         struct {
             Resolved_Expr *expr;
-            Resolved_Expr *if_expr;
         } stmt_var;
 
         struct {
             Sym **vars;
             size_t num_vars;
             Resolved_Expr *set;
-            Resolved_Expr *if_expr;
 
             Resolved_Stmt **stmts;
             size_t num_stmts;
@@ -1676,10 +1677,9 @@ struct Resolved_Stmt {
         } stmt_include;
 
         struct {
-            char *name;
+            Resolved_Expr  *name;
             Resolved_Templ *tmpl;
             Resolved_Templ *else_tmpl;
-            Resolved_Expr *if_expr;
         } stmt_extends;
 
         struct {
@@ -1712,11 +1712,10 @@ resolved_stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_var(Resolved_Expr *expr, Resolved_Expr *if_expr) {
+resolved_stmt_var(Resolved_Expr *expr) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_VAR);
 
     result->stmt_var.expr    = expr;
-    result->stmt_var.if_expr = if_expr;
 
     return result;
 }
@@ -1761,8 +1760,8 @@ resolved_stmt_else(Resolved_Stmt **stmts, size_t num_stmts) {
 
 internal_proc Resolved_Stmt *
 resolved_stmt_for(Sym **vars, size_t num_vars, Resolved_Expr *set,
-        Resolved_Expr *if_expr, Resolved_Stmt **stmts,
-        size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts,
+        Resolved_Stmt **stmts, size_t num_stmts, Resolved_Stmt **else_stmts,
+        size_t num_else_stmts,
         Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0,
         Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle)
 {
@@ -1771,7 +1770,6 @@ resolved_stmt_for(Sym **vars, size_t num_vars, Resolved_Expr *set,
     result->stmt_for.vars = (Sym **)AST_DUP(vars);
     result->stmt_for.num_vars = num_vars;
     result->stmt_for.set = set;
-    result->stmt_for.if_expr = if_expr;
 
     result->stmt_for.stmts = stmts;
     result->stmt_for.num_stmts = num_stmts;
@@ -1864,15 +1862,14 @@ resolved_stmt_include(Resolved_Templ **templ, size_t num_templ) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_extends(char *name, Resolved_Templ *tmpl, Resolved_Templ *else_tmpl,
-        Resolved_Expr *if_expr)
+resolved_stmt_extends(Resolved_Expr *name, Resolved_Templ *tmpl,
+        Resolved_Templ *else_tmpl)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_EXTENDS);
 
     result->stmt_extends.name = name;
     result->stmt_extends.tmpl = tmpl;
     result->stmt_extends.else_tmpl = else_tmpl;
-    result->stmt_extends.if_expr = if_expr;
 
     return result;
 }
@@ -2102,13 +2099,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
     switch (stmt->kind) {
         case STMT_VAR: {
             Resolved_Expr *expr = resolve_expr(stmt->stmt_var.expr);
-            Resolved_Expr *if_expr = 0;
-
-            if ( stmt->stmt_var.if_expr ) {
-                if_expr = resolve_expr(stmt->stmt_var.if_expr);
-            }
-
-            result = resolved_stmt_var(expr, if_expr);
+            result = resolved_stmt_var(expr);
         } break;
 
         case STMT_FOR: {
@@ -2124,11 +2115,6 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             num_vars = buf_len(vars);
             Resolved_Expr *set = resolve_expr(stmt->stmt_for.set);
-
-            Resolved_Expr *if_expr = 0;
-            if ( stmt->stmt_for.if_expr ) {
-                if_expr = resolve_expr(stmt->stmt_for.if_expr);
-            }
 
             /* loop variablen {{{ */
             Sym *loop = sym_push_var("loop", 0);
@@ -2164,7 +2150,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             scope_leave();
 
-            result = resolved_stmt_for(vars, num_vars, set, if_expr, stmts,
+            result = resolved_stmt_for(vars, num_vars, set, stmts,
                     buf_len(stmts), else_stmts, buf_len(else_stmts),
                     loop_index, loop_index0, loop_revindex, loop_revindex0,
                     loop_first, loop_last, loop_length, loop_cycle);
@@ -2251,13 +2237,9 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                 sym_push_proc(name, type_proc(0, 0, 0, proc_super));
             }
 
-            Resolved_Expr *if_expr = 0;
-            if ( stmt->stmt_extends.if_expr ) {
-                if_expr = resolve_expr(stmt->stmt_extends.if_expr);
-            }
-
             Resolved_Templ *prev_templ = current_templ;
 
+            Resolved_Expr *name_expr = resolve_expr(stmt->stmt_extends.name);
             Resolved_Templ *t = resolve(stmt->stmt_extends.templ);
             Resolved_Templ *else_templ = 0;
             if ( stmt->stmt_extends.else_templ ) {
@@ -2266,7 +2248,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             current_templ = prev_templ;
 
-            result = resolved_stmt_extends(stmt->stmt_extends.name, t, else_templ, if_expr);
+            result = resolved_stmt_extends(name_expr, t, else_templ);
         } break;
 
         case STMT_SET: {
@@ -2840,6 +2822,12 @@ resolve_expr(Expr *expr) {
             fatal(expr->pos.name, expr->pos.row, "nicht unterstützter ausdruck");
         } break;
     }
+
+    Resolved_Expr *if_expr = 0;
+    if ( expr->if_expr ) {
+        if_expr = resolve_expr(expr->if_expr);
+    }
+    result->if_expr = if_expr;
 
     Resolved_Expr **filters = 0;
     for ( int i = 0; i < expr->num_filters; ++i ) {

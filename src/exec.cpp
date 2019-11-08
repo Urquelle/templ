@@ -362,7 +362,7 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
         } break;
 
         case STMT_VAR: {
-            Resolved_Expr *if_expr = stmt->stmt_var.if_expr;
+            Resolved_Expr *if_expr = stmt->stmt_var.expr->if_expr;
 
             if ( !if_expr || if_expr_cond(if_expr, templ) ) {
                 Val *value = exec_expr(stmt->stmt_var.expr, templ);
@@ -428,8 +428,8 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
                         stmt->stmt_for.vars[i]->val = val_elem(it.val, i);
                     }
 
-                    if ( stmt->stmt_for.if_expr ) {
-                        Val *ret = exec_expr(stmt->stmt_for.if_expr, templ);
+                    if ( stmt->stmt_for.set->if_expr ) {
+                        Val *ret = exec_expr(stmt->stmt_for.set->if_expr, templ);
 
                         if ( !val_bool(ret) ) {
                             continue;
@@ -502,8 +502,8 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
         } break;
 
         case STMT_EXTENDS: {
-            if ( stmt->stmt_extends.if_expr ) {
-                Resolved_Expr *if_expr = stmt->stmt_extends.if_expr;
+            if ( stmt->stmt_extends.name->if_expr ) {
+                Resolved_Expr *if_expr = stmt->stmt_extends.name->if_expr;
                 Val *if_cond = exec_expr(if_expr->expr_if.cond, templ);
                 assert(if_cond->kind == VAL_BOOL);
 

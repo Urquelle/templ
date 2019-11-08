@@ -68,6 +68,7 @@ enum Expr_Kind {
 struct Expr {
     Expr_Kind kind;
     Pos pos;
+    Expr *if_expr;
     Expr **filters;
     size_t num_filters;
 
@@ -456,7 +457,6 @@ struct Stmt {
 
         struct {
             Expr *expr;
-            Expr *if_expr;
         } stmt_var;
 
         struct {
@@ -464,10 +464,9 @@ struct Stmt {
         } stmt_lit;
 
         struct {
-            char *name;
+            Expr *name;
             Parsed_Templ *templ;
             Parsed_Templ *else_templ;
-            Expr *if_expr;
         } stmt_extends;
 
         struct {
@@ -543,7 +542,7 @@ stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Stmt *
-stmt_for(Expr **vars, size_t num_vars, Expr *set, Expr *if_expr, Stmt **stmts,
+stmt_for(Expr **vars, size_t num_vars, Expr *set, Stmt **stmts,
         size_t num_stmts, Stmt **else_stmts, size_t num_else_stmts)
 {
     Stmt *result = stmt_new(STMT_FOR);
@@ -551,7 +550,6 @@ stmt_for(Expr **vars, size_t num_vars, Expr *set, Expr *if_expr, Stmt **stmts,
     result->stmt_for.vars      = (Expr **)AST_DUP(vars);
     result->stmt_for.num_vars  = num_vars;
     result->stmt_for.set       = set;
-    result->stmt_for.if_expr   = if_expr;
 
     result->stmt_for.stmts     = (Stmt **)AST_DUP(stmts);
     result->stmt_for.num_stmts = num_stmts;
@@ -607,11 +605,10 @@ stmt_block(char *name, Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Stmt *
-stmt_var(Expr *expr, Expr *if_expr) {
+stmt_var(Expr *expr) {
     Stmt *result = stmt_new(STMT_VAR);
 
     result->stmt_var.expr = expr;
-    result->stmt_var.if_expr = if_expr;
 
     return result;
 }
@@ -627,13 +624,12 @@ stmt_lit(char *value, size_t len) {
 }
 
 internal_proc Stmt *
-stmt_extends(char *name, Parsed_Templ *templ, Parsed_Templ *else_templ, Expr *if_expr) {
+stmt_extends(Expr *name, Parsed_Templ *templ, Parsed_Templ *else_templ) {
     Stmt *result = stmt_new(STMT_EXTENDS);
 
     result->stmt_extends.name       = name;
     result->stmt_extends.templ      = templ;
     result->stmt_extends.else_templ = else_templ;
-    result->stmt_extends.if_expr    = if_expr;
 
     return result;
 }
