@@ -81,7 +81,7 @@ c[1][0] {{ c[1][0] }}
 {{ "{% set d[3] = " }} "个" {{ "%}" }} = {{ d }}
 
 {# for schleife mit continue und break #}
-{% for i in 1..10 %}
+{% for i in 1..10 recursive %}
     {% if i == 2 %}{% continue %}{% endif %}
     {% if i == 5 %}{% break %}{% endif %}
     {{ i }}

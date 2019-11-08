@@ -431,7 +431,7 @@ struct Stmt {
             Expr **vars;
             size_t num_vars;
             Expr *set;
-            Expr *if_expr;
+            b32 recursive;
 
             Stmt **stmts;
             size_t num_stmts;
@@ -543,7 +543,8 @@ stmt_new(Stmt_Kind kind) {
 
 internal_proc Stmt *
 stmt_for(Expr **vars, size_t num_vars, Expr *set, Stmt **stmts,
-        size_t num_stmts, Stmt **else_stmts, size_t num_else_stmts)
+        size_t num_stmts, Stmt **else_stmts, size_t num_else_stmts,
+        b32 recursive)
 {
     Stmt *result = stmt_new(STMT_FOR);
 

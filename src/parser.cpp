@@ -49,6 +49,7 @@ global_var char *keyword_not;
 global_var char *keyword_with;
 global_var char *keyword_break;
 global_var char *keyword_continue;
+global_var char *keyword_recursive;
 
 internal_proc void
 init_keywords() {
@@ -86,6 +87,7 @@ init_keywords() {
     ADD_KEYWORD(with);
     ADD_KEYWORD(break);
     ADD_KEYWORD(continue);
+    ADD_KEYWORD(recursive);
 
 #undef ADD_KEYWORD
 }
@@ -595,6 +597,11 @@ parse_stmt_for(Parser *p) {
     expect_str(p, "in");
 
     Expr *set = parse_expr(p);
+
+    b32 recursive = false;
+    if ( match_keyword(p, keyword_recursive) ) {
+        recursive = true;
+    }
 
     expect_token(p, T_CODE_END);
 
