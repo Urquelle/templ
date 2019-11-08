@@ -33,10 +33,10 @@ internal_proc FILTER_CALLBACK(filter_batch) {
 internal_proc FILTER_CALLBACK(filter_capitalize) {
     assert(operand->kind == VAL_STR);
 
-    char first_letter = ((char *)operand->ptr)[0];
-    ((char *)operand->ptr)[0] = std::toupper(first_letter, std::locale());
+    char *result = strf("%s", val_str(operand));
+    utf8_toupper(result);
 
-    return operand;
+    return val_str(intern_str(result));
 }
 
 internal_proc FILTER_CALLBACK(filter_center) {

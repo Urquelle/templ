@@ -6,9 +6,12 @@
 {# attr #}
 {% set set = {'a': 10, 'b': "bla"} %}
 {{ set | attr('b') }}
+{{ set | attr('x') }}
 
 {# capitalize #}
-{{ "abc" | capitalize }}
+{% set a = "abc" %}
+{{ a | capitalize }}
+{{ a }}
 
 {# center #}
 {{ "center me" | center }}
