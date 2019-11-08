@@ -75,6 +75,8 @@ struct Val {
     void  *ptr;
 };
 
+global_var Val val_default = { VAL_UNDEFINED, 0, 0, 0 };
+
 internal_proc Val *
 val_new(Val_Kind kind, size_t size) {
     Val *result = ALLOC_STRUCT(&resolve_arena, Val);

@@ -326,6 +326,7 @@ exec_stmt_set(Val *dest, Val *source) {
         if ( new_size == old_size && size_new_char == size_old_char ) {
             size_t offset = utf8_char_offset((char *)orig->ptr, old_char_loc);
             utf8_char_write((char *)orig->ptr + offset, (char *)source->ptr);
+            dest->ptr = intern_str((char *)dest->ptr);
         } else {
             size_t len = utf8_strlen((char *)orig->ptr);
             char *new_mem = (char *)xcalloc(1, new_size+1);
@@ -342,7 +343,7 @@ exec_stmt_set(Val *dest, Val *source) {
 
             new_mem[new_size] = 0;
 
-            orig->ptr = new_mem;
+            orig->ptr = intern_str(new_mem);
         }
     } else if ( val_is_undefined(dest) ) {
         dest->kind = source->kind;

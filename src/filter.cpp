@@ -7,7 +7,13 @@ internal_proc FILTER_CALLBACK(filter_abs) {
 
 internal_proc FILTER_CALLBACK(filter_attr) {
     Resolved_Arg *arg = narg("name");
-    Val *result = 0;
+
+    /* @WARNUNG: val_default wert wird überschrieben, falls nach der anwendung
+     *           des filters eine set anweisung auf die variable ausgeführt wird.
+     *           an dieser stelle muss wohl ebenfalls ein neuer val_default wert
+     *           erzeugt werden.
+     */
+    Val *result = &val_default;
 
     /* @AUFGABE: in eigene methode subs auslagern */
     if ( operand->kind == VAL_DICT ) {
@@ -22,7 +28,6 @@ internal_proc FILTER_CALLBACK(filter_attr) {
         }
     }
 
-    /* @AUFGABE: standardwert zurückgeben */
     return result;
 }
 
@@ -51,6 +56,7 @@ internal_proc FILTER_CALLBACK(filter_center) {
 
     char *result = strf("%*s%s%*s", padding, "", val_to_char(operand), padding, "");
 
+    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 
@@ -82,6 +88,7 @@ internal_proc FILTER_CALLBACK(filter_upper) {
         offset += len;
     }
 
+    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(intern_str(result));
 }
 
@@ -104,6 +111,7 @@ internal_proc FILTER_CALLBACK(filter_escape) {
         }
     }
 
+    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 
@@ -201,6 +209,7 @@ internal_proc FILTER_CALLBACK(filter_format) {
         format = utf8_char_next(format);
     }
 
+    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 
@@ -254,6 +263,7 @@ internal_proc FILTER_CALLBACK(filter_truncate) {
         end += utf8_char_size(end);
     }
 
+    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 
