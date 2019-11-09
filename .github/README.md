@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://github.com/NoobSaibot/templ/blob/dev/static/logo_250.png" />
+    <img src="https://github.com/NoobSaibot/templ/blob/dev/misc/logo_250.png" />
     <br /><br />
     <a href="https://github.com/NoobSaibot/templ/releases/latest">
         <img src="https://img.shields.io/github/v/release/NoobSaibot/templ" />
