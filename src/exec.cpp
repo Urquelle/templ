@@ -186,6 +186,14 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
                     result = val_bool(!calc);
                 } break;
 
+                case T_TILDE: {
+                    Val *left  = exec_expr(expr->expr_binary.left, templ);
+                    Val *right = exec_expr(expr->expr_binary.right, templ);
+
+                    char *out  = strf("%s%s", val_to_char(left), val_to_char(right));
+                    result = val_str(out);
+                } break;
+
                 default: {
                     illegal_path();
                 } break;

@@ -21,6 +21,7 @@ enum Token_Kind {
     T_LBRACE,
     T_RBRACE,
     T_BAR,
+    T_TILDE,
     T_HASH,
     T_PERCENT,
     T_QMARK,
@@ -92,6 +93,7 @@ tokenkind_to_str(Token_Kind kind) {
         case T_LBRACE:     { return "<{>";       } break;
         case T_RBRACE:     { return "<}>";       } break;
         case T_BAR:        { return "<|>";       } break;
+        case T_TILDE:      { return "<~>";       } break;
         case T_HASH:       { return "<#>";       } break;
         case T_PERCENT:    { return "<%>";       } break;
         case T_QMARK:      { return "<?>";       } break;
@@ -478,6 +480,9 @@ next_raw_token(Lexer *lex) {
         lex->token.name = intern_str(start, utf8_char_lastbyte(lex->input));
     } else if ( c == '|' ) {
         lex->token.kind = T_BAR;
+        next(lex);
+    } else if ( c == '~' ) {
+        lex->token.kind = T_TILDE;
         next(lex);
     } else {
         lex->token.kind = (Token_Kind)at0(lex);

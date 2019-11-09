@@ -346,24 +346,23 @@ val_op(Token_Kind op, Val *val) {
     return val;
 }
 
-global_var char val_to_char_buf[1000];
 internal_proc char *
 val_to_char(Val *val) {
     switch ( val->kind ) {
         case VAL_STR: {
             size_t len = utf8_str_size((char *)val->ptr, val->len);
-            sprintf(val_to_char_buf, "%.*s", (int)len, (char *)val->ptr);
-            return val_to_char_buf;
+            char *result = strf("%.*s", (int)len, (char *)val->ptr);
+            return result;
         } break;
 
         case VAL_INT: {
-            sprintf(val_to_char_buf, "%d", val_int(val));
-            return val_to_char_buf;
+            char *result = strf("%d", val_int(val));
+            return result;
         } break;
 
         case VAL_FLOAT: {
-            sprintf(val_to_char_buf, "%.9g", val_float(val));
-            return val_to_char_buf;
+            char *result = strf("%.9g", val_float(val));
+            return result;
         } break;
 
         case VAL_UNDEFINED: {
@@ -385,8 +384,8 @@ val_to_char(Val *val) {
             char *ptr = utf8_char_goto((char *)orig->ptr, val->len);
             int size = (int)utf8_char_size(ptr);
 
-            sprintf(val_to_char_buf, "%.*s", size, ptr);
-            return val_to_char_buf;
+            char *result = strf("%.*s", size, ptr);
+            return result;
         } break;
 
         default: {

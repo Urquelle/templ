@@ -474,13 +474,24 @@ parse_expr_or(Parser *p) {
 }
 
 internal_proc Expr *
-parse_expr_ternary(Parser *p) {
+parse_expr_tilde(Parser *p) {
     Expr *left = parse_expr_or(p);
 
+    while ( match_token(p, T_TILDE) ) {
+        left = expr_binary(p->lex.pos, T_TILDE, left, parse_expr(p));
+    }
+
+    return left;
+}
+
+internal_proc Expr *
+parse_expr_ternary(Parser *p) {
+    Expr *left = parse_expr_tilde(p);
+
     if ( match_token(p, T_QMARK) ) {
-        Expr *middle = parse_expr_or(p);
+        Expr *middle = parse_expr_tilde(p);
         expect_token(p, T_COLON);
-        left = expr_ternary(p->lex.pos, left, middle, parse_expr_or(p));
+        left = expr_ternary(p->lex.pos, left, middle, parse_expr_tilde(p));
     }
 
     return left;
