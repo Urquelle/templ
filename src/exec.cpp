@@ -350,7 +350,6 @@ exec_stmt_set(Val *dest, Val *source) {
             }
 
             new_mem[new_size] = 0;
-
             orig->ptr = intern_str(new_mem);
         }
     } else if ( val_is_undefined(dest) ) {

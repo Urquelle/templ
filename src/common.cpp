@@ -507,7 +507,7 @@ intern_str(char *start, char *end) {
 
 internal_proc char *
 intern_str(char *value) {
-    size_t len = utf8_strlen(value);
+    size_t len = utf8_str_size(value);
     return intern_str(value, value + len);
 }
 

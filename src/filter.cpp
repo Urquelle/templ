@@ -41,7 +41,7 @@ internal_proc FILTER_CALLBACK(filter_capitalize) {
     char *result = strf("%s", val_str(operand));
     utf8_toupper(result);
 
-    return val_str(intern_str(result));
+    return val_str(result);
 }
 
 internal_proc FILTER_CALLBACK(filter_center) {
@@ -56,7 +56,6 @@ internal_proc FILTER_CALLBACK(filter_center) {
 
     char *result = strf("%*s%s%*s", padding, "", val_to_char(operand), padding, "");
 
-    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 
@@ -88,8 +87,7 @@ internal_proc FILTER_CALLBACK(filter_upper) {
         offset += len;
     }
 
-    /* @AUFGABE: intern_str für die kopie verwenden */
-    return val_str(intern_str(result));
+    return val_str(result);
 }
 
 internal_proc FILTER_CALLBACK(filter_escape) {
@@ -111,7 +109,6 @@ internal_proc FILTER_CALLBACK(filter_escape) {
         }
     }
 
-    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 
@@ -209,7 +206,6 @@ internal_proc FILTER_CALLBACK(filter_format) {
         format = utf8_char_next(format);
     }
 
-    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 
@@ -263,7 +259,6 @@ internal_proc FILTER_CALLBACK(filter_truncate) {
         end += utf8_char_size(end);
     }
 
-    /* @AUFGABE: intern_str für die kopie verwenden */
     return val_str(result);
 }
 

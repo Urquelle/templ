@@ -189,7 +189,7 @@ val_str(char *val, size_t len = 0) {
     Val *result = val_new(VAL_STR, sizeof(char*));
 
     result->len = (len) ? len : utf8_strlen(val);
-    result->ptr = val;
+    result->ptr = intern_str(val);
 
     return result;
 }
