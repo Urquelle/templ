@@ -335,6 +335,13 @@ val_inc(Val *val) {
     val_set(val, val_int(val) + 1);
 }
 
+internal_proc void
+val_dec(Val *val) {
+    assert(val->kind == VAL_INT);
+
+    val_set(val, val_int(val) - 1);
+}
+
 internal_proc Val *
 val_op(Token_Kind op, Val *val) {
     if ( op == T_MINUS ) {

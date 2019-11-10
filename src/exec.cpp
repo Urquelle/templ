@@ -429,6 +429,8 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
                 global_for_continue = false;
 
                 val_set(stmt->stmt_for.loop_length->val, (s32)list->len);
+                val_set(stmt->stmt_for.loop_revindex->val, (s32)list->len);
+                val_set(stmt->stmt_for.loop_revindex0->val, (s32)list->len-1);
 
                 for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
                     for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
@@ -468,6 +470,8 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
 
                     val_inc(stmt->stmt_for.loop_index->val);
                     val_inc(stmt->stmt_for.loop_index0->val);
+                    val_dec(stmt->stmt_for.loop_revindex->val);
+                    val_dec(stmt->stmt_for.loop_revindex0->val);
                     val_set(stmt->stmt_for.loop_first->val, false);
                 }
             } else if ( stmt->stmt_for.else_stmts ) {
