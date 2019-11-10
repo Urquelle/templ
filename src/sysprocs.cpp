@@ -57,7 +57,7 @@ PROC_CALLBACK(proc_cycler_next) {
 
     s32 loop_index = cycler->idx;
     s32 arg_index  = loop_index % cycler->num_args;
-    Val *result = cycler->args[cycler->idx]->val;
+    Val *result = cycler->args[arg_index]->val;
 
     Scope *scope = base->type->type_dict.scope;
     map_put(&scope->syms, intern_str("current"), result);
