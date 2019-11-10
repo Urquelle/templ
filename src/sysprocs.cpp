@@ -37,7 +37,9 @@ PROC_CALLBACK(proc_cycler) {
     cycler->idx = 0;
 
     Map *map = &proc_type->type_proc.ret->type_dict.scope->syms;
-    map_put(map, intern_str("current"), varargs[0]->val);
+    Sym *current = (Sym *)map_get(map, intern_str("current"));
+
+    current->val = varargs[0]->val;
 
     Val *result = val_dict(0, 0);
     result->user_data = cycler;
@@ -49,18 +51,21 @@ PROC_CALLBACK(proc_cycler_next) {
     /* @INFO: die next methode wird IMMER über <cycler>.next() aufgerufen, und somit
      *        immer im expr_call -> expr_field sein.
      */
+    assert(expr->expr_call.expr->kind == EXPR_FIELD);
     Resolved_Expr *base = expr->expr_call.expr->expr_field.base;
     Cycler *cycler = (Cycler *)base->val->user_data;
 
-    /* @AUFGABE: wird der index vor- oder hinterher erhöht? */
     cycler->idx += 1;
 
     s32 loop_index = cycler->idx;
     s32 arg_index  = loop_index % cycler->num_args;
     Val *result = cycler->args[arg_index]->val;
 
+    assert(base->type->kind == TYPE_DICT);
     Scope *scope = base->type->type_dict.scope;
-    map_put(&scope->syms, intern_str("current"), result);
+    Sym *current = (Sym *)map_get(&scope->syms, intern_str("current"));
+
+    current->val = result;
 
     return result;
 }
@@ -71,7 +76,9 @@ PROC_CALLBACK(proc_cycler_reset) {
     cycler->idx = 0;
 
     Scope *scope = base->type->type_dict.scope;
-    map_put(&scope->syms, intern_str("current"), cycler->args[cycler->idx]->val);
+    Sym *current = (Sym *)map_get(&scope->syms, intern_str("current"));
+
+    current->val = cycler->args[cycler->idx]->val;
 
     return 0;
 }

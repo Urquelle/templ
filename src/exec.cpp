@@ -106,7 +106,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
         } break;
 
         case EXPR_FIELD: {
-            result = expr->val;
+            result = (expr->sym) ? expr->sym->val : expr->val;
         } break;
 
         case EXPR_BINARY: {

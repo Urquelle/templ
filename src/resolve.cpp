@@ -86,6 +86,7 @@ val_new(Val_Kind kind, size_t size) {
     result->size = size;
     result->len  = 0;
     result->ptr  = (void *)ALLOC_SIZE(&resolve_arena, size);
+    result->user_data = 0;
 
     return result;
 }
@@ -2952,7 +2953,7 @@ resolve_init_builtin_procs() {
     Scope *prev_scope = scope_set(scope);
     sym_push_proc("next",    type_proc(0, 0, type_any, proc_cycler_next));
     sym_push_proc("reset",   type_proc(0, 0, 0,        proc_cycler_reset));
-    sym_push_proc("current", type_any);
+    sym_push_var("current",  type_any);
     scope_set(prev_scope);
 
     sym_push_sysproc("cycler", type_proc(0,           0, type_dict(scope), proc_cycler));
