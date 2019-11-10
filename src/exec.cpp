@@ -302,26 +302,22 @@ if_expr_cond(Resolved_Expr *if_expr, Resolved_Templ *templ) {
 
 internal_proc void
 exec_stmt_set(Val *dest, Val *source) {
+    dest->size      = source->size;
+    dest->len       = source->len;
+
     erstes_if ( source->kind == VAL_INT ) {
-        dest->kind = VAL_INT;
-        dest->size = source->size;
+        dest->kind = source->kind;
         dest->ptr  = xmalloc(sizeof(s32));
         val_set(dest, val_int(source));
     } else if ( source->kind == VAL_STR && dest->kind != VAL_CHAR ) {
-        dest->kind = VAL_STR;
+        dest->kind = source->kind;
         dest->ptr  = source->ptr;
-        dest->len  = source->len;
-        dest->size = source->size;
     } else if ( source->kind == VAL_LIST ) {
-        dest->kind = VAL_LIST;
+        dest->kind = source->kind;
         dest->ptr  = source->ptr;
-        dest->len  = source->len;
-        dest->size = source->size;
     } else if ( source->kind == VAL_TUPLE ) {
-        dest->kind = VAL_TUPLE;
+        dest->kind = source->kind;
         dest->ptr  = source->ptr;
-        dest->len  = source->len;
-        dest->size = source->size;
     } else if ( source->kind == VAL_STR && dest->kind == VAL_CHAR ) {
         Val *orig = (Val *)dest->ptr;
 
@@ -354,8 +350,6 @@ exec_stmt_set(Val *dest, Val *source) {
         }
     } else if ( val_is_undefined(dest) ) {
         dest->kind = source->kind;
-        dest->len  = source->len;
-        dest->size = source->size;
         dest->ptr  = source->ptr;
     } else {
         fatal(0, 0, "nicht unterstützter datentyp wird in einer set anweisung verwendet");
