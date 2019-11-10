@@ -870,14 +870,6 @@ struct Type {
             Type_Field **params;
             size_t num_params;
             Type *ret;
-            Proc_Callback *callback;
-            b32 variadic;
-        } type_proc;
-
-        struct {
-            Type_Field **params;
-            size_t num_params;
-            Type *ret;
             Resolved_Stmt **stmts;
             size_t num_stmts;
         } type_macro;
@@ -886,8 +878,14 @@ struct Type {
             Type_Field **params;
             size_t num_params;
             Type *ret;
+            Proc_Callback *callback;
+        } type_proc;
+
+        struct {
+            Type_Field **params;
+            size_t num_params;
+            Type *ret;
             Filter_Callback *callback;
-            b32 variadic;
         } type_filter;
 
         struct {
@@ -947,7 +945,7 @@ type_tuple(size_t num_elems) {
 
 internal_proc Type *
 type_proc(Type_Field **params, size_t num_params, Type *ret,
-        Proc_Callback *callback = 0, b32 variadic = false, void *user_data = 0)
+        Proc_Callback *callback = 0, void *user_data = 0)
 {
     Type *result = type_new(TYPE_PROC);
 
@@ -959,7 +957,6 @@ type_proc(Type_Field **params, size_t num_params, Type *ret,
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
     result->type_proc.callback = callback;
-    result->type_proc.variadic = variadic;
 
     return result;
 }
@@ -980,7 +977,7 @@ type_macro(Type_Field **params, size_t num_params, Type *ret) {
 
 internal_proc Type *
 type_filter(Type_Field **params, size_t num_params, Type *ret,
-        Filter_Callback *callback, b32 variadic = false)
+        Filter_Callback *callback)
 {
     Type *result = type_new(TYPE_FILTER);
 
@@ -991,7 +988,6 @@ type_filter(Type_Field **params, size_t num_params, Type *ret,
     result->type_filter.num_params = num_params;
     result->type_filter.ret = ret;
     result->type_filter.callback = callback;
-    result->type_filter.variadic = variadic;
 
     return result;
 }
@@ -2608,7 +2604,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
         }
     }
 
-    return resolved_expr_call(call_expr, nargs, kwargs, buf_len(kwargs), varargs, buf_len(varargs), type);
+    return resolved_expr_call(call_expr, nargs, kwargs, buf_len(kwargs), varargs, buf_len(varargs), type->type_proc.ret);
 }
 
 internal_proc Resolved_Expr *
@@ -2757,10 +2753,6 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *tester  = resolve_tester(expr->expr_is.tester);
 
             assert(tester);
-
-            Type *type = tester->type;
-            assert(type->kind == TYPE_TEST);
-
             result = resolved_expr_is(operand, tester);
         } break;
 

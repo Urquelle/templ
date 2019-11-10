@@ -51,7 +51,7 @@ iterator_next(Iterator *it) {
 
 internal_proc Val *
 exec_macro(Resolved_Expr *expr, Resolved_Templ *templ) {
-    Type *type = expr->type;
+    Type *type = expr->expr_call.expr->type;
     assert(type->kind == TYPE_MACRO);
 
     for ( int i = 0; i < type->type_macro.num_params; ++i ) {
@@ -202,7 +202,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
 
         case EXPR_IS: {
             Val *operand = exec_expr(expr->expr_is.operand, templ);
-            Type *type = expr->expr_is.tester->type;
+            Type *type = expr->expr_is.tester->expr_call.expr->type;
             assert(type->kind == TYPE_TEST);
             Resolved_Expr *tester = expr->expr_is.tester;
 
@@ -214,7 +214,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
         } break;
 
         case EXPR_CALL: {
-            Type *type = expr->type;
+            Type *type = expr->expr_call.expr->type;
 
             if ( type->kind == TYPE_MACRO ) {
                 result = exec_macro(expr, templ);
@@ -281,7 +281,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
 
     for ( int i = 0; i < expr->num_filters; ++i ) {
         Resolved_Expr *filter = expr->filters[i];
-        Type *type = filter->type;
+        Type *type = filter->expr_call.expr->type;
         result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.num_kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
     }
 
@@ -551,7 +551,7 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
             Val *result = val_str(gen_result);
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
                 Resolved_Expr *filter = stmt->stmt_filter.filter[i];
-                Type *type = filter->type;
+                Type *type = filter->expr_call.expr->type;
                 result = type->type_filter.callback(result, filter->expr_call.nargs, filter->expr_call.kwargs, filter->expr_call.num_kwargs, filter->expr_call.varargs, filter->expr_call.num_varargs);
             }
 
