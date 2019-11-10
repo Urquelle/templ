@@ -1,1 +1,3 @@
 *.tpl linguist-language=jinja2
+bin/* linguist-detectable=false
+.github/* linguist-detectable=false
