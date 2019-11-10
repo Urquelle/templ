@@ -140,3 +140,8 @@ elem2 = {{ elem2 }}
 {% for key, value in di %}
     key = {{ key }} val = {{ value }}
 {% endfor %}
+
+{% set cyc = cycler("eins", "zwei", "polizei") %}
+{{ cyc.current }}
+{{ cyc.next() }}
+{{ cyc.next() }}

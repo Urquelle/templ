@@ -215,11 +215,16 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
 
         case EXPR_CALL: {
             Type *type = expr->expr_call.expr->type;
+            if ( type->kind == TYPE_COMBO ) {
+                type = expr->expr_call.expr->type->type_combo.proc;
+            }
 
             if ( type->kind == TYPE_MACRO ) {
                 result = exec_macro(expr, templ);
             } else {
-                result = type->type_proc.callback(templ, expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.num_kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs, type);
+                result = type->type_proc.callback(templ, expr, expr->expr_call.nargs,
+                        expr->expr_call.kwargs, expr->expr_call.num_kwargs,
+                        expr->expr_call.varargs, expr->expr_call.num_varargs, type);
             }
         } break;
 
@@ -302,6 +307,7 @@ if_expr_cond(Resolved_Expr *if_expr, Resolved_Templ *templ) {
 
 internal_proc void
 exec_stmt_set(Val *dest, Val *source) {
+    dest->user_data = source->user_data;
 
     erstes_if ( source->kind == VAL_INT ) {
         dest->kind = source->kind;

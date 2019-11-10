@@ -22,7 +22,7 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
-#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs, Type *proc_type)
+#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Resolved_Expr *expr, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs, Type *proc_type)
 #define FILTER_CALLBACK(name) Val * name(Val *operand, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 #define TEST_CALLBACK(name)   Val * name(Val *operand, Type *type, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
@@ -87,7 +87,11 @@ typedef TEST_CALLBACK(Test_Callback);
 enum { True = 1, False = 0, None = -1 };
 
 internal_proc PROC_CALLBACK(proc_super);
+internal_proc PROC_CALLBACK(proc_loop);
 internal_proc PROC_CALLBACK(proc_cycle);
+internal_proc PROC_CALLBACK(proc_cycler);
+internal_proc PROC_CALLBACK(proc_cycler_next);
+internal_proc PROC_CALLBACK(proc_cycler_reset);
 internal_proc PROC_CALLBACK(proc_range);
 internal_proc PROC_CALLBACK(proc_lipsum);
 

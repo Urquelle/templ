@@ -73,6 +73,7 @@ struct Val {
     size_t size;
     size_t len;
     void  *ptr;
+    void *user_data;
 };
 
 global_var Val val_default = { VAL_UNDEFINED, 0, 0, 0 };
@@ -846,6 +847,7 @@ enum Type_Kind {
     TYPE_FILTER,
     TYPE_TEST,
     TYPE_MODULE,
+    TYPE_COMBO,
 
     TYPE_COUNT,
 };
@@ -903,6 +905,11 @@ struct Type {
         struct {
             Scope *scope;
         } type_dict;
+
+        struct {
+            Type *proc;
+            Type *dict;
+        } type_combo;
     };
 };
 
@@ -1026,6 +1033,17 @@ type_dict(Scope *scope, u32 flags = TYPE_FLAGS_NONE) {
     result->flags = flags;
 
     result->type_dict.scope = scope;
+
+    return result;
+}
+
+internal_proc Type *
+type_combo(Type *proc, Type *dict) {
+    Type *result = type_new(TYPE_COMBO);
+
+    result->flags = TYPE_FLAGS_CALLABLE;
+    result->type_combo.proc = proc;
+    result->type_combo.dict = dict;
 
     return result;
 }
@@ -2124,14 +2142,16 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Resolved_Expr *set = resolve_expr(stmt->stmt_for.set);
 
             /* loop variablen {{{ */
-            Sym *loop = sym_push_var("loop", 0);
+            Type_Field *any_type[] = { type_field("s", type_any) };
+
+            Type *type = type_combo(0, 0);
+            Sym *loop = sym_push_var("loop", type);
             Scope *scope = scope_enter();
-            Type *type = type_dict(scope, TYPE_FLAGS_CONST|TYPE_FLAGS_CALLABLE);
+
+            type->type_combo.dict = type_dict(scope, TYPE_FLAGS_CONST|TYPE_FLAGS_CALLABLE);
+            type->type_combo.proc = type_proc(any_type, 1, 0, proc_loop);
 
             loop->scope = scope;
-            loop->type  = type;
-
-            Type_Field *any_type[] = { type_field("s", type_any) };
 
             Sym *loop_index     = sym_push_var("index",     type_int,  val_int(1));
             Sym *loop_index0    = sym_push_var("index0",    type_int,  val_int(0));
@@ -2500,7 +2520,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
     Resolved_Expr *call_expr = resolve_expr(expr->expr_call.expr);
     scope_set(prev_scope);
 
-    Type *type = call_expr->type;
+    Type *type = (call_expr->type->kind == TYPE_COMBO) ? call_expr->type->type_combo.proc : call_expr->type;
 
     if ( !type_is_callable(type) ) {
         fatal(call_expr->pos.name, call_expr->pos.row, "aufruf einer nicht-prozedur");
@@ -2687,17 +2707,20 @@ resolve_expr(Expr *expr) {
             assert(base->type);
             Type *type = base->type;
 
-            if ( type->kind == TYPE_DICT || type->kind == TYPE_MACRO ) {
-                assert(base->sym);
+            if ( type->kind == TYPE_COMBO ) {
+                type = type->type_combo.dict;
+            }
 
-                Scope *prev_scope = scope_set(base->sym->scope);
-                Sym *sym = resolve_name(expr->expr_field.field);
-                assert(sym);
-                scope_set(prev_scope);
-
-                result = resolved_expr_field(base, sym, sym->type, sym->val);
+            Scope *prev_scope = 0;
+            if ( type->kind == TYPE_DICT ) {
+                prev_scope = scope_set(type->type_dict.scope);
+            } else if ( type->kind == TYPE_MACRO ) {
+                prev_scope = scope_set(base->sym->scope);
             } else if ( type->kind == TYPE_MODULE ) {
-                Scope *prev_scope = scope_set(type->type_module.scope);
+                prev_scope = scope_set(type->type_module.scope);
+            }
+
+            if ( prev_scope ) {
                 Sym *sym = resolve_name(expr->expr_field.field);
                 assert(sym);
                 scope_set(prev_scope);
@@ -2924,6 +2947,15 @@ resolve_init_builtin_procs() {
     Type_Field *range_args[]  = { type_field("start", type_int, val_int(0)), type_field("stop", type_int), type_field("step", type_int, val_int(1)) };
     Type_Field *lipsum_args[] = { type_field("n", type_int, val_int(5)), type_field("html", type_bool, val_bool(true)), type_field("min", type_int, val_int(20)), type_field("max", type_int, val_int(100)) };
 
+
+    Scope *scope = scope_new(0, "cycler");
+    Scope *prev_scope = scope_set(scope);
+    sym_push_proc("next",    type_proc(0, 0, type_any, proc_cycler_next));
+    sym_push_proc("reset",   type_proc(0, 0, 0,        proc_cycler_reset));
+    sym_push_proc("current", type_any);
+    scope_set(prev_scope);
+
+    sym_push_sysproc("cycler", type_proc(0,           0, type_dict(scope), proc_cycler));
     sym_push_sysproc("range",  type_proc(range_args,  3, 0, proc_range));
     sym_push_sysproc("lipsum", type_proc(lipsum_args, 4, 0, proc_lipsum));
 }
