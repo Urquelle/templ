@@ -1,8 +1,5 @@
 <div>exprs.tpl</div>
 
-{{ true }}
-{{ false }}
-{{ none }}
 {{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}
 -1*5%2 = {{ -1*5%2 }}
 20/7 = {{ 20/7 }}
@@ -14,5 +11,5 @@
 "aシbcd"[1] = {{ "aシbcd"[1] }}
 {{ "🤩✨🥰" * 10 }}
 {{ 10 * "🤩✨🥰" }}
-{{ "abc" ~ 15 ~ "def" }}
+{{ "abc" ~ user.name ~ "def" }}
 {#{ a in ["blub", "blab", "blob"] }#}
