@@ -489,9 +489,9 @@ parse_expr_ternary(Parser *p) {
     Expr *left = parse_expr_tilde(p);
 
     if ( match_token(p, T_QMARK) ) {
-        Expr *middle = parse_expr_tilde(p);
+        Expr *middle = parse_expr(p);
         expect_token(p, T_COLON);
-        left = expr_ternary(p->lex.pos, left, middle, parse_expr_tilde(p));
+        left = expr_ternary(p->lex.pos, left, middle, parse_expr(p));
     }
 
     return left;
