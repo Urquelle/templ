@@ -219,7 +219,7 @@ exec_expr(Resolved_Expr *expr, Resolved_Templ *templ) {
             if ( type->kind == TYPE_MACRO ) {
                 result = exec_macro(expr, templ);
             } else {
-                result = type->type_proc.callback(templ, expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.num_kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs);
+                result = type->type_proc.callback(templ, expr->expr_call.nargs, expr->expr_call.kwargs, expr->expr_call.num_kwargs, expr->expr_call.varargs, expr->expr_call.num_varargs, type);
             }
         } break;
 
@@ -425,7 +425,6 @@ exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ) {
             Val *list = exec_expr(stmt->stmt_for.set, templ);
 
             if ( list->len ) {
-                global_for_stmt = stmt;
                 global_for_break = false;
                 global_for_continue = false;
 

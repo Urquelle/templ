@@ -22,7 +22,7 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
-#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs, Type *proc_type)
 #define FILTER_CALLBACK(name) Val * name(Val *operand, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 #define TEST_CALLBACK(name)   Val * name(Val *operand, Type *type, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
@@ -146,7 +146,6 @@ internal_proc void              exec(Resolved_Templ *templ);
 global_var char               * gen_result = "";
 global_var int                  gen_indent   = 0;
 Resolved_Templ                * global_current_tmpl;
-Resolved_Stmt                 * global_for_stmt;
 global_var b32                  global_for_break;
 global_var b32                  global_for_continue;
 global_var Resolved_Stmt      * global_super_block;

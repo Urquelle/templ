@@ -17,10 +17,9 @@ PROC_CALLBACK(proc_super) {
 }
 
 PROC_CALLBACK(proc_cycle) {
-    assert(global_for_stmt->kind == STMT_FOR);
-
-    s32 loop_index = val_int(global_for_stmt->stmt_for.loop_index->val);
+    s32 loop_index = val_int((Val *)proc_type->user_data);
     s32 arg_index  = loop_index % num_varargs;
+    val_inc((Val *)proc_type->user_data);
 
     return varargs[arg_index]->val;
 }

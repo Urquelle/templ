@@ -852,6 +852,7 @@ struct Type {
     Type_Kind kind;
     s64 size;
     u32 flags;
+    void *user_data;
 
     union {
         struct {
@@ -921,6 +922,7 @@ type_new(Type_Kind kind) {
     Type *result = ALLOC_STRUCT(&resolve_arena, Type);
 
     result->kind = kind;
+    result->user_data = 0;
 
     return result;
 }
@@ -938,13 +940,14 @@ type_tuple(size_t num_elems) {
 
 internal_proc Type *
 type_proc(Type_Field **params, size_t num_params, Type *ret,
-        Proc_Callback *callback = 0, b32 variadic = false)
+        Proc_Callback *callback = 0, b32 variadic = false, void *user_data = 0)
 {
     Type *result = type_new(TYPE_PROC);
 
     result->flags = TYPE_FLAGS_CALLABLE|TYPE_FLAGS_CONST;
 
     result->size = PTR_SIZE;
+    result->user_data = user_data;
     result->type_proc.params = (Type_Field **)AST_DUP(params);
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
@@ -2134,7 +2137,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Sym *loop_first     = sym_push_var("first",     type_bool, val_bool(true));
             Sym *loop_last      = sym_push_var("last",      type_bool, val_bool(false));
             Sym *loop_length    = sym_push_var("length",    type_int,  val_int(0));
-            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0, proc_cycle));
+            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0, proc_cycle, val_int(0)));
 
             scope_leave();
             /* }}} */
