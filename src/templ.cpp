@@ -92,6 +92,8 @@ internal_proc PROC_CALLBACK(proc_cycle);
 internal_proc PROC_CALLBACK(proc_cycler);
 internal_proc PROC_CALLBACK(proc_cycler_next);
 internal_proc PROC_CALLBACK(proc_cycler_reset);
+internal_proc PROC_CALLBACK(proc_joiner);
+internal_proc PROC_CALLBACK(proc_joiner_call);
 internal_proc PROC_CALLBACK(proc_range);
 internal_proc PROC_CALLBACK(proc_lipsum);
 

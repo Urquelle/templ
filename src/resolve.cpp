@@ -60,6 +60,7 @@ enum Val_Kind {
     VAL_CHAR,
     VAL_PAIR,
     VAL_STR,
+    VAL_PROC,
     VAL_ITERABLE_START = VAL_STR,
     VAL_RANGE,
     VAL_TUPLE,
@@ -284,6 +285,16 @@ val_dict(Val **pairs, size_t num_pairs) {
 
     result->len = num_pairs;
     result->ptr = pairs;
+
+    return result;
+}
+
+internal_proc Val *
+val_proc(Type *type, void *user_data) {
+    Val *result = val_new(VAL_PROC, sizeof(Type *));
+
+    result->ptr = type;
+    result->user_data = user_data;
 
     return result;
 }
@@ -2947,7 +2958,7 @@ internal_proc void
 resolve_init_builtin_procs() {
     Type_Field *range_args[]  = { type_field("start", type_int, val_int(0)), type_field("stop", type_int), type_field("step", type_int, val_int(1)) };
     Type_Field *lipsum_args[] = { type_field("n", type_int, val_int(5)), type_field("html", type_bool, val_bool(true)), type_field("min", type_int, val_int(20)), type_field("max", type_int, val_int(100)) };
-
+    Type_Field *joiner_args[] = { type_field("sep", type_str, val_str(",")) };
 
     Scope *scope = scope_new(0, "cycler");
     Scope *prev_scope = scope_set(scope);
@@ -2959,6 +2970,7 @@ resolve_init_builtin_procs() {
     sym_push_sysproc("cycler", type_proc(0,           0, type_dict(scope), proc_cycler));
     sym_push_sysproc("range",  type_proc(range_args,  3, 0, proc_range));
     sym_push_sysproc("lipsum", type_proc(lipsum_args, 4, 0, proc_lipsum));
+    sym_push_sysproc("joiner", type_proc(joiner_args, 1, type_proc(0, 0, type_str, proc_joiner_call), proc_joiner));
 }
 
 internal_proc void

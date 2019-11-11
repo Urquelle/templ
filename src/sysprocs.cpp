@@ -83,8 +83,39 @@ PROC_CALLBACK(proc_cycler_reset) {
     return 0;
 }
 
+struct Joiner {
+    int counter;
+    Val *val;
+};
+PROC_CALLBACK(proc_joiner) {
+    Resolved_Arg *arg = narg("sep");
+
+    Joiner *j = ALLOC_STRUCT(&templ_arena, Joiner);
+    j->val = arg->val;
+    j->counter = 0;
+
+    Type *type = type_proc(0, 0, type_str, proc_joiner_call, j);
+
+    return val_proc(type, 0);
+}
+
+PROC_CALLBACK(proc_joiner_call) {
+    assert(expr->kind == EXPR_CALL);
+    Joiner *j = (Joiner *)((Type *)expr->expr_call.expr->val->ptr)->user_data;
+    Val *result = 0;
+
+    if ( j->counter == 0 ) {
+        result = val_str("");
+    } else {
+        result = j->val;
+    }
+
+    j->counter += 1;
+    return result;
+}
+
 PROC_CALLBACK(proc_loop) {
-    return val_str("");
+    return val_str("@IMPLEMENTIEREN: loop()");
 }
 
 PROC_CALLBACK(proc_range) {

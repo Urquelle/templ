@@ -145,3 +145,7 @@ elem2 = {{ elem2 }}
 {{ cyc.current }}
 {{ cyc.next() }}
 {{ cyc.next() }}
+
+{% set j = joiner("<->") %}
+1: {{ j() }}
+2: {{ j() }}
