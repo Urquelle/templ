@@ -60,13 +60,13 @@ enum Val_Kind {
     VAL_CHAR,
     VAL_PAIR,
     VAL_STR,
-    VAL_PROC,
     VAL_ITERABLE_START = VAL_STR,
     VAL_RANGE,
     VAL_TUPLE,
     VAL_LIST,
     VAL_DICT,
     VAL_ITERABLE_END = VAL_DICT,
+    VAL_CUSTOM,
 };
 
 struct Val {
@@ -290,10 +290,10 @@ val_dict(Val **pairs, size_t num_pairs) {
 }
 
 internal_proc Val *
-val_proc(Type *type, void *user_data) {
-    Val *result = val_new(VAL_PROC, sizeof(Type *));
+val_custom(void *data, void *user_data) {
+    Val *result = val_new(VAL_CUSTOM, sizeof(Type *));
 
-    result->ptr = type;
+    result->ptr = data;
     result->user_data = user_data;
 
     return result;

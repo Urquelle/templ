@@ -94,14 +94,12 @@ PROC_CALLBACK(proc_joiner) {
     j->val = arg->val;
     j->counter = 0;
 
-    Type *type = type_proc(0, 0, type_str, proc_joiner_call, j);
-
-    return val_proc(type, 0);
+    return val_custom(j, 0);
 }
 
 PROC_CALLBACK(proc_joiner_call) {
     assert(expr->kind == EXPR_CALL);
-    Joiner *j = (Joiner *)((Type *)expr->expr_call.expr->val->ptr)->user_data;
+    Joiner *j = (Joiner *)expr->expr_call.expr->val->ptr;
     Val *result = 0;
 
     if ( j->counter == 0 ) {
