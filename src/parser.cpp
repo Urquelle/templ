@@ -484,19 +484,6 @@ parse_expr_tilde(Parser *p) {
     return left;
 }
 
-internal_proc Expr *
-parse_expr_ternary(Parser *p) {
-    Expr *left = parse_expr_tilde(p);
-
-    if ( match_token(p, T_QMARK) ) {
-        Expr *middle = parse_expr(p);
-        expect_token(p, T_COLON);
-        left = expr_ternary(p->lex.pos, left, middle, parse_expr(p));
-    }
-
-    return left;
-}
-
 internal_proc Expr **
 parse_filter(Parser *p) {
     Expr **result = 0;
@@ -553,7 +540,7 @@ parse_tester(Parser *p) {
 
 internal_proc Expr *
 parse_expr(Parser *p, b32 do_parse_filter) {
-    Expr *expr = parse_expr_ternary(p);
+    Expr *expr = parse_expr_tilde(p);
 
     Expr *if_expr = 0;
     if ( match_keyword(p, keyword_if) ) {

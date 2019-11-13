@@ -7,7 +7,7 @@ PROC_CALLBACK(proc_super) {
     gen_result = temp;
 
     for ( int i = 0; i < global_super_block->stmt_block.num_stmts; ++i ) {
-        exec_stmt(global_super_block->stmt_block.stmts[i], templ);
+        exec_stmt(global_super_block->stmt_block.stmts[i]);
     }
 
     Val *result = val_str(gen_result);
@@ -17,9 +17,16 @@ PROC_CALLBACK(proc_super) {
 }
 
 PROC_CALLBACK(proc_cycle) {
-    s32 loop_index = val_int((Val *)proc_type->user_data);
+    Sym *sym = sym_get(intern_str("loop"));
+    Scope *scope = (Scope *)sym->val->ptr;
+    Scope *prev_scope = scope_set(scope);
+    Sym *sym_idx = sym_get(intern_str("index"));
+
+    s32 loop_index = val_int(sym_idx->val);
     s32 arg_index  = loop_index % num_varargs;
-    val_inc((Val *)proc_type->user_data);
+    val_inc(sym_idx->val);
+
+    scope_set(prev_scope);
 
     return varargs[arg_index]->val;
 }
@@ -29,58 +36,71 @@ struct Cycler {
     Resolved_Arg **args;
     s32 idx;
 };
-
 PROC_CALLBACK(proc_cycler) {
     Cycler *cycler = ALLOC_STRUCT(&templ_arena, Cycler);
     cycler->num_args = num_varargs;
     cycler->args = varargs;
     cycler->idx = 0;
 
-    Map *map = &proc_type->type_proc.ret->type_dict.scope->syms;
-    Sym *current = (Sym *)map_get(map, intern_str("current"));
+    Scope *cycler_scope = scope_new(0, "cycler");
+    Scope *prev_scope = scope_set(cycler_scope);
 
-    current->val = varargs[0]->val;
+    Val *val_next  = val_proc(0, 0, type_any, proc_cycler_next);
+    val_next->user_data = cycler;
+    Val *val_reset = val_proc(0, 0, 0,        proc_cycler_reset);
+    val_reset->user_data = cycler;
 
-    Val *result = val_dict(0, 0);
-    result->user_data = cycler;
+    sym_push_proc("next",    type_proc(0, 0, type_any), val_next);
+    sym_push_proc("reset",   type_proc(0, 0,        0), val_reset);
+    sym_push_var("current",  type_any, varargs[0]->val);
 
-    return result;
+    scope_set(prev_scope);
+
+    return val_dict(cycler_scope);
 }
 
 PROC_CALLBACK(proc_cycler_next) {
-    /* @INFO: die next methode wird IMMER über <cycler>.next() aufgerufen, und somit
-     *        immer im expr_call -> expr_field sein.
-     */
-    assert(expr->expr_call.expr->kind == EXPR_FIELD);
-    Resolved_Expr *base = expr->expr_call.expr->expr_field.base;
-    Cycler *cycler = (Cycler *)base->val->user_data;
+    Cycler *cycler = (Cycler *)operand->user_data;
 
-    cycler->idx += 1;
+    cycler->idx = (cycler->idx + 1) % cycler->num_args;
 
-    s32 loop_index = cycler->idx;
-    s32 arg_index  = loop_index % cycler->num_args;
-    Val *result = cycler->args[arg_index]->val;
-
-    assert(base->type->kind == TYPE_DICT);
-    Scope *scope = base->type->type_dict.scope;
-    Sym *current = (Sym *)map_get(&scope->syms, intern_str("current"));
-
-    current->val = result;
-
-    return result;
+    return cycler->args[cycler->idx]->val;
 }
 
 PROC_CALLBACK(proc_cycler_reset) {
-    Resolved_Expr *base = expr->expr_call.expr->expr_field.base;
-    Cycler *cycler = (Cycler *)base->val->user_data;
+    Cycler *cycler = (Cycler *)operand->user_data;
     cycler->idx = 0;
 
-    Scope *scope = base->type->type_dict.scope;
-    Sym *current = (Sym *)map_get(&scope->syms, intern_str("current"));
-
-    current->val = cycler->args[cycler->idx]->val;
-
     return 0;
+}
+
+PROC_CALLBACK(proc_exec_macro) {
+    Scope *scope = (Scope *)operand->user_data;
+    Scope *prev_scope = scope_set(scope);
+
+    for ( int i = 0; i < num_narg_keys; ++i ) {
+        char *key = narg_keys[i];
+        Resolved_Arg *arg = narg(key);
+        Sym *sym = sym_get(key);
+        sym->val = arg->val;
+    }
+
+    char *old_gen_result = gen_result;
+    char *temp = "";
+    gen_result = temp;
+
+    Val_Proc *data = (Val_Proc *)operand->ptr;
+    for ( int i = 0; i < data->num_stmts; ++i ) {
+        Resolved_Stmt *stmt = data->stmts[i];
+        exec_stmt(stmt);
+    }
+
+    scope_set(prev_scope);
+
+    Val *result = val_str(gen_result);
+    gen_result = old_gen_result;
+
+    return result;
 }
 
 struct Joiner {
@@ -94,12 +114,14 @@ PROC_CALLBACK(proc_joiner) {
     j->val = arg->val;
     j->counter = 0;
 
-    return val_custom(j, 0);
+    Val *result = val_proc(0, 0, type_str, proc_joiner_call);
+    result->user_data = j;
+
+    return result;
 }
 
 PROC_CALLBACK(proc_joiner_call) {
-    assert(expr->kind == EXPR_CALL);
-    Joiner *j = (Joiner *)expr->expr_call.expr->val->ptr;
+    Joiner *j = (Joiner *)operand->user_data;
     Val *result = 0;
 
     if ( j->counter == 0 ) {
@@ -150,3 +172,18 @@ PROC_CALLBACK(proc_lipsum) {
 
     return val_str(result);
 }
+
+PROC_CALLBACK(proc_namespace) {
+    Scope *scope = scope_new(0, "namespace");
+    Scope *prev_scope = scope_set(scope);
+
+    for ( int i = 0; i < num_kwargs; ++i ) {
+        Resolved_Arg *arg = kwargs[i];
+        sym_push_var(arg->name, arg->type, arg->val);
+    }
+
+    scope_set(prev_scope);
+
+    return val_dict(scope);
+}
+

@@ -21,10 +21,7 @@
 #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
-
-#define PROC_CALLBACK(name)   Val * name(Resolved_Templ *templ, Resolved_Expr *expr, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs, Type *proc_type)
-#define FILTER_CALLBACK(name) Val * name(Val *operand, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
-#define TEST_CALLBACK(name)   Val * name(Val *operand, Type *type, Map *nargs, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define PROC_CALLBACK(name)   Val * name(Val *operand, Map *nargs, char **narg_keys, size_t num_narg_keys, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
 #define erstes_if if
 #define genf(...)   gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
@@ -66,23 +63,21 @@ typedef float    f32;
 
 struct Expr;
 struct Map;
-struct Stmt;
-struct Parser;
 struct Parsed_Templ;
-struct Type;
-struct Sym;
-struct Val;
-struct Resolved_Templ;
-struct Resolved_Stmt;
-struct Resolved_Expr;
+struct Parser;
 struct Resolved_Arg;
+struct Resolved_Expr;
 struct Resolved_Pair;
+struct Resolved_Stmt;
+struct Resolved_Templ;
+struct Stmt;
+struct Sym;
+struct Type;
+struct Type_Field;
+struct Val;
 
 typedef Parsed_Templ Templ;
-
 typedef PROC_CALLBACK(Proc_Callback);
-typedef FILTER_CALLBACK(Filter_Callback);
-typedef TEST_CALLBACK(Test_Callback);
 
 enum { True = 1, False = 0, None = -1 };
 
@@ -92,62 +87,64 @@ internal_proc PROC_CALLBACK(proc_cycle);
 internal_proc PROC_CALLBACK(proc_cycler);
 internal_proc PROC_CALLBACK(proc_cycler_next);
 internal_proc PROC_CALLBACK(proc_cycler_reset);
+internal_proc PROC_CALLBACK(proc_exec_macro);
 internal_proc PROC_CALLBACK(proc_joiner);
 internal_proc PROC_CALLBACK(proc_joiner_call);
 internal_proc PROC_CALLBACK(proc_range);
 internal_proc PROC_CALLBACK(proc_lipsum);
+internal_proc PROC_CALLBACK(proc_namespace);
 
-internal_proc FILTER_CALLBACK(filter_abs);
-internal_proc FILTER_CALLBACK(filter_attr);
-internal_proc FILTER_CALLBACK(filter_batch);
-internal_proc FILTER_CALLBACK(filter_capitalize);
-internal_proc FILTER_CALLBACK(filter_center);
-internal_proc FILTER_CALLBACK(filter_default);
-internal_proc FILTER_CALLBACK(filter_upper);
-internal_proc FILTER_CALLBACK(filter_escape);
-internal_proc FILTER_CALLBACK(filter_format);
-internal_proc FILTER_CALLBACK(filter_truncate);
+internal_proc PROC_CALLBACK(filter_abs);
+internal_proc PROC_CALLBACK(filter_attr);
+internal_proc PROC_CALLBACK(filter_batch);
+internal_proc PROC_CALLBACK(filter_capitalize);
+internal_proc PROC_CALLBACK(filter_center);
+internal_proc PROC_CALLBACK(filter_default);
+internal_proc PROC_CALLBACK(filter_upper);
+internal_proc PROC_CALLBACK(filter_escape);
+internal_proc PROC_CALLBACK(filter_format);
+internal_proc PROC_CALLBACK(filter_truncate);
 
-internal_proc TEST_CALLBACK(test_callable);
-internal_proc TEST_CALLBACK(test_defined);
-internal_proc TEST_CALLBACK(test_divisibleby);
-internal_proc TEST_CALLBACK(test_eq);
-internal_proc TEST_CALLBACK(test_escaped);
-internal_proc TEST_CALLBACK(test_even);
-internal_proc TEST_CALLBACK(test_ge);
-internal_proc TEST_CALLBACK(test_gt);
-internal_proc TEST_CALLBACK(test_in);
-internal_proc TEST_CALLBACK(test_iterable);
-internal_proc TEST_CALLBACK(test_le);
-internal_proc TEST_CALLBACK(test_lt);
-internal_proc TEST_CALLBACK(test_mapping);
-internal_proc TEST_CALLBACK(test_ne);
-internal_proc TEST_CALLBACK(test_none);
-internal_proc TEST_CALLBACK(test_number);
-internal_proc TEST_CALLBACK(test_odd);
-internal_proc TEST_CALLBACK(test_sameas);
-internal_proc TEST_CALLBACK(test_sequence);
-internal_proc TEST_CALLBACK(test_string);
-internal_proc TEST_CALLBACK(test_undefined);
+internal_proc PROC_CALLBACK(test_callable);
+internal_proc PROC_CALLBACK(test_defined);
+internal_proc PROC_CALLBACK(test_divisibleby);
+internal_proc PROC_CALLBACK(test_eq);
+internal_proc PROC_CALLBACK(test_escaped);
+internal_proc PROC_CALLBACK(test_even);
+internal_proc PROC_CALLBACK(test_ge);
+internal_proc PROC_CALLBACK(test_gt);
+internal_proc PROC_CALLBACK(test_in);
+internal_proc PROC_CALLBACK(test_iterable);
+internal_proc PROC_CALLBACK(test_le);
+internal_proc PROC_CALLBACK(test_lt);
+internal_proc PROC_CALLBACK(test_mapping);
+internal_proc PROC_CALLBACK(test_ne);
+internal_proc PROC_CALLBACK(test_none);
+internal_proc PROC_CALLBACK(test_number);
+internal_proc PROC_CALLBACK(test_odd);
+internal_proc PROC_CALLBACK(test_sameas);
+internal_proc PROC_CALLBACK(test_sequence);
+internal_proc PROC_CALLBACK(test_string);
+internal_proc PROC_CALLBACK(test_undefined);
 
+internal_proc void              exec_stmt(Resolved_Stmt *stmt);
+internal_proc void              exec(Resolved_Templ *templ);
 internal_proc Expr            * parse_expr(Parser *p, b32 do_parse_filter = true);
+internal_proc Parsed_Templ    * parse_file(char *filename);
 internal_proc char            * parse_name(Parser *p);
 internal_proc Stmt            * parse_stmt(Parser *p);
 internal_proc Stmt            * parse_stmt_var(Parser *p);
 internal_proc Stmt            * parse_stmt_lit(Parser *p);
-internal_proc Parsed_Templ    * parse_file(char *filename);
 internal_proc char            * parse_str(Parser *p);
 internal_proc Expr            * parse_tester(Parser *p);
+internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
+internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
 internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
-internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt, Resolved_Templ *templ);
-internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
+internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
-internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
-internal_proc void              exec_stmt(Resolved_Stmt *stmt, Resolved_Templ *templ);
-internal_proc void              exec(Resolved_Templ *templ);
 
 global_var char               * gen_result = "";
 global_var int                  gen_indent   = 0;
@@ -178,16 +175,15 @@ global_var Arena                templ_arena;
 struct Templ_Var {
     char *name;
     Val *val;
-    Scope *scope;
 };
 
 user_api Templ_Var *
 templ_var(char *name) {
     Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+    Scope *scope = scope_new(0, name);
 
-    result->name  = name;
-    result->val   = 0;
-    result->scope = scope_new(0, name);
+    result->name = name;
+    result->val  = val_dict(scope);
 
     return result;
 }
@@ -196,46 +192,60 @@ user_api Templ_Var *
 templ_var(char *name, Val *val) {
     Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
 
-    result->name  = name;
-    result->val   = val;
-    result->scope = 0;
+    result->name = name;
+    result->val  = val;
 
     return result;
 }
 
 user_api void
 templ_var_set(Templ_Var *var, char *key, char *value) {
-    Scope *prev_scope = scope_set(var->scope);
+    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
+
+    key   = intern_str(key);
+    value = intern_str(value);
     sym_push_var(key, type_str, val_str(value));
+
     scope_set(prev_scope);
 }
 
 user_api void
 templ_var_set(Templ_Var *var, char *key, s32 value) {
-    Scope *prev_scope = scope_set(var->scope);
+    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
+
+    key = intern_str(key);
     sym_push_var(key, type_int, val_int(value));
+
     scope_set(prev_scope);
 }
 
 user_api void
 templ_var_set(Templ_Var *var, char *key, f32 value) {
-    Scope *prev_scope = scope_set(var->scope);
+    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
+
+    key = intern_str(key);
     sym_push_var(key, type_float, val_float(value));
+
     scope_set(prev_scope);
 }
 
 user_api void
 templ_var_set(Templ_Var *var, char *key, b32 value) {
-    Scope *prev_scope = scope_set(var->scope);
+    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
+
+    key = intern_str(key);
     sym_push_var(key, type_bool, val_bool(value));
+
     scope_set(prev_scope);
 }
 
 user_api void
 templ_var_set(Templ_Var *var, char *key, Templ_Var *value) {
-    Scope *prev_scope = scope_set(var->scope);
-    Sym *sym = sym_push_var(key, type_dict(value->scope));
-    sym->scope = value->scope;
+    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
+
+    key = intern_str(key);
+    sym_push_var(key, type_dict((Scope *)value->val->ptr), value->val);
+
     scope_set(prev_scope);
 }
 
@@ -257,10 +267,6 @@ templ_vars_add(Templ_Vars *vars, Templ_Var *var) {
     vars->num_vars = buf_len(vars->vars);
 }
 
-struct Context {
-    Scope *scope;
-};
-
 user_api Templ *
 templ_compile_file(char *filename) {
     Templ *result = parse_file(filename);
@@ -280,17 +286,7 @@ templ_render(Templ *templ, Templ_Vars *vars = 0) {
     if ( vars ) {
         for ( int i = 0; i < vars->num_vars; ++i ) {
             Templ_Var *var = vars->vars[i];
-
-            if ( var->scope ) {
-                Sym *sym = sym_push_var(var->name, type_dict(var->scope));
-                sym->type = type_dict(var->scope);
-                sym->scope = var->scope;
-            } else {
-                assert(var->val);
-                Sym *sym = sym_push_var(var->name, type_any, var->val);
-                sym->val = var->val;
-                sym->type = type_any;
-            }
+            Sym *sym = sym_push_var(var->name, type_dict((Scope *)var->val->ptr), var->val);
         }
     }
 

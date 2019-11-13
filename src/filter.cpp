@@ -1,41 +1,30 @@
-internal_proc FILTER_CALLBACK(filter_abs) {
+internal_proc PROC_CALLBACK(filter_abs) {
     assert(operand->kind == VAL_INT);
     s32 i = abs(val_int(operand));
 
     return val_int(i);
 }
 
-internal_proc FILTER_CALLBACK(filter_attr) {
+internal_proc PROC_CALLBACK(filter_attr) {
     Resolved_Arg *arg = narg("name");
 
-    /* @WARNUNG: val_default wert wird überschrieben, falls nach der anwendung
-     *           des filters eine set anweisung auf die variable ausgeführt wird.
-     *           an dieser stelle muss wohl ebenfalls ein neuer val_default wert
-     *           erzeugt werden.
-     */
-    Val *result = &val_default;
-
     /* @AUFGABE: in eigene methode subs auslagern */
-    if ( operand->kind == VAL_DICT ) {
-        for ( int i = 0; i < operand->len; ++i ) {
-            Val *v = ((Val **)operand->ptr)[i];
-            Resolved_Pair *pair = (Resolved_Pair *)v->ptr;
+    Scope *scope = (Scope *)operand->ptr;
+    Scope *prev_scope = scope_set(scope);
 
-            if ( *pair->key == *arg->val ) {
-                result = pair->value;
-                break;
-            }
-        }
-    }
+    Sym *sym = sym_get(val_str(arg->val));
+    Val *result = sym->val;
+
+    scope_set(prev_scope);
 
     return result;
 }
 
-internal_proc FILTER_CALLBACK(filter_batch) {
+internal_proc PROC_CALLBACK(filter_batch) {
     return val_str("/* @IMPLEMENT: filter batch */");
 }
 
-internal_proc FILTER_CALLBACK(filter_capitalize) {
+internal_proc PROC_CALLBACK(filter_capitalize) {
     assert(operand->kind == VAL_STR);
 
     char *result = strf("%s", val_str(operand));
@@ -44,7 +33,7 @@ internal_proc FILTER_CALLBACK(filter_capitalize) {
     return val_str(result);
 }
 
-internal_proc FILTER_CALLBACK(filter_center) {
+internal_proc PROC_CALLBACK(filter_center) {
     Resolved_Arg *arg = narg("width");
     int width = val_int(arg->val);
 
@@ -59,7 +48,7 @@ internal_proc FILTER_CALLBACK(filter_center) {
     return val_str(result);
 }
 
-internal_proc FILTER_CALLBACK(filter_default) {
+internal_proc PROC_CALLBACK(filter_default) {
     Resolved_Arg *arg = narg("s");
     char *default_value = val_str(arg->val);
 
@@ -73,7 +62,7 @@ internal_proc FILTER_CALLBACK(filter_default) {
     return operand;
 }
 
-internal_proc FILTER_CALLBACK(filter_upper) {
+internal_proc PROC_CALLBACK(filter_upper) {
     assert(operand->kind == VAL_STR);
     char *str = val_str(operand);
     char *result = "";
@@ -90,7 +79,7 @@ internal_proc FILTER_CALLBACK(filter_upper) {
     return val_str(result);
 }
 
-internal_proc FILTER_CALLBACK(filter_escape) {
+internal_proc PROC_CALLBACK(filter_escape) {
     char *result = "";
 
     for ( int i = 0; i < operand->len; ++i ) {
@@ -112,7 +101,7 @@ internal_proc FILTER_CALLBACK(filter_escape) {
     return val_str(result);
 }
 
-internal_proc FILTER_CALLBACK(filter_format) {
+internal_proc PROC_CALLBACK(filter_format) {
     assert(operand->kind == VAL_STR);
 
     char *format = val_str(operand);
@@ -209,7 +198,7 @@ internal_proc FILTER_CALLBACK(filter_format) {
     return val_str(result);
 }
 
-internal_proc FILTER_CALLBACK(filter_truncate) {
+internal_proc PROC_CALLBACK(filter_truncate) {
     Resolved_Arg *arg = narg("length");
     size_t len = MIN(operand->len, val_int(arg->val));
 

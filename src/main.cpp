@@ -22,9 +22,8 @@ main(int argc, char **argv) {
     Templ *templ1 = templ_compile_string("servus {{ user.name }} in {{ user.address.city }}");
     char *result1 = templ_render(templ1, &vars);
 
-    if ( status_is_not_error() ) {
-        os_file_write("test1.html", result1, utf8_strlen(result1));
-    } else {
+    os_file_write("test1.html", result1, utf8_strlen(result1));
+    if ( status_is_error() ) {
         fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
         assert(0);
         status_reset();

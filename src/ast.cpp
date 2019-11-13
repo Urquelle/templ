@@ -52,7 +52,6 @@ enum Expr_Kind {
     EXPR_STR,
     EXPR_UNARY,
     EXPR_BINARY,
-    EXPR_TERNARY,
     EXPR_FIELD,
     EXPR_SUBSCRIPT,
     EXPR_RANGE,
@@ -107,12 +106,6 @@ struct Expr {
             Expr *left;
             Expr *right;
         } expr_binary;
-
-        struct {
-            Expr *left;
-            Expr *middle;
-            Expr *right;
-        } expr_ternary;
 
         struct {
             Expr *expr;
@@ -249,17 +242,6 @@ expr_binary(Pos pos, Token_Kind op, Expr *left, Expr *right) {
     result->expr_binary.op = op;
     result->expr_binary.left = left;
     result->expr_binary.right = right;
-
-    return result;
-}
-
-internal_proc Expr *
-expr_ternary(Pos pos, Expr *left, Expr *middle, Expr *right) {
-    Expr *result = expr_new(pos, EXPR_TERNARY);
-
-    result->expr_ternary.left = left;
-    result->expr_ternary.middle = middle;
-    result->expr_ternary.right = right;
 
     return result;
 }

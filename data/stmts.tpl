@@ -28,7 +28,6 @@
 {# raw anweisung #}
 {% raw %}
     {% set foo = "bar" %}
-    und dann
 {% endraw %}
 
 {# with anweisung #}
@@ -149,3 +148,7 @@ elem2 = {{ elem2 }}
 {% set j = joiner("<->") %}
 1: {{ j() }}
 2: {{ j() }}
+
+{% set ns = namespace(bla = "bla", blö = "blö") %}
+{{ ns.bla }}
+{{ ns.blö }}
