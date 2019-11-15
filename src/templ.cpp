@@ -32,7 +32,7 @@
 #define implement_me() assert(0)
 #define internal_proc static
 #define user_api
-#define narg(name) (Resolved_Arg *)map_get(nargs, intern_str(name))
+#define narg(name) ((Resolved_Arg *)map_get(nargs, intern_str(name)))
 
 #define GB(X) (MB(X)*1024)
 #define KB(X) (  (X)*1024)
@@ -84,6 +84,7 @@ enum { True = 1, False = 0, None = -1 };
 internal_proc PROC_CALLBACK(proc_super);
 internal_proc PROC_CALLBACK(proc_loop);
 internal_proc PROC_CALLBACK(proc_cycle);
+internal_proc PROC_CALLBACK(proc_dict);
 internal_proc PROC_CALLBACK(proc_cycler);
 internal_proc PROC_CALLBACK(proc_cycler_next);
 internal_proc PROC_CALLBACK(proc_cycler_reset);

@@ -6,13 +6,10 @@ internal_proc PROC_CALLBACK(filter_abs) {
 }
 
 internal_proc PROC_CALLBACK(filter_attr) {
-    Resolved_Arg *arg = narg("name");
-
-    /* @AUFGABE: in eigene methode subs auslagern */
     Scope *scope = (Scope *)operand->ptr;
     Scope *prev_scope = scope_set(scope);
 
-    Sym *sym = sym_get(val_str(arg->val));
+    Sym *sym = sym_get(val_str(narg("name")->val));
     Val *result = sym->val;
 
     scope_set(prev_scope);
@@ -34,14 +31,13 @@ internal_proc PROC_CALLBACK(filter_capitalize) {
 }
 
 internal_proc PROC_CALLBACK(filter_center) {
-    Resolved_Arg *arg = narg("width");
-    int width = val_int(arg->val);
+    int width = val_int(narg("width")->val);
 
-    if ( operand->len > width ) {
+    if ( operand->len >= width ) {
         return operand;
     }
 
-    s32 padding = (int)((width - operand->len) / 2);
+    s32 padding = (s32)((width - operand->len) / 2);
 
     char *result = strf("%*s%s%*s", padding, "", val_to_char(operand), padding, "");
 
@@ -49,11 +45,8 @@ internal_proc PROC_CALLBACK(filter_center) {
 }
 
 internal_proc PROC_CALLBACK(filter_default) {
-    Resolved_Arg *arg = narg("s");
-    char *default_value = val_str(arg->val);
-
-    arg = narg("boolean");
-    b32 boolean = val_bool(arg->val);
+    char *default_value = val_str(narg("s")->val);
+    b32 boolean = val_bool(narg("boolean")->val);
 
     if ( val_is_undefined(operand) || boolean && !val_is_true(operand) ) {
         return val_str(default_value);
@@ -199,11 +192,9 @@ internal_proc PROC_CALLBACK(filter_format) {
 }
 
 internal_proc PROC_CALLBACK(filter_truncate) {
-    Resolved_Arg *arg = narg("length");
-    size_t len = MIN(operand->len, val_int(arg->val));
+    size_t len = MIN(operand->len, val_int(narg("length")->val));
+    s32 leeway = val_int(narg("leeway")->val);
 
-    arg = narg("leeway");
-    s32 leeway = val_int(arg->val);
     u64 diff = abs((s64)(len - operand->len));
     if ( diff <= leeway ) {
         return operand;
@@ -212,8 +203,7 @@ internal_proc PROC_CALLBACK(filter_truncate) {
     char *result = "";
     char *ptr = val_str(operand);
 
-    arg = narg("killwords");
-    b32 killwords = val_bool(arg->val);
+    b32 killwords = val_bool(narg("killwords")->val);
     if ( !killwords ) {
         char *ptrend = utf8_char_goto(ptr, operand->len-1);
         u32 char_count = 0;
@@ -240,8 +230,7 @@ internal_proc PROC_CALLBACK(filter_truncate) {
         ptr += utf8_char_size(ptr);
     }
 
-    arg = narg("end");
-    char *end = val_str(arg->val);
+    char *end = val_str(narg("end")->val);
     size_t end_len = utf8_strlen(end);
     for ( int i = 0; i < end_len; ++i ) {
         result = strf("%s%.*s", result, utf8_char_size(end), end);

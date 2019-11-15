@@ -11,8 +11,7 @@ internal_proc PROC_CALLBACK(test_defined) {
 }
 
 internal_proc PROC_CALLBACK(test_divisibleby) {
-    Resolved_Arg *arg = narg("s");
-    s32 s = val_int(arg->val);
+    s32 s = val_int(narg("s")->val);
 
     b32 result = (val_int(operand) % s) == 0;
 
@@ -20,9 +19,7 @@ internal_proc PROC_CALLBACK(test_divisibleby) {
 }
 
 internal_proc PROC_CALLBACK(test_eq) {
-    Resolved_Arg *arg = narg("s");
-
-    Val *result = val_bool(*operand == *arg->val);
+    Val *result = val_bool(*operand == *narg("s")->val);
 
     return result;
 }
@@ -40,8 +37,7 @@ internal_proc PROC_CALLBACK(test_even) {
 }
 
 internal_proc PROC_CALLBACK(test_ge) {
-    Resolved_Arg *arg = narg("s");
-    s32 s = val_int(arg->val);
+    s32 s = val_int(narg("s")->val);
 
     b32 result = val_int(operand) >= s;
 
@@ -49,8 +45,7 @@ internal_proc PROC_CALLBACK(test_ge) {
 }
 
 internal_proc PROC_CALLBACK(test_gt) {
-    Resolved_Arg *arg = narg("s");
-    s32 s = val_int(arg->val);
+    s32 s = val_int(narg("s")->val);
 
     b32 result = val_int(operand) > s;
 
@@ -58,8 +53,7 @@ internal_proc PROC_CALLBACK(test_gt) {
 }
 
 internal_proc PROC_CALLBACK(test_in) {
-    Resolved_Arg *arg = narg("s");
-    Val *set = arg->val;
+    Val *set = narg("s")->val;
 
     if ( !set || set->kind != VAL_LIST ) {
         return val_bool(false);
@@ -85,8 +79,7 @@ internal_proc PROC_CALLBACK(test_iterable) {
 }
 
 internal_proc PROC_CALLBACK(test_le) {
-    Resolved_Arg *arg = narg("s");
-    s32 s = val_int(arg->val);
+    s32 s = val_int(narg("s")->val);
 
     b32 result = val_int(operand) <= s;
 
@@ -94,8 +87,7 @@ internal_proc PROC_CALLBACK(test_le) {
 }
 
 internal_proc PROC_CALLBACK(test_lt) {
-    Resolved_Arg *arg = narg("s");
-    s32 s = val_int(arg->val);
+    s32 s = val_int(narg("s")->val);
 
     b32 result = val_int(operand) < s;
 
@@ -109,8 +101,7 @@ internal_proc PROC_CALLBACK(test_mapping) {
 }
 
 internal_proc PROC_CALLBACK(test_ne) {
-    Resolved_Arg *arg = narg("s");
-    s32 s = val_int(arg->val);
+    s32 s = val_int(narg("s")->val);
 
     b32 result = val_int(operand) != s;
 
@@ -136,9 +127,7 @@ internal_proc PROC_CALLBACK(test_odd) {
 }
 
 internal_proc PROC_CALLBACK(test_sameas) {
-    Resolved_Arg *arg = narg("s");
-
-    b32 result = operand->ptr == arg->val->ptr;
+    b32 result = ( operand->ptr == narg("s")->val->ptr );
 
     return val_bool(result);
 }

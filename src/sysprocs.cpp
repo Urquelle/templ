@@ -16,6 +16,49 @@ PROC_CALLBACK(proc_super) {
     return result;
 }
 
+PROC_CALLBACK(proc_exec_macro) {
+    Scope *scope = (Scope *)operand->user_data;
+    Scope *prev_scope = scope_set(scope);
+
+    for ( int i = 0; i < num_narg_keys; ++i ) {
+        char *key = narg_keys[i];
+        Resolved_Arg *arg = narg(key);
+        Sym *sym = sym_get(key);
+        sym->val = arg->val;
+    }
+
+    char *old_gen_result = gen_result;
+    char *temp = "";
+    gen_result = temp;
+
+    Val_Proc *data = (Val_Proc *)operand->ptr;
+    for ( int i = 0; i < data->num_stmts; ++i ) {
+        Resolved_Stmt *stmt = data->stmts[i];
+        exec_stmt(stmt);
+    }
+
+    scope_set(prev_scope);
+
+    Val *result = val_str(gen_result);
+    gen_result = old_gen_result;
+
+    return result;
+}
+
+PROC_CALLBACK(proc_dict) {
+    Scope *scope = scope_new(0, "dict");
+    Scope *prev_scope = scope_set(scope);
+
+    for ( int i = 0; i < num_kwargs; ++i ) {
+        Resolved_Arg *arg = kwargs[i];
+        sym_push_var(arg->name, arg->type, arg->val);
+    }
+
+    scope_set(prev_scope);
+
+    return val_dict(scope);
+}
+
 PROC_CALLBACK(proc_cycle) {
     Sym *sym = sym_get(intern_str("loop"));
     Scope *scope = (Scope *)sym->val->ptr;
@@ -72,35 +115,6 @@ PROC_CALLBACK(proc_cycler_reset) {
     cycler->idx = 0;
 
     return 0;
-}
-
-PROC_CALLBACK(proc_exec_macro) {
-    Scope *scope = (Scope *)operand->user_data;
-    Scope *prev_scope = scope_set(scope);
-
-    for ( int i = 0; i < num_narg_keys; ++i ) {
-        char *key = narg_keys[i];
-        Resolved_Arg *arg = narg(key);
-        Sym *sym = sym_get(key);
-        sym->val = arg->val;
-    }
-
-    char *old_gen_result = gen_result;
-    char *temp = "";
-    gen_result = temp;
-
-    Val_Proc *data = (Val_Proc *)operand->ptr;
-    for ( int i = 0; i < data->num_stmts; ++i ) {
-        Resolved_Stmt *stmt = data->stmts[i];
-        exec_stmt(stmt);
-    }
-
-    scope_set(prev_scope);
-
-    Val *result = val_str(gen_result);
-    gen_result = old_gen_result;
-
-    return result;
 }
 
 struct Joiner {

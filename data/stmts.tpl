@@ -149,6 +149,9 @@ elem2 = {{ elem2 }}
 1: {{ j() }}
 2: {{ j() }}
 
+{% set proc_dict_val = dict(name = "mustermann", vorname = "max") %}
+person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
+
 {% set ns = namespace(bla = "bla", blö = "blö") %}
 {{ ns.bla }}
 {{ ns.blö }}

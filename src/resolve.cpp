@@ -868,6 +868,7 @@ enum Type_Kind {
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_STR,
+    TYPE_RANGE,
     TYPE_LIST,
     TYPE_DICT,
     TYPE_TUPLE,
@@ -925,6 +926,7 @@ global_var Type *type_bool;
 global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
+global_var Type *type_range;
 global_var Type *type_list;
 global_var Type *type_any;
 
@@ -1923,7 +1925,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             Scope *scope = scope_new(current_scope, "loop");
             Type *type = type_dict(scope);
-            Sym *loop = sym_push_var("loop", type, val_dict(scope));
+            sym_push_var("loop", type, val_dict(scope));
             Scope *prev_scope = scope_set(scope);
 
             Sym *loop_index     = sym_push_var(symname_index,     type_int,  val_int(1));
@@ -2663,10 +2665,12 @@ resolve_init_builtin_procs() {
     Type *cycler_type = type_dict(cycler_scope);
     sym_push_sysproc("cycler", type_proc(0, 0, cycler_type), val_proc(0, 0, cycler_type, proc_cycler));
 
-    /* @AUFGABE: type_range zurückgeben */
-    sym_push_sysproc("range",     type_proc(range_args,  3,                0), val_proc(range_args,  3, 0, proc_range));
-    sym_push_sysproc("lipsum",    type_proc(lipsum_args, 4,                0), val_proc(lipsum_args, 4, 0, proc_lipsum));
-    sym_push_sysproc("joiner",    type_proc(joiner_args, 1, type_proc(0, 0, type_str)), val_proc(joiner_args, 1, type_proc(0, 0, type_str), proc_joiner));
+    Scope *dict_scope = scope_new(0, "dict");
+
+    sym_push_sysproc("range", type_proc(range_args, 3, type_range), val_proc(range_args, 3, type_range, proc_range));
+    sym_push_sysproc("lipsum", type_proc(lipsum_args, 4, type_str), val_proc(lipsum_args, 4, type_str, proc_lipsum));
+    sym_push_sysproc("dict", type_proc(0, 0, type_dict(dict_scope)), val_proc(0, 0, type_dict(dict_scope), proc_dict));
+    sym_push_sysproc("joiner", type_proc(joiner_args, 1, type_proc(0, 0, type_str)), val_proc(joiner_args, 1, type_proc(0, 0, type_str), proc_joiner));
 
     Scope *ns_scope = scope_new(0, "namespace");
     sym_push_sysproc("namespace", type_proc(0, 0, type_dict(ns_scope)), val_proc(0, 0, type_dict(ns_scope), proc_namespace));
@@ -2694,6 +2698,9 @@ resolve_init_builtin_types() {
     type_str   = type_new(TYPE_STR);
     type_str->size = PTR_SIZE;
     type_str->flags = TYPE_FLAGS_ITERABLE;
+
+    type_range = type_new(TYPE_RANGE);
+    type_range->size = PTR_SIZE;
 
     type_list  = type_new(TYPE_LIST);
     type_list->size = 0;
