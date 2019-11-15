@@ -19,8 +19,8 @@
 
 <table>
     <tr>
-        <th>status</th>
-        <th>statistik</th>
+        <th>build</th>
+        <th>statistics</th>
         <th>meta</th>
     </tr>
     <tr>
@@ -53,7 +53,7 @@
         <td>
             <table>
                 <tr>
-                    <td>aufgaben:</td>
+                    <td><a href="https://github.com/NoobSaibot/templ/issues">issues</a>:</td>
                     <td align="right">
                         <a href="https://github.com/NoobSaibot/templ/issues">
                             <img src="https://img.shields.io/github/issues/NoobSaibot/templ" />
@@ -61,7 +61,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>qualität:</td>
+                    <td><a href="https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade">quality</a>:</td>
                     <td align="right">
                         <a href="https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade">
                             <img src="https://api.codacy.com/project/badge/Grade/f4e97144ea6d43b3a38fc34e9b5e50b7" />
@@ -69,7 +69,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>cloc:</td>
+                    <td>loc:</td>
                     <td align="right"><img src="https://tokei.rs/b1/github/NoobSaibot/templ" /></td>
                 </tr>
             </table>
@@ -77,7 +77,7 @@
         <td>
             <table>
                 <tr>
-                    <td>commits:</td>
+                    <td><a href="https://github.com/NoobSaibot/templ/commits/dev">commits</a>:</td>
                     <td align="right">
                         <a href="https://github.com/NoobSaibot/templ/commits/dev">
                             <img src="https://img.shields.io/github/commits-since/NoobSaibot/templ/latest/dev" />
@@ -100,10 +100,11 @@
         </td>
     </tr>
 </table>
-## einfaches beispiel
 
-nachfolgend ist ein einfaches beispiel, indem eine datenstruktur erstellt wird, die in den kontext der
-template engine gestellt wird und ein einfaches string template gerendert wird.
+
+## simple c++ example
+
+in the following example a datastructure is created and put into the engine's context. the subsequent call of `templ_render` is given the created datastructure to render the string template.
 
 ```c++
 #include "templ.cpp"
@@ -118,13 +119,23 @@ main(int argc, char **argv) {
     Templ_Var *name = templ_var("name", val_str("noob"));
     templ_vars_add(&vars, name);
 
-    Templ *templ = templ_compile_string("hallo {{ name }}");
+    Templ *templ = templ_compile_string("hello {{ name }}");
     char *result = templ_render(templ, &vars);
 
-    if ( status_is_not_error() ) {
-        os_file_write("test.html", result, utf8_str_size(result));
-    } else {
-        fprintf(stderr, "fehler aufgetreten in der übergebenen zeichenkette: %s\n", status_message());
+    os_file_write("test.html", result, utf8_strlen(result));
+    if ( status_is_error() ) {
+        for ( int i = 0; i < status_num_errors(); ++i ) {
+            Status *error = status_error_get(i);
+            fprintf(stderr, "%s in %s line %lld\n", status_message(error),
+                status_filename(error), status_line(error));
+        }
+
+        for ( int i = 0; i < status_num_warnings(); ++i ) {
+            Status *warning = status_warning_get(i);
+            fprintf(stderr, "%s in %s line %lld\n", status_message(warning),
+                status_filename(warning), status_line(warning));
+        }
+
         status_reset();
     }
 
@@ -134,72 +145,138 @@ main(int argc, char **argv) {
 }
 ```
 
-## weitere beispiele
+## jinja template examples
 
-im [data](https://github.com/NoobSaibot/templ/tree/dev/data) verzeichnis befinden sich einige jinja2 templates, die weitestgehend alle angaben nutzen, die von `templ` aktuell unterstützt werden.
+[data](https://github.com/NoobSaibot/templ/tree/dev/data) folder contains a couple jinja templates with statements that are supported by the implementation so far.
+
+```jinja
+{% extends "template.tpl" if true %}
+
+{% block title %}
+    main - {{ default_title }}
+{% endblock %}
+
+{% block main %}
+    {{ super() }}
+
+    {% include "literals.tpl" without context %}
+    {% include "exprs.tpl"    with    context %}
+    {% include "stmts.tpl"    without context %}
+    {% include "utf8.tpl"     without context %}
+    {% include "filter.tpl"   with    context %}
+    {% include "tests.tpl"    without context %}
+    {% include "macros.tpl"   without context %}
+{% endblock main %}
+
+{% block custom %}
+    <div>custom content</div>
+{% endblock %}
+```
 
 ## unicode
 
-templ unterstützt sowohl ascii als auch unicode in utf-8 kodierung sowohl für variablen namen, als auch
-für die string literale.
+`templ` supports unicode with the utf-8 encoding for string literals as well as names. be aware though that right now only limited amount of transformation in filters is supported.
 
-https://github.com/NoobSaibot/templ/blob/db3c1ff178b72e1a3ca377d18d5b82a6264e37d3/data/utf8.tpl#L1-L8
+### template
 
-## ausdrücke
-
-nachfolgend ist eine liste der ausdrücke (expressions), die soweit unterstützt werden
-
-### literale
-
-```jinja2
-"tolles wetter"
-'tolles wetter'
+```jinja
+{% set シ个 = "原ラ掘聞" %}
+{{ シ个 }}
+{% set приветствие = "здравствуйте" %}
+{{ приветствие }}
+{{ "🤩✨🥰" * 10 }}
 ```
 
-zeichenketten werden sowohl mit doppelten, als auch mit einfachen anführungszeichen unterstützt.
+### output
 
-```jinja2
+```jinja
+原ラ掘聞
+здравствуйте
+🤩✨🥰🤩✨🥰🤩✨🥰🤩✨🥰🤩✨🥰🤩✨🥰🤩✨🥰🤩✨🥰🤩✨🥰🤩✨🥰
+```
+
+## expressions
+
+below is a list of expressions that are supported right now
+
+### literals
+
+#### string literals
+
+string literals are supported with quotation marks as well as with apostrophe.
+
+```jinja
+"string literal"
+'also string literal'
+```
+#### numbers
+
+integer and floating point numbers are supported.
+
+```jinja
 42
 42.0
 ```
 
-ganzzahlen und fließkommazahlen werden unterstützt.
+#### lists
 
-```jinja2
-['europa', 'asien', 'australien']
+list literals start with an opening bracket and contain a comma separated list of elements, which in turn have to be a valid jinja expression.
+
+```jinja
+['europe', 'asia', 'australia']
 ```
 
-listen von ausdrücken werden unterstützt. listen können variablen zugewiesen, oder zur 
-verwendung in `for` schleifen direkt angegeben werden.
+lists can be assigned as a value to a variable and be used in a `for` statement as both, literals and variables.
 
-```jinja2
+```jinja
+{% for it in ['europe', 'asia', 'australia'] %}
+    {{ it }}
+{% endfor %}
+
+{% set continents = ['europe', 'asia', 'australia'] %}
+{% for it in continents %}
+    {{ it }}
+{% endfor %}
+```
+
+#### tuple
+
+tuple are basically lists with the exception of being read-only.
+
+```jinja
 ('x', 'y')
 ```
 
-tupel werden unterstützt. überflüssiges komma nach dem letzten element wird geschluckt.
+#### dictionaries
 
-```jinja2
-{'name': 'adam', 'alter': '30'}
+dictionaries are supported as expressions in assignments and `in` expression in `for` loops.
+
+```jinja
+{% set d = {'name': 'adam', 'age': '30'} %}
+
+{% for it in {'name': 'eve', 'age': '25'} %}
+    ...
+{% endfor %}
 ```
 
-dictionaries werden noch nicht in vollem umfang unterstützt.
+#### booleans
 
-```jinja2
+boolean values
+
+```jinja
 true
 false
 ```
 
-boolische angaben werden unterstützt.
+#### math
 
-### mathematische ausdrücke
-
-```jinja2
+```jinja
 3+5*7/2
 ```
 
-folgende mathematische operatoren können verwendet werden.
+below is a list of supported math operations
 
-```jinja2
+```jinja
 +
 -
 *
@@ -209,33 +286,37 @@ folgende mathematische operatoren können verwendet werden.
 %
 ```
 
-## anweisungen
+## statements
 
-folgende anweisungen werden derzeit unterstützt.
+list of supported statements
 
 ### if
 
-```jinja2
-{% if <bedingung> %}
-    <anweisungen>
-{% elif <bedingung> %}
-    <anweisungen>
+flow control statement `if` is supported with `elif` and `else` branches.
+
+```jinja
+{% if <condition> %}
+    <statements>
+{% elif <condition> %}
+    <statements>
 {% else %}
-    <anweisungen>
+    <statements>
 {% endif %}
 ```
 
-als *bedingung* können ausdrücke verwendet werden, die als resultat einen boolischen wert ergeben.
+you can use any valid jinja and supported expressions as *condition* that have a boolean value as result.
 
     true
     false
     1 < 2
     a is eq "foo"
-    vorname == "arminius" and nachname == "der cherusker"
+    firstname == "arminius" and lastname == "der cherusker"
 
 ### for
 
-```jinja2
+`for` statement supports multiple return values, `else` branch, **almost** all `loop` variables, `break` and `continue` statements.
+
+```jinja
 {% for <iterator> in <menge> %}
     <anweisungen>
 {% else %}
@@ -243,14 +324,29 @@ als *bedingung* können ausdrücke verwendet werden, die als resultat einen bool
 {% endfor %}
 ```
 
+the following loop variables can be used inside a `for` loop:
+
+* loop.index
+* loop.index0
+* loop.revindex
+* loop.revindex0
+* loop.first
+* loop.last
+* loop.length
+* loop.cycle
+
 ### block
 
-```jinja2
+blocks are supported with an optional `name` in the `endblock` statement. as the inheritance of templates is also supported, parent block's content can be overwritten entirely, or be included alongside your own content with the `super()` method.
+
+```jinja
 {% block <name> %}
 {% endblock <name> %}
 ```
 
 ### include
+
+additional templates can be included into a template. `include` statement supports `if` expression, and the additional annotations `with context`, `without context`, `ignore missing`.
 
 ```jinja2
 {% include "<template>" <if ausdruck> %}

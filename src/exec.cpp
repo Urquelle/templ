@@ -183,7 +183,6 @@ exec_expr(Resolved_Expr *expr) {
 
         case EXPR_IS: {
             Val *operand = exec_expr(expr->expr_is.operand);
-            Type *type = expr->expr_is.tester->expr_call.expr->type;
             Resolved_Expr *tester = expr->expr_is.tester;
             Val_Proc *proc = (Val_Proc *)tester->expr_call.expr->val->ptr;
 
@@ -199,7 +198,6 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_CALL: {
-            Type *type = expr->expr_call.expr->type;
             Val *val = exec_expr(expr->expr_call.expr);
             Val_Proc *proc = (Val_Proc *)val->ptr;
 

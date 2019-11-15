@@ -1286,11 +1286,6 @@ struct Resolved_Expr {
             Resolved_Expr **expr;
             size_t num_expr;
         } expr_list;
-
-        struct {
-            char **keys;
-            size_t num_keys;
-        } expr_dict;
     };
 };
 
@@ -2544,7 +2539,6 @@ resolve_expr(Expr *expr) {
             Scope *scope = scope_new(0, "dict");
             Scope *prev_scope = scope_set(scope);
 
-            char **keys = 0;
             for ( int i = 0; i < expr->expr_dict.num_pairs; ++i ) {
                 Pair *pair = expr->expr_dict.pairs[i];
                 Resolved_Expr *value = resolve_expr(pair->value);
