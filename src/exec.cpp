@@ -461,27 +461,8 @@ exec_stmt(Resolved_Stmt *stmt) {
                 for ( int i = 0; i < stmt->stmt_if.num_stmts; ++i ) {
                     exec_stmt(stmt->stmt_if.stmts[i]);
                 }
-            } else {
-                b32 elseif_matched = false;
-                for ( int i = 0; i < stmt->stmt_if.num_elseifs; ++i ) {
-                    Resolved_Stmt *elseif = stmt->stmt_if.elseifs[i];
-                    val = exec_expr(elseif->stmt_if.expr);
-
-                    if ( val_bool(val) ) {
-                        for ( int j = 0; j < elseif->stmt_if.num_stmts; ++j ) {
-                            exec_stmt(elseif->stmt_if.stmts[j]);
-                        }
-                        elseif_matched = true;
-                        break;
-                    }
-                }
-
-                if ( !elseif_matched && stmt->stmt_if.else_stmt ) {
-                    Resolved_Stmt *else_stmt = stmt->stmt_if.else_stmt;
-                    for ( int i = 0; i < else_stmt->stmt_if.num_stmts; ++i ) {
-                        exec_stmt(else_stmt->stmt_if.stmts[i]);
-                    }
-                }
+            } else if ( stmt->stmt_if.else_stmt ) {
+                exec_stmt(stmt->stmt_if.else_stmt);
             }
         } break;
 

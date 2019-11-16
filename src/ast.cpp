@@ -381,7 +381,6 @@ enum Stmt_Kind {
     STMT_FOR,
     STMT_IF,
     STMT_BLOCK,
-    STMT_ELSEIF,
     STMT_ELSE,
     STMT_ENDFOR,
     STMT_ENDIF,
@@ -424,11 +423,9 @@ struct Stmt {
 
         struct {
             Expr *cond;
+            Stmt *else_stmt;
             Stmt **stmts;
             size_t num_stmts;
-            Stmt **elseifs;
-            size_t num_elseifs;
-            Stmt *else_stmt;
         } stmt_if;
 
         struct {
@@ -550,28 +547,19 @@ stmt_if(Expr *cond, Stmt **stmts, size_t num_stmts) {
     result->stmt_if.cond = cond;
     result->stmt_if.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_if.num_stmts = num_stmts;
+    result->stmt_if.else_stmt = 0;
 
     return result;
 }
 
 internal_proc Stmt *
-stmt_elseif(Expr *cond, Stmt **stmts, size_t num_stmts) {
-    Stmt *result = stmt_new(STMT_ELSEIF);
+stmt_else(Expr *cond, Stmt **stmts, size_t num_stmts) {
+    Stmt *result = stmt_new(STMT_ELSE);
 
     result->stmt_if.cond = cond;
     result->stmt_if.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_if.num_stmts = num_stmts;
-
-    return result;
-}
-
-internal_proc Stmt *
-stmt_else(Stmt **stmts, size_t num_stmts) {
-    Stmt *result = stmt_new(STMT_ELSE);
-
-    result->stmt_if.cond = 0;
-    result->stmt_if.stmts = (Stmt **)AST_DUP(stmts);
-    result->stmt_if.num_stmts = num_stmts;
+    result->stmt_if.else_stmt = 0;
 
     return result;
 }

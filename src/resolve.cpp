@@ -1564,8 +1564,6 @@ struct Resolved_Stmt {
             Resolved_Expr *expr;
             Resolved_Stmt **stmts;
             size_t num_stmts;
-            Resolved_Stmt **elseifs;
-            size_t num_elseifs;
             Resolved_Stmt *else_stmt;
         } stmt_if;
 
@@ -1650,27 +1648,14 @@ resolved_stmt_var(Resolved_Expr *expr) {
 
 internal_proc Resolved_Stmt *
 resolved_stmt_if(Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts,
-        Resolved_Stmt **elseifs, size_t num_elseifs, Resolved_Stmt *else_stmt)
+        Resolved_Stmt *else_stmt)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_IF);
 
     result->stmt_if.expr = expr;
     result->stmt_if.stmts = (Resolved_Stmt **)AST_DUP(stmts);
     result->stmt_if.num_stmts = num_stmts;
-    result->stmt_if.elseifs = elseifs;
-    result->stmt_if.num_elseifs = num_elseifs;
     result->stmt_if.else_stmt = else_stmt;
-
-    return result;
-}
-
-internal_proc Resolved_Stmt *
-resolved_stmt_elseif(Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts) {
-    Resolved_Stmt *result = resolved_stmt_new(STMT_ELSEIF);
-
-    result->stmt_if.expr = expr;
-    result->stmt_if.stmts = (Resolved_Stmt **)AST_DUP(stmts);
-    result->stmt_if.num_stmts = num_stmts;
 
     return result;
 }
@@ -1953,6 +1938,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                     loop_first, loop_last, loop_length, loop_cycle);
         } break;
 
+        case STMT_ELSE:
         case STMT_IF: {
             scope_enter();
             Resolved_Expr *expr = resolve_expr_cond(stmt->stmt_if.cond);
@@ -1963,39 +1949,12 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             }
             scope_leave();
 
-            Resolved_Stmt **elseifs = 0;
-            if ( stmt->stmt_if.num_elseifs ) {
-                for ( int i = 0; i < stmt->stmt_if.num_elseifs; ++i ) {
-                    scope_enter();
-                    Stmt *elseif = stmt->stmt_if.elseifs[i];
-                    Resolved_Expr *elseif_expr = resolve_expr_cond(elseif->stmt_if.cond);
-
-                    Resolved_Stmt **elseif_stmts = 0;
-                    for ( int j = 0; j < elseif->stmt_if.num_stmts; ++j ) {
-                        Resolved_Stmt *resolved_elseif = resolve_stmt(elseif->stmt_if.stmts[j], templ);
-                        buf_push(elseif_stmts, resolved_elseif);
-                    }
-                    scope_leave();
-
-                    buf_push(elseifs, resolved_stmt_elseif(elseif_expr, elseif_stmts, buf_len(elseif_stmts)));
-                }
-            }
-
-            Resolved_Stmt *else_resolved_stmt = 0;
+            Resolved_Stmt *else_stmt = 0;
             if ( stmt->stmt_if.else_stmt ) {
-                scope_enter();
-                Stmt *else_stmt = stmt->stmt_if.else_stmt;
-
-                Resolved_Stmt **else_stmts = 0;
-                for ( int i = 0; i < else_stmt->stmt_if.num_stmts; ++i ) {
-                    buf_push(else_stmts, resolve_stmt(else_stmt->stmt_if.stmts[i], templ));
-                }
-                scope_leave();
-
-                else_resolved_stmt = resolved_stmt_else(else_stmts, buf_len(else_stmts));
+                else_stmt = resolve_stmt(stmt->stmt_if.else_stmt, templ);
             }
 
-            result = resolved_stmt_if(expr, stmts, buf_len(stmts), elseifs, buf_len(elseifs), else_resolved_stmt);
+            result = resolved_stmt_if(expr, stmts, buf_len(stmts), else_stmt);
         } break;
 
         case STMT_BLOCK: {

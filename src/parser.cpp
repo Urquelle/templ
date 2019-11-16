@@ -652,11 +652,8 @@ parse_stmt_if(Parser *p) {
             Stmt *stmt = parse_stmt(p);
             if ( stmt->kind == STMT_ENDIF ) {
                 break;
-            } else if ( stmt->kind == STMT_ELSEIF ) {
-                buf_push(stmt_elseifs, stmt);
-                curr_stmt = stmt;
             } else if ( stmt->kind == STMT_ELSE ) {
-                stmt_else = stmt;
+                curr_stmt->stmt_if.else_stmt = stmt;
                 curr_stmt = stmt;
             } else {
                 buf_push(curr_stmt->stmt_if.stmts, stmt);
@@ -672,10 +669,6 @@ parse_stmt_if(Parser *p) {
         }
     }
 
-    if_stmt->stmt_if.elseifs = stmt_elseifs;
-    if_stmt->stmt_if.num_elseifs = buf_len(stmt_elseifs);
-    if_stmt->stmt_if.else_stmt = stmt_else;
-
     return if_stmt;
 }
 
@@ -684,14 +677,14 @@ parse_stmt_elseif(Parser *p) {
     Expr *cond = parse_expr(p);
     expect_token(p, T_CODE_END);
 
-    return stmt_elseif(cond, 0, 0);
+    return stmt_else(cond, 0, 0);
 }
 
 internal_proc Stmt *
 parse_stmt_else(Parser *p) {
     expect_token(p, T_CODE_END);
 
-    return stmt_else(0, 0);
+    return stmt_else(expr_bool(p->lex.pos, true), 0, 0);
 }
 
 internal_proc Stmt *
