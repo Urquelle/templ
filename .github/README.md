@@ -116,7 +116,7 @@ main(int argc, char **argv) {
     templ_init(MB(100), MB(100), MB(100));
 
     Templ_Vars vars = templ_vars();
-    Templ_Var *name = templ_var("name", val_str("noob"));
+    Templ_Var *name = templ_var("name", "noob");
     templ_vars_add(&vars, name);
 
     Templ *templ = templ_compile_string("hello {{ name }}");

@@ -8,18 +8,18 @@ main(int argc, char **argv) {
 
     Templ_Vars vars = templ_vars();
 
-    Templ_Var *address = templ_var("address");
-    templ_var_set(address, "city", "berlin");
-    templ_var_set(address, "street", "siegerstr. 2");
+    Templ_Var *address = templ_object("address");
+    templ_var_set(address, templ_var("city", "berlin"));
+    templ_var_set(address, templ_var("street", "siegerstr. 2"));
 
-    Templ_Var *user = templ_var("user");
-    templ_var_set(user, "name", "noob");
-    templ_var_set(user, "age", 25);
-    templ_var_set(user, "address", address);
+    Templ_Var *user = templ_object("user");
+    templ_var_set(user, templ_var("name", "noob"));
+    templ_var_set(user, templ_var("age", 25));
+    templ_var_set(user, address);
 
     templ_vars_add(&vars, user);
 
-    Templ *templ1 = templ_compile_string("servus {{ user.name }} in {{ user.address.city }}");
+    Templ *templ1 = templ_compile_string("{{ user.name }} in {{ user.address.city }}");
     char *result1 = templ_render(templ1, &vars);
 
     os_file_write("test1.html", result1, utf8_strlen(result1));

@@ -176,77 +176,74 @@ global_var Arena                templ_arena;
 struct Templ_Var {
     char *name;
     Val *val;
+    Type *type;
 };
 
-user_api Templ_Var *
-templ_var(char *name) {
+internal_proc Templ_Var *
+templ_object(char *name) {
     Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
     Scope *scope = scope_new(0, name);
 
-    result->name = name;
+    result->name = intern_str(name);
     result->val  = val_dict(scope);
+    result->type = type_dict(scope);
 
     return result;
 }
 
 user_api Templ_Var *
-templ_var(char *name, Val *val) {
+templ_var(char *name, char *val) {
     Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
 
-    result->name = name;
-    result->val  = val;
+    result->name = intern_str(name);
+    result->val  = val_str(val);
+    result->type = type_str;
 
     return result;
 }
 
-user_api void
-templ_var_set(Templ_Var *var, char *key, char *value) {
-    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
+user_api Templ_Var *
+templ_var(char *name, s32 val) {
+    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
 
-    key   = intern_str(key);
-    value = intern_str(value);
-    sym_push_var(key, type_str, val_str(value));
+    result->name = intern_str(name);
+    result->val  = val_int(val);
+    result->type = type_int;
 
-    scope_set(prev_scope);
+    return result;
+}
+
+user_api Templ_Var *
+templ_var(char *name, f32 val) {
+    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+
+    result->name = intern_str(name);
+    result->val  = val_float(val);
+    result->type = type_float;
+
+    return result;
+}
+
+user_api Templ_Var *
+templ_var(char *name, b32 val) {
+    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+
+    result->name = intern_str(name);
+    result->val  = val_bool(val);
+    result->type = type_bool;
+
+    return result;
+}
+
+internal_proc Templ_Var *
+templ_var(char *name, Templ_Var *val) {
+    return val;
 }
 
 user_api void
-templ_var_set(Templ_Var *var, char *key, s32 value) {
+templ_var_set(Templ_Var *var, Templ_Var *value) {
     Scope *prev_scope = scope_set((Scope *)var->val->ptr);
-
-    key = intern_str(key);
-    sym_push_var(key, type_int, val_int(value));
-
-    scope_set(prev_scope);
-}
-
-user_api void
-templ_var_set(Templ_Var *var, char *key, f32 value) {
-    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
-
-    key = intern_str(key);
-    sym_push_var(key, type_float, val_float(value));
-
-    scope_set(prev_scope);
-}
-
-user_api void
-templ_var_set(Templ_Var *var, char *key, b32 value) {
-    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
-
-    key = intern_str(key);
-    sym_push_var(key, type_bool, val_bool(value));
-
-    scope_set(prev_scope);
-}
-
-user_api void
-templ_var_set(Templ_Var *var, char *key, Templ_Var *value) {
-    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
-
-    key = intern_str(key);
-    sym_push_var(key, type_dict((Scope *)value->val->ptr), value->val);
-
+    sym_push_var(value->name, value->type, value->val);
     scope_set(prev_scope);
 }
 
@@ -287,7 +284,7 @@ templ_render(Templ *templ, Templ_Vars *vars = 0) {
     if ( vars ) {
         for ( int i = 0; i < vars->num_vars; ++i ) {
             Templ_Var *var = vars->vars[i];
-            Sym *sym = sym_push_var(var->name, type_dict((Scope *)var->val->ptr), var->val);
+            sym_push_var(var->name, var->type, var->val);
         }
     }
 
@@ -332,6 +329,7 @@ namespace api {
     using templ::templ_compile_file;
     using templ::templ_compile_string;
     using templ::templ_init;
+    using templ::templ_object;
     using templ::templ_reset;
     using templ::templ_var;
     using templ::templ_vars;
