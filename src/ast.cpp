@@ -89,7 +89,7 @@ struct Expr {
         } expr_float;
 
         struct {
-            s32 value;
+            b32 value;
         } expr_bool;
 
         struct {
@@ -172,6 +172,13 @@ expr_new(Pos pos, Expr_Kind kind) {
 }
 
 internal_proc Expr *
+expr_none(Pos pos) {
+    Expr *result = expr_new(pos, EXPR_NONE);
+
+    return result;
+}
+
+internal_proc Expr *
 expr_paren(Pos pos, Expr *expr) {
     Expr *result = expr_new(pos, EXPR_PAREN);
 
@@ -217,7 +224,7 @@ expr_str(Pos pos, char *value) {
 }
 
 internal_proc Expr *
-expr_bool(Pos pos, s32 value) {
+expr_bool(Pos pos, b32 value) {
     Expr *result = expr_new(pos, EXPR_BOOL);
 
     result->expr_bool.value = value;

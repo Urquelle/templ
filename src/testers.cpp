@@ -109,7 +109,7 @@ internal_proc PROC_CALLBACK(test_ne) {
 }
 
 internal_proc PROC_CALLBACK(test_none) {
-    b32 result = val_bool(operand) == -1;
+    b32 result = operand->kind == VAL_NONE;
 
     return val_bool(result);
 }

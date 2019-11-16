@@ -220,11 +220,11 @@ parse_expr_base(Parser *p) {
         next_token(lex);
     } else if ( is_token(p, T_NAME) ) {
         if ( match_keyword(p, keyword_true) ) {
-            result = expr_bool(pos, 1);
+            result = expr_bool(pos, true);
         } else if ( match_keyword(p, keyword_false) ) {
-            result = expr_bool(pos, 0);
+            result = expr_bool(pos, false);
         } else if ( match_keyword(p, keyword_none) ) {
-            result = expr_bool(pos, -1);
+            result = expr_none(pos);
         } else {
             result = expr_name(pos, lex->token.name);
             next_token(lex);

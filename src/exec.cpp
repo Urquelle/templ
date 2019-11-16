@@ -255,6 +255,10 @@ exec_expr(Resolved_Expr *expr) {
             }
         } break;
 
+        case EXPR_NONE: {
+            return val_none();
+        } break;
+
         default: {
             fatal(expr->pos.name, expr->pos.row, "unerwarteter ausdruck");
             illegal_path();

@@ -54,6 +54,7 @@ scope_set(Scope *scope) {
 /* val {{{ */
 enum Val_Kind {
     VAL_UNDEFINED,
+    VAL_NONE,
     VAL_BOOL,
     VAL_INT,
     VAL_FLOAT,
@@ -86,8 +87,6 @@ struct Val {
     void *user_data;
 };
 
-global_var Val val_default = { VAL_UNDEFINED, 0, 0, 0, 0 };
-
 internal_proc Val *
 val_new(Val_Kind kind, size_t size) {
     Val *result = ALLOC_STRUCT(&resolve_arena, Val);
@@ -96,6 +95,18 @@ val_new(Val_Kind kind, size_t size) {
     result->size = size;
     result->len  = 0;
     result->ptr  = (void *)ALLOC_SIZE(&resolve_arena, size);
+    result->user_data = 0;
+
+    return result;
+}
+
+internal_proc Val *
+val_none() {
+    Val *result = val_new(VAL_NONE, 0);
+
+    result->size = 0;
+    result->len  = 0;
+    result->ptr  = 0;
     result->user_data = 0;
 
     return result;
@@ -139,17 +150,17 @@ val_copy(Val *val) {
 }
 
 internal_proc Val *
-val_bool(s32 val) {
+val_bool(b32 val) {
     Val *result = val_new(VAL_BOOL, sizeof(b32));
 
-    *((s32 *)result->ptr) = val;
+    *((b32 *)result->ptr) = val;
 
     return result;
 }
 
-internal_proc s32
+internal_proc b32
 val_bool(Val *val) {
-    return *(s32 *)val->ptr;
+    return *(b32 *)val->ptr;
 }
 
 internal_proc Val *
@@ -158,8 +169,7 @@ val_neg(Val *val) {
 
     Val *result = val_new(VAL_BOOL, sizeof(s32));
 
-    s32 value = (s32)val_bool(val);
-    *((s32 *)result->ptr) = ~(value & 0x1);
+    *((b32 *)result->ptr) = !val_bool(val);
 
     return result;
 }
@@ -325,7 +335,7 @@ val_set(Val *val, s32 value) {
 internal_proc void
 val_set(Val *val, b32 value) {
     assert(val->kind == VAL_BOOL);
-    *((s32 *)val->ptr) = value;
+    *((b32 *)val->ptr) = value;
 }
 
 internal_proc void
@@ -407,12 +417,10 @@ val_to_char(Val *val) {
         } break;
 
         case VAL_BOOL: {
-            erstes_if ( val_bool(val) > 0 ) {
+            erstes_if ( val_bool(val) == true ) {
                 return "true";
-            } else if ( val_bool(val) == 0 ) {
-                return "false";
             } else {
-                return "none";
+                return "false";
             }
         } break;
 
@@ -423,6 +431,10 @@ val_to_char(Val *val) {
 
             char *result = strf("%.*s", size, ptr);
             return result;
+        } break;
+
+        case VAL_NONE: {
+            return "none";
         } break;
 
         default: {
@@ -1336,6 +1348,13 @@ resolved_expr_new(Expr_Kind kind, Type *type = 0) {
     result->type = type;
     result->kind = kind;
     result->val = val_undefined();
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+resolved_expr_none() {
+    Resolved_Expr *result = resolved_expr_new(EXPR_NONE);
 
     return result;
 }
@@ -2506,6 +2525,10 @@ resolve_expr(Expr *expr) {
 
             scope_set(prev_scope);
             result = resolved_expr_dict(val_dict(scope), scope);
+        } break;
+
+        case EXPR_NONE: {
+            result = resolved_expr_none();
         } break;
 
         default: {
