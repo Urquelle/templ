@@ -1641,6 +1641,7 @@ struct Resolved_Stmt {
         } stmt_module;
 
         struct {
+            Scope *scope;
             Resolved_Stmt **stmts;
             size_t num_stmts;
         } stmt_with;
@@ -1839,9 +1840,10 @@ resolved_stmt_from_import(Resolved_Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_with(Resolved_Stmt **stmts, size_t num_stmts) {
+resolved_stmt_with(Scope *scope, Resolved_Stmt **stmts, size_t num_stmts) {
     Resolved_Stmt *result = resolved_stmt_new(STMT_WITH);
 
+    result->stmt_with.scope = scope;
     result->stmt_with.stmts = stmts;
     result->stmt_with.num_stmts = num_stmts;
 
@@ -2175,7 +2177,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         } break;
 
         case STMT_WITH: {
-            scope_enter();
+            Scope *scope = scope_enter("with");
 
             /* @INFO: zuerst müssen die ausdrücke der argumente aufgelöst werden
              *        BEVOR die argumente als symbole in den scope gepusht werden,
@@ -2204,7 +2206,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             scope_leave();
 
-            result = resolved_stmt_with(stmts, buf_len(stmts));
+            result = resolved_stmt_with(scope, stmts, buf_len(stmts));
         } break;
 
         case STMT_BREAK: {

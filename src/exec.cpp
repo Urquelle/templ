@@ -529,9 +529,11 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_WITH: {
+            Scope *prev_scope = scope_set(stmt->stmt_with.scope);
             for ( int i = 0; i < stmt->stmt_with.num_stmts; ++i ) {
                 exec_stmt(stmt->stmt_with.stmts[i]);
             }
+            scope_set(prev_scope);
         } break;
 
         case STMT_BREAK: {
