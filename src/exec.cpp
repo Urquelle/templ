@@ -186,8 +186,9 @@ exec_expr(Resolved_Expr *expr) {
             Resolved_Expr *tester = expr->expr_is.tester;
             Val_Proc *proc = (Val_Proc *)tester->expr_call.expr->val->ptr;
 
-            result = proc->callback(
-                    operand, tester->expr_call.nargs, tester->expr_call.narg_keys,
+            result = proc->callback( operand,
+                    tester->expr_call.args, tester->expr_call.num_args,
+                    tester->expr_call.nargs, tester->expr_call.narg_keys,
                     tester->expr_call.num_narg_keys, tester->expr_call.kwargs,
                     tester->expr_call.num_kwargs, tester->expr_call.varargs,
                     tester->expr_call.num_varargs);
@@ -202,6 +203,7 @@ exec_expr(Resolved_Expr *expr) {
             Val_Proc *proc = (Val_Proc *)val->ptr;
 
             result = proc->callback(val,
+                    expr->expr_call.args, expr->expr_call.num_args,
                     expr->expr_call.nargs, expr->expr_call.narg_keys,
                     expr->expr_call.num_narg_keys, expr->expr_call.kwargs,
                     expr->expr_call.num_kwargs, expr->expr_call.varargs,
@@ -268,8 +270,9 @@ exec_expr(Resolved_Expr *expr) {
     for ( int i = 0; i < expr->num_filters; ++i ) {
         Resolved_Expr *filter = expr->filters[i];
         Val_Proc *proc = (Val_Proc *)filter->expr_call.expr->val->ptr;
-        result = proc->callback(
-                result, filter->expr_call.nargs, filter->expr_call.narg_keys,
+        result = proc->callback( result,
+                filter->expr_call.args, filter->expr_call.num_args,
+                filter->expr_call.nargs, filter->expr_call.narg_keys,
                 filter->expr_call.num_narg_keys, filter->expr_call.kwargs,
                 filter->expr_call.num_kwargs, filter->expr_call.varargs,
                 filter->expr_call.num_varargs);
@@ -396,6 +399,7 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_FOR: {
+            global_for_stmt = stmt;
             Val *list = exec_expr(stmt->stmt_for.set);
 
             Scope *prev_scope = scope_set(stmt->stmt_for.scope);
@@ -424,6 +428,7 @@ exec_stmt(Resolved_Stmt *stmt) {
 
                     for ( int j = 0; j < stmt->stmt_for.num_stmts; ++j ) {
                         exec_stmt(stmt->stmt_for.stmts[j]);
+
                         if ( global_for_break ) {
                             break;
                         }
@@ -513,8 +518,9 @@ exec_stmt(Resolved_Stmt *stmt) {
                 Resolved_Expr *filter = stmt->stmt_filter.filter[i];
 
                 Val_Proc *proc = (Val_Proc *)filter->expr_call.expr->val->ptr;
-                result = proc->callback(
-                        result, filter->expr_call.nargs, filter->expr_call.narg_keys,
+                result = proc->callback( result,
+                        filter->expr_call.args, filter->expr_call.num_args,
+                        filter->expr_call.nargs, filter->expr_call.narg_keys,
                         filter->expr_call.num_narg_keys, filter->expr_call.kwargs,
                         filter->expr_call.num_kwargs, filter->expr_call.varargs,
                         filter->expr_call.num_varargs);

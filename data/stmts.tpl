@@ -64,6 +64,7 @@ b[1] = {{ b[1] }}
     revidx: {{ loop.revindex }} revidx0: {{ loop.revindex0 }}
     first: {{ loop.first }} last: {{ loop.last }}
     length: {{ loop.length }} cycle: {{ loop.cycle('odd', 'even') }}
+    depth: {{ loop.depth }} depth0: {{ loop.depth0 }}
     <div>kontinent:</div><div>{{ kontinent }}</div>
 {% endfor %}
 
@@ -84,6 +85,7 @@ c[1][0] {{ c[1][0] }}
     {% if i == 2 %}{% continue %}{% endif %}
     {% if i == 5 %}{% break %}{% endif %}
     {{ i }}
+    {% if loop.depth == 1 %}{{ loop([1, 2, 3]) }}{% endif %}
 {% endfor %}
 
 {% for eins, zwei in [("eins", "zwei"), ("drei", "vier")] %}

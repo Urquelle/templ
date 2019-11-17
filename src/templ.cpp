@@ -21,18 +21,18 @@
 #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
-#define PROC_CALLBACK(name)   Val * name(Val *operand, Map *nargs, char **narg_keys, size_t num_narg_keys, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define PROC_CALLBACK(name)   Val * name(Val *operand, Resolved_Expr **args, size_t num_args, Map *nargs, char **narg_keys, size_t num_narg_keys, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
-#define erstes_if if
-#define genf(...)   gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
-#define genln()     gen_result = strf("%s\n", gen_result); gen_indentation()
-#define genlnf(...) gen_result = strf("%s\n", gen_result); gen_indentation(); genf(__VA_ARGS__)
-#define global_var    static
+#define erstes_if      if
+#define genf(...)      gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
+#define genln()        gen_result = strf("%s\n", gen_result); gen_indentation()
+#define genlnf(...)    gen_result = strf("%s\n", gen_result); gen_indentation(); genf(__VA_ARGS__)
+#define global_var     static
+#define internal_proc  static
 #define illegal_path() assert(0)
 #define implement_me() assert(0)
-#define internal_proc static
+#define narg(name)     ((Resolved_Arg *)map_get(nargs, intern_str(name)))
 #define user_api
-#define narg(name) ((Resolved_Arg *)map_get(nargs, intern_str(name)))
 
 #define GB(X) (MB(X)*1024)
 #define KB(X) (  (X)*1024)
@@ -150,6 +150,7 @@ internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 
 global_var char               * gen_result = "";
 global_var int                  gen_indent   = 0;
 Resolved_Templ                * global_current_tmpl;
+global_var Resolved_Stmt      * global_for_stmt;
 global_var b32                  global_for_break;
 global_var b32                  global_for_continue;
 global_var Resolved_Stmt      * global_super_block;
@@ -163,6 +164,9 @@ global_var Map                  global_blocks;
 global_var Arena                parse_arena;
 global_var Arena                resolve_arena;
 global_var Arena                templ_arena;
+
+global_var char *symname_loop = intern_str("loop");
+global_var char *symname_index = intern_str("index");
 
 #include "lex.cpp"
 #include "ast.cpp"

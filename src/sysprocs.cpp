@@ -60,10 +60,10 @@ PROC_CALLBACK(proc_dict) {
 }
 
 PROC_CALLBACK(proc_cycle) {
-    Sym *sym = sym_get(intern_str("loop"));
-    Scope *scope = (Scope *)sym->val->ptr;
+    Sym *sym = sym_get(symname_loop);
+    Scope *scope = (Scope *)sym->val->user_data;
     Scope *prev_scope = scope_set(scope);
-    Sym *sym_idx = sym_get(intern_str("index"));
+    Sym *sym_idx = sym_get(symname_index);
 
     s32 loop_index = val_int(sym_idx->val);
     s32 arg_index  = loop_index % num_varargs;
@@ -149,7 +149,61 @@ PROC_CALLBACK(proc_joiner_call) {
 }
 
 PROC_CALLBACK(proc_loop) {
-    return val_str("@IMPLEMENTIEREN: loop()");
+    s32 depth = val_int(global_for_stmt->stmt_for.loop_depth->val);
+
+    Scope *scope_for = scope_enter("for");
+
+    Resolved_Expr *set = args[0];
+
+    /* loop variablen {{{ */
+    Type_Field *any_type[] = { type_field("s", type_any) };
+    Type_Field *loop_type[] = { type_field("s", type_any) };
+
+    Scope *scope = scope_new(current_scope, "loop");
+
+    Type *type = type_proc(loop_type, 1, 0);
+    type->scope = scope;
+
+    Val *val = val_proc(loop_type, 1, 0, proc_loop);
+    val->user_data = scope;
+
+    sym_push_var(symname_loop, type, val);
+    Scope *prev_scope = scope_set(scope);
+
+    Sym *loop_index     = sym_push_var(symname_index, type_int,  val_int(1));
+    Sym *loop_index0    = sym_push_var("index0",      type_int,  val_int(0));
+    Sym *loop_revindex  = sym_push_var("revindex",    type_int,  val_int(0));
+    Sym *loop_revindex0 = sym_push_var("revindex0",   type_int,  val_int(0));
+    Sym *loop_first     = sym_push_var("first",       type_bool, val_bool(true));
+    Sym *loop_last      = sym_push_var("last",        type_bool, val_bool(false));
+    Sym *loop_length    = sym_push_var("length",      type_int,  val_int(0));
+    Sym *loop_cycle     = sym_push_proc("cycle",      type_proc(any_type, 0, 0), val_proc(any_type, 0, 0, proc_cycle));
+    Sym *loop_depth     = sym_push_var("depth",       type_int,  val_int(depth + 1));
+    Sym *loop_depth0    = sym_push_var("depth0",      type_int,  val_int(depth + 1));
+
+    scope_set(prev_scope);
+    /* }}} */
+
+    scope_leave();
+
+    Resolved_Stmt *stmt = resolved_stmt_for(scope_for,
+            global_for_stmt->stmt_for.vars, global_for_stmt->stmt_for.num_vars,
+            set, global_for_stmt->stmt_for.stmts, buf_len(global_for_stmt->stmt_for.stmts),
+            global_for_stmt->stmt_for.else_stmts, buf_len(global_for_stmt->stmt_for.else_stmts),
+            loop_index, loop_index0, loop_revindex, loop_revindex0,
+            loop_first, loop_last, loop_length, loop_cycle, loop_depth, loop_depth0);
+
+
+    char *old_gen_result = gen_result;
+    char *temp = "";
+    gen_result = temp;
+
+    exec_stmt(stmt);
+
+    Val *result = val_str(gen_result);
+    gen_result = old_gen_result;
+
+    return result;
 }
 
 PROC_CALLBACK(proc_range) {

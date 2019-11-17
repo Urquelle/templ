@@ -1,3 +1,81 @@
+# user api
+
+fixes broken user api and makes it more clear how to use.
+
+# statements
+
+- better if-parsing and code reduction overall in resovle and execution stage.
+- with statement was fixed, so it doesn't leak symbols to the outer scope.
+
+# bool and none
+
+previously the `none` expression was part of `bool`. now it's a separate entity.
+
+# v0.3 (alpha) release
+
+a major [refactoring](https://github.com/NoobSaibot/templ/commit/212576db6ae0af3c6787d0cd704cea169c240fea) took place in this release, so that the code became easier to read and understand.
+
+all in all, this release turned out to be bigger than planned. see below for the full description of changes that went in to this release.
+
+## global methods
+
+this release implements the [list](https://jinja.palletsprojects.com/en/2.10.x/templates/#list-of-global-functions) of global methods in full capacity.
+
+- `implements global method range` - [4e035d4e](https://github.com/NoobSaibot/templ/commit/4e035d4eaacd324d9aa24592913237612e44873d)
+- `implements global method lipsum` - [e1c1639](https://github.com/NoobSaibot/templ/commit/e1c16392e6665ee4a1f1ad1b28f1b0d5a537617e)
+- `implements global method dict` - [8790895](https://github.com/NoobSaibot/templ/commit/87908952f3b31f4bd539a887eccb456ac98524ab)
+- `implements global method cycler` - [09367b0](https://github.com/NoobSaibot/templ/commit/09367b0d1d8ea05945ea008b57bf9b138f2c879a)
+- `implements global method joiner` - [606cbcd](https://github.com/NoobSaibot/templ/commit/606cbcd030fc02077284d0a09ad384ef3ffb9489)
+- `implements global method namespace` - [212576d](https://github.com/NoobSaibot/templ/commit/212576db6ae0af3c6787d0cd704cea169c240fea)
+
+## filter
+
+the following filter were implemented in this release
+
+- `implements filter truncate` - [bb04d7b](https://github.com/NoobSaibot/templ/commit/bb04d7b6edc1e895380be58ecdda63d03b7ecc6f)
+- `implements filter attr` - [6bdfdb2](https://github.com/NoobSaibot/templ/commit/6bdfdb2477d5984184039284807d243f60c7b1e3)
+- `implements filter center` - [9df097d8](https://github.com/NoobSaibot/templ/commit/9df097d8d3304fb81b9a88617a60599e71d19562)
+
+## tests
+
+the following tests were implemented in this release
+
+- `implements test undefined` - [b7129e6b](https://github.com/NoobSaibot/templ/commit/b7129e6b5a520a4e8ee8c1d260516e3724a998ba)
+- `implements test mapping` - [e070f93](https://github.com/NoobSaibot/templ/commit/e070f93ebb7b97e21778b564b61eefc67c3631a9)
+
+## expressions and statements
+
+this release offers more support for expressions and statements that the original jinja template engine supports.
+
+- `implements with statement` - [172300b](https://github.com/NoobSaibot/templ/commit/172300b7129e2609c8d66338208ef32af62b2241)
+- `implements expressions left of assignment` - [f203ab9](https://github.com/NoobSaibot/templ/commit/f203ab9874f585d96a1bf3272043b40edea6b314)
+- `implements break & continue in for loops` - [843c77c](https://github.com/NoobSaibot/templ/commit/843c77c6cdd7c323b69b8effd4bbe8256d28f4a8)
+- `implements support for dict` - [838422a](https://github.com/NoobSaibot/templ/commit/838422aaa34071316ad861271767cbd3970cd666)
+- `implements none expression` - [7bcd758](https://github.com/NoobSaibot/templ/commit/7bcd7584e3206675b237772b8f604bf775304fb0)
+- implements better support for whitespace control
+- `implements if expression on all expressions` - [843939](https://github.com/NoobSaibot/templ/commit/84393994cb3dd828fc994db7c6787b7d04b1bb16)
+- `implements tilde operator` - [44e83ca](https://github.com/NoobSaibot/templ/commit/44e83cafdb22bc08ecad5e72db6095934930c503)
+
+## error messages
+
+this release implements the collection of all raised errors and warnings in distinct collections, which can be iterated over by the user later on.
+
+```cpp
+    if ( status_is_error() ) {
+        for ( int i = 0; i < status_num_errors(); ++i ) {
+            Status *error = status_error_get(i);
+            fprintf(stderr, "%s in %s line %lld\n", status_message(error),
+                status_filename(error), status_line(error));
+        }
+
+        for ( int i = 0; i < status_num_warnings(); ++i ) {
+            Status *warning = status_warning_get(i);
+            fprintf(stderr, "%s in %s line %lld\n", status_message(warning),
+                status_filename(warning), status_line(warning));
+        }
+    }
+```
+
 v0.2-alpha
 ==========
 

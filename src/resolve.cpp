@@ -1275,6 +1275,8 @@ struct Resolved_Expr {
 
         struct {
             Resolved_Expr *expr;
+            Resolved_Expr **args;
+            size_t num_args;
             Map *nargs;
             char **narg_keys;
             size_t num_narg_keys;
@@ -1477,7 +1479,8 @@ resolved_expr_not(Resolved_Expr *expr) {
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_call(Resolved_Expr *expr, Map *nargs, char **narg_keys,
+resolved_expr_call(Resolved_Expr *expr, Resolved_Expr **args, size_t num_args,
+        Map *nargs, char **narg_keys,
         size_t num_narg_keys, Resolved_Arg **kwargs,
         size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs,
         Type *type)
@@ -1485,6 +1488,8 @@ resolved_expr_call(Resolved_Expr *expr, Map *nargs, char **narg_keys,
     Resolved_Expr *result = resolved_expr_new(EXPR_CALL, type);
 
     result->expr_call.expr        = expr;
+    result->expr_call.args        = (Resolved_Expr **)AST_DUP(args);
+    result->expr_call.num_args    = num_args;
     result->expr_call.nargs       = nargs;
     result->expr_call.narg_keys   = narg_keys;
     result->expr_call.num_narg_keys = num_narg_keys;
@@ -1577,6 +1582,8 @@ struct Resolved_Stmt {
             Sym *loop_last;
             Sym *loop_length;
             Sym *loop_cycle;
+            Sym *loop_depth;
+            Sym *loop_depth0;
         } stmt_for;
 
         struct {
@@ -1696,7 +1703,8 @@ resolved_stmt_for(Scope *scope, Sym **vars, size_t num_vars, Resolved_Expr *set,
         Resolved_Stmt **stmts, size_t num_stmts, Resolved_Stmt **else_stmts,
         size_t num_else_stmts,
         Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0,
-        Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle)
+        Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle,
+        Sym *loop_depth, Sym *loop_depth0)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FOR);
 
@@ -1719,6 +1727,8 @@ resolved_stmt_for(Scope *scope, Sym **vars, size_t num_vars, Resolved_Expr *set,
     result->stmt_for.loop_last      = loop_last;
     result->stmt_for.loop_length    = loop_length;
     result->stmt_for.loop_cycle     = loop_cycle;
+    result->stmt_for.loop_depth     = loop_depth;
+    result->stmt_for.loop_depth0    = loop_depth0;
 
     return result;
 }
@@ -1893,9 +1903,6 @@ resolve_name(char *name) {
     return result;
 }
 
-global_var char *symname_index  = intern_str("index");
-global_var char *symname_index0 = intern_str("index0");
-
 internal_proc Resolved_Stmt *
 resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
     Resolved_Stmt *result = 0;
@@ -1923,20 +1930,29 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             /* loop variablen {{{ */
             Type_Field *any_type[] = { type_field("s", type_any) };
+            Type_Field *loop_type[] = { type_field("s", type_any) };
 
             Scope *scope = scope_new(current_scope, "loop");
-            Type *type = type_dict(scope);
-            sym_push_var("loop", type, val_dict(scope));
+
+            Type *type = type_proc(loop_type, 1, 0);
+            type->scope = scope;
+
+            Val *val = val_proc(loop_type, 1, 0, proc_loop);
+            val->user_data = scope;
+
+            sym_push_var(symname_loop, type, val);
             Scope *prev_scope = scope_set(scope);
 
-            Sym *loop_index     = sym_push_var(symname_index,     type_int,  val_int(1));
-            Sym *loop_index0    = sym_push_var(symname_index0,    type_int,  val_int(0));
-            Sym *loop_revindex  = sym_push_var("revindex",  type_int,  val_int(0));
-            Sym *loop_revindex0 = sym_push_var("revindex0", type_int,  val_int(0));
-            Sym *loop_first     = sym_push_var("first",     type_bool, val_bool(true));
-            Sym *loop_last      = sym_push_var("last",      type_bool, val_bool(false));
-            Sym *loop_length    = sym_push_var("length",    type_int,  val_int(0));
-            Sym *loop_cycle     = sym_push_proc("cycle",    type_proc(any_type, 0, 0), val_proc(any_type, 0, 0, proc_cycle));
+            Sym *loop_index     = sym_push_var(symname_index, type_int,  val_int(1));
+            Sym *loop_index0    = sym_push_var("index0",      type_int,  val_int(0));
+            Sym *loop_revindex  = sym_push_var("revindex",    type_int,  val_int(0));
+            Sym *loop_revindex0 = sym_push_var("revindex0",   type_int,  val_int(0));
+            Sym *loop_first     = sym_push_var("first",       type_bool, val_bool(true));
+            Sym *loop_last      = sym_push_var("last",        type_bool, val_bool(false));
+            Sym *loop_length    = sym_push_var("length",      type_int,  val_int(0));
+            Sym *loop_cycle     = sym_push_proc("cycle",      type_proc(any_type, 0, 0), val_proc(any_type, 0, 0, proc_cycle));
+            Sym *loop_depth     = sym_push_var("depth",       type_int,  val_int(1));
+            Sym *loop_depth0    = sym_push_var("depth0",      type_int,  val_int(0));
 
             scope_set(prev_scope);
             /* }}} */
@@ -1956,7 +1972,8 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             result = resolved_stmt_for(scope_for, vars, num_vars, set, stmts,
                     buf_len(stmts), else_stmts, buf_len(else_stmts),
                     loop_index, loop_index0, loop_revindex, loop_revindex0,
-                    loop_first, loop_last, loop_length, loop_cycle);
+                    loop_first, loop_last, loop_length, loop_cycle, loop_depth,
+                    loop_depth0);
         } break;
 
         case STMT_ELSE:
@@ -2267,6 +2284,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
     size_t num_proc_params = type->type_proc.num_params;
     Type *type_ret = type->type_proc.ret;
 
+    Resolved_Expr **args = 0;
     /* benamte argumente */
     Map *nargs = (Map *)xcalloc(1, sizeof(Map));
     char **narg_keys = 0;
@@ -2290,6 +2308,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
         }
 
         Resolved_Expr *arg_expr = resolve_expr(arg->expr);
+        buf_push(args, arg_expr);
 
         /* @INFO: wenn benamtes argument */
         if ( name ) {
@@ -2369,7 +2388,8 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
         }
     }
 
-    return resolved_expr_call(call_expr, nargs, narg_keys, buf_len(narg_keys), kwargs, buf_len(kwargs), varargs, buf_len(varargs), type_ret);
+    return resolved_expr_call(call_expr, args, buf_len(args), nargs, narg_keys,
+            buf_len(narg_keys), kwargs, buf_len(kwargs), varargs, buf_len(varargs), type_ret);
 }
 
 internal_proc Resolved_Expr *
@@ -2715,10 +2735,6 @@ resolve_init() {
 
 internal_proc Resolved_Templ *
 resolve(Parsed_Templ *parsed_templ, b32 with_context) {
-    /* @WICHTIG @AUFGABE: in resolve sollte für jedes stmt/expr der scope und type(?)
-     *                    festgehalten werden. der val sollte in der exec im scope
-     *                    ermittelt werden!
-     */
     Resolved_Templ *result = resolved_templ(parsed_templ->name);
     current_templ = result;
 
