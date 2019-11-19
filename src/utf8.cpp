@@ -94,63 +94,52 @@ utf8_char_goto(char *input, size_t count) {
     return result;
 }
 
+global_var char global_toupper_buf[5];
 internal_proc char *
 utf8_toupper(char *str) {
     /* @INFO: tabelle mit werten für die zeichen https://unicode-table.com/ */
 
     size_t size = utf8_char_size(str);
-    char *result = str;
+    memcpy(global_toupper_buf, str, size);
 
     u8 c0 = (u8)str[0];
     u8 c1 = ( size > 1 ) ? (u8)str[1] : 0;
 
-    erstes_if ( size == 1 && *str >= 'a' && *str <= 'z') {
-        result = (char *)malloc(sizeof(char));
-        memcpy(result, str, sizeof(char));
-        result[0] -= 0x20;
+    erstes_if (
+        /* @INFO: ascii */
+        ( size == 1 && *str >= 'a' && *str <= 'z' ) ||
 
+        /* @INFO: latin */
+        ( size == 2 && c0 == 0xc3 && ( c1 >= 0xa0 && c1 <= 0xb6 || c1 >= 0xb8 && c1 <= 0xbf ) ) ||
+
+        /* @INFO: абвгдежзийклмноп */
+        ( size == 2 && c0 == 0xd0 && c1 >= 0xb0 && c1 <= 0xbf )
+    ) {
+        global_toupper_buf[size-1] -= 0x20;
+        global_toupper_buf[size]    = 0;
     } else if ( size == 2 ) {
-        /* @INFO: umlaute */
-        erstes_if ( c0 == 0xc3 ) {
-            if ( c1 == 0x9f ) {
-                result = (char *)malloc(sizeof(char)*4);
-                memcpy(result, str, sizeof(char)*2);
+        /* @INFO: ß */
+        erstes_if ( c0 == 0xc3 && c1 == 0x9f ) {
+            global_toupper_buf[0] = (u8)0xe1;
+            global_toupper_buf[1] = (u8)0xba;
+            global_toupper_buf[2] = (u8)0x9e;
+            global_toupper_buf[3] = 0;
 
-                result[0] = (u8)0xe1;
-                result[1] = (u8)0xba;
-                result[2] = (u8)0x9e;
-                result[3] = 0;
-            } else if ( c1 >= 0xa0 && c1 <= 0xbf) {
-                result = (char *)malloc(sizeof(char)*2);
-                memcpy(result, str, sizeof(char)*2);
-
-                result[1] -= 0x20;
-            }
-
-        /* @INFO: рстуфхцчшщъыьэюя */
-        } else if ( c0 == 0xd0 && c1 >= 0xb0 ) {
-            result = (char *)malloc(sizeof(char)*2);
-            memcpy(result, str, sizeof(char)*2);
-
-            result[1] -= 0x20;
-
-        /* @INFO: абвгдеёжзийклмноп */
+        /* @INFO: рстуфхцчшщъыьэюя ё */
         } else if ( c0 == 0xd1 ) {
-            result = (char *)malloc(sizeof(char)*3);
-            memcpy(result, str, sizeof(char)*2);
 
-            /* @INFO: абвгдежзийклмноп */
+            /* @INFO: рстуфхцчшщъыьэюя */
             if ( c1 <= 0x8f ) {
-                result[0] -= 0x01;
-                result[1] += 0x20;
+                global_toupper_buf[0] -= 0x01;
+                global_toupper_buf[1] += 0x20;
 
             /* @INFO: ё */
             } else if ( c1 == 0x91 ) {
-                result[0] -= 0x01;
-                result[1] -= 0x10;
+                global_toupper_buf[0] -= 0x01;
+                global_toupper_buf[1] -= 0x10;
             }
 
-            result[2] = 0;
+            global_toupper_buf[2] = 0;
         }
 
     /* @AUFGABE: überprüfen ob zeichen klein ist, bevor konvertierung */
@@ -162,71 +151,53 @@ utf8_toupper(char *str) {
         /* @AUFGABE: implementieren */
     }
 
-    return result;
+    return global_toupper_buf;
 }
 
+global_var char global_tolower_buf[5];
 internal_proc char *
 utf8_tolower(char *str) {
     /* @INFO: tabelle mit werten für die zeichen https://unicode-table.com/ */
 
     size_t size = utf8_char_size(str);
-    char *result = str;
+    memcpy(global_tolower_buf, str, size);
 
     u8 c0 = (u8)str[0];
     u8 c1 = ( size > 1 ) ? (u8)str[1] : 0;
     u8 c2 = ( size > 2 ) ? (u8)str[2] : 0;
 
-    /* @INFO: ascii */
-    erstes_if ( size == 1 && *str >= 'A' && *str <= 'Z') {
-        result = (char *)malloc(sizeof(char)*2);
-        memcpy(result, str, sizeof(char));
-        result[0] += 0x20;
-        result[1] = 0;
-    } else if ( size == 2 ) {
-        /* @INFO: umlaute */
-        erstes_if ( c0 == 0xc3 ) {
-            if ( c1 >= 0x80 && c1 <= 0x9e) {
-                result = (char *)malloc(sizeof(char)*3);
-                memcpy(result, str, sizeof(char)*2);
+    erstes_if (
+        /* @INFO: ascii */
+        ( size == 1 && *str >= 'A' && *str <= 'Z' ) ||
 
-                result[1] += 0x20;
-                result[2] = 0;
-            }
+        /* @INFO: latin */
+        ( size == 2 && c0 == 0xc3 && c1 >= 0x80 && c1 <= 0x9e ) ||
 
         /* @INFO: АБВГДЕЖЗИЙКЛМНОП */
-        } else if ( c0 == 0xd0 && c1 >= 0x90 && c1 <= 0x9f) {
-            result = (char *)malloc(sizeof(char)*3);
-            memcpy(result, str, sizeof(char)*2);
-
-            result[1] += 0x20;
-            result[2] = 0;
-
+        ( size == 2 && c0 == 0xd0 && c1 >= 0x90 && c1 <= 0x9f )
+    ) {
+        global_tolower_buf[size-1] += 0x20;
+        global_tolower_buf[size]    = 0;
+    } else if ( size == 2 ) {
         /* @INFO: РСТУФХЦЧШЩЪЫЬЭЮЯ */
-        } else if ( c0 == 0xd0 && c1 >= 0xa0 && c1 <= 0xaf) {
-            result = (char *)malloc(sizeof(char)*3);
-            memcpy(result, str, sizeof(char)*2);
-
-            result[0] += 0x01;
-            result[1] -= 0x20;
-            result[2] = 0;
+        if ( c0 == 0xd0 && c1 >= 0xa0 && c1 <= 0xaf) {
+            global_tolower_buf[0] += 0x01;
+            global_tolower_buf[1] -= 0x20;
+            global_tolower_buf[2] = 0;
 
         /* @INFO: Ё */
         } else if ( c0 == 0xd0 && c1 == 0x81 ) {
-            result = (char *)malloc(sizeof(char)*3);
-            memcpy(result, str, sizeof(char)*2);
-
-            result[0] += 0x01;
-            result[1] += 0x10;
-            result[2] = 0;
+            global_tolower_buf[0] += 0x01;
+            global_tolower_buf[1] += 0x10;
+            global_tolower_buf[2] = 0;
         }
     } else if ( size == 3 ) {
 
         /* @INFO: ẞ */
         if ( c0 == 0xe1 && c1 == 0xba && c2 == 0x9e ) {
-            result = (char *)malloc(sizeof(char)*3);
-            result[0] = (u8)0xc3;
-            result[1] = (u8)0x9f;
-            result[2] = 0;
+            global_tolower_buf[0] = (u8)0xc3;
+            global_tolower_buf[1] = (u8)0x9f;
+            global_tolower_buf[2] = 0;
         } else {
             /* @AUFGABE: implementieren */
         }
@@ -234,6 +205,6 @@ utf8_tolower(char *str) {
         /* @AUFGABE: implementieren */
     }
 
-    return result;
+    return global_tolower_buf;
 }
 
