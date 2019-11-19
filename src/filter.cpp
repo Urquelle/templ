@@ -55,22 +55,9 @@ internal_proc PROC_CALLBACK(filter_default) {
     return operand;
 }
 
-internal_proc PROC_CALLBACK(filter_upper) {
-    assert(operand->kind == VAL_STR);
-    char *str = val_str(operand);
-    char *result = "";
 
-    size_t offset = 0;
-    for ( int i = 0; i < utf8_strlen(str); ++i ) {
-        char *c = utf8_toupper(str + offset);
-        size_t len = utf8_char_size(c);
 
-        result = strf("%s%.*s", result, len, c);
-        offset += len;
-    }
 
-    return val_str(result);
-}
 
 internal_proc PROC_CALLBACK(filter_escape) {
     char *result = "";
@@ -191,6 +178,24 @@ internal_proc PROC_CALLBACK(filter_format) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_lower) {
+    assert(operand->kind == VAL_STR);
+    char *str = val_str(operand);
+    char *result = "";
+
+    size_t offset = 0;
+    for ( int i = 0; i < utf8_strlen(str); ++i ) {
+        size_t old_len = utf8_char_size(str + offset);
+        char *c = utf8_tolower(str + offset);
+        size_t len = utf8_char_size(c);
+
+        result = strf("%s%.*s", result, len, c);
+        offset += old_len;
+    }
+
+    return val_str(result);
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);
@@ -235,6 +240,24 @@ internal_proc PROC_CALLBACK(filter_truncate) {
     for ( int i = 0; i < end_len; ++i ) {
         result = strf("%s%.*s", result, utf8_char_size(end), end);
         end += utf8_char_size(end);
+    }
+
+    return val_str(result);
+}
+
+internal_proc PROC_CALLBACK(filter_upper) {
+    assert(operand->kind == VAL_STR);
+    char *str = val_str(operand);
+    char *result = "";
+
+    size_t offset = 0;
+    for ( int i = 0; i < utf8_strlen(str); ++i ) {
+        size_t old_len = utf8_char_size(str + offset);
+        char *c = utf8_toupper(str + offset);
+        size_t len = utf8_char_size(c);
+
+        result = strf("%s%.*s", result, len, c);
+        offset += old_len;
     }
 
     return val_str(result);

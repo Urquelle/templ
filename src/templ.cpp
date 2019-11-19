@@ -101,10 +101,11 @@ internal_proc PROC_CALLBACK(filter_batch);
 internal_proc PROC_CALLBACK(filter_capitalize);
 internal_proc PROC_CALLBACK(filter_center);
 internal_proc PROC_CALLBACK(filter_default);
-internal_proc PROC_CALLBACK(filter_upper);
 internal_proc PROC_CALLBACK(filter_escape);
 internal_proc PROC_CALLBACK(filter_format);
+internal_proc PROC_CALLBACK(filter_lower);
 internal_proc PROC_CALLBACK(filter_truncate);
+internal_proc PROC_CALLBACK(filter_upper);
 
 internal_proc PROC_CALLBACK(test_callable);
 internal_proc PROC_CALLBACK(test_defined);
