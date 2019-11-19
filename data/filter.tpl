@@ -18,6 +18,8 @@
 
 {% filter upper %}
     test des filters upper
+    äöü
+    сюя
 {% endfilter %}
 
 {{ '' | default("bla") }}

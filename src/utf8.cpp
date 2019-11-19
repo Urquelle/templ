@@ -98,10 +98,15 @@ internal_proc char *
 utf8_toupper(char *str) {
     size_t size = utf8_char_size(str);
 
-    if ( size == 1 && *str >= 'a' && *str <= 'z') {
-        *str -= 0x20;
+    erstes_if ( size == 1 && *str >= 'a' && *str <= 'z') {
+        str[0] -= 0x20;
     } else if ( size == 2 ) {
-        /* @AUFGABE: implementieren */
+        /* @INFO: umlaute */
+        erstes_if ( (u8)str[0] == 0xc3 ) {
+            str[1] -= 0x20;
+        } else if ( (u8)str[0] == 0xd1 ) {
+            /* @AUFGABE: kyrillisch */
+        }
     } else if ( size == 3 ) {
         /* @AUFGABE: implementieren */
     } else if ( size == 4 ) {
