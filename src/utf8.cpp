@@ -98,17 +98,47 @@ internal_proc char *
 utf8_toupper(char *str) {
     size_t size = utf8_char_size(str);
 
+    /* @AUFGABE: bei der konvertierung die anzahl bytes ermitteln und
+     *           für das ergebnis reservieren.
+     */
     erstes_if ( size == 1 && *str >= 'a' && *str <= 'z') {
         str[0] -= 0x20;
+
+    /* @AUFGABE: überprüfen ob zeichen klein ist, bevor konvertierung */
     } else if ( size == 2 ) {
         /* @INFO: umlaute */
         erstes_if ( (u8)str[0] == 0xc3 ) {
+            if ( (u8)str[1] == 0x9f ) {
+                /* @ACHTUNG: ß umwandeln. von 0xc39f nach 0xe1ba9e. aus 2 bytes,
+                 *           werden 3 bytes 😭
+                 */
+            } else {
+                str[1] -= 0x20;
+            }
+
+        /* @INFO: kyrillisch teil 1 */
+        } else if ( (u8)str[0] == 0xd0 && (u8)str[1] >= 0xb0 ) {
             str[1] -= 0x20;
+
+        /* @INFO: kyrillisch teil 2 */
         } else if ( (u8)str[0] == 0xd1 ) {
-            /* @AUFGABE: kyrillisch */
+            /* @INFO: абвгдежзийклмноп */
+            if ( (u8)str[1] <= 0x8f ) {
+                str[0] -= 0x01;
+                str[1] += 0x20;
+
+            /* @INFO: ё */
+            } else if ( (u8)str[1] == 0x91 ) {
+                str[0] -= 0x01;
+                str[1] -= 0x10;
+            }
         }
+
+    /* @AUFGABE: überprüfen ob zeichen klein ist, bevor konvertierung */
     } else if ( size == 3 ) {
         /* @AUFGABE: implementieren */
+
+    /* @AUFGABE: überprüfen ob zeichen klein ist, bevor konvertierung */
     } else if ( size == 4 ) {
         /* @AUFGABE: implementieren */
     }
