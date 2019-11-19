@@ -110,7 +110,7 @@ utf8_toupper(char *str) {
         ( size == 1 && *str >= 'a' && *str <= 'z' ) ||
 
         /* @INFO: latin */
-        ( size == 2 && c0 == 0xc3 && ( c1 >= 0xa0 && c1 <= 0xb6 || c1 >= 0xb8 && c1 <= 0xbf ) ) ||
+        ( size == 2 && c0 == 0xc3 && ( c1 >= 0xa0 && c1 <= 0xb6 || c1 >= 0xb8 && c1 <= 0xbe ) ) ||
 
         /* @INFO: абвгдежзийклмноп */
         ( size == 2 && c0 == 0xd0 && c1 >= 0xb0 && c1 <= 0xbf )
@@ -140,6 +140,9 @@ utf8_toupper(char *str) {
             }
 
             global_toupper_buf[2] = 0;
+        } else if ( c0 == 0xc4 && c1 <= 0xb7 && (c1 & 0x1) == 1) {
+            global_toupper_buf[1] -= 0x1;
+            global_toupper_buf[2]  = 0;
         }
 
     /* @AUFGABE: überprüfen ob zeichen klein ist, bevor konvertierung */
@@ -190,6 +193,9 @@ utf8_tolower(char *str) {
             global_tolower_buf[0] += 0x01;
             global_tolower_buf[1] += 0x10;
             global_tolower_buf[2] = 0;
+        } else if ( c0 == 0xc4 && c1 <= 0xb6 && (c1 & 0x1) == 0 ) {
+            global_tolower_buf[1] += 0x1;
+            global_tolower_buf[2]  = 0;
         }
     } else if ( size == 3 ) {
 

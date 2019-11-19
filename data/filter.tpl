@@ -18,16 +18,20 @@
 
 {% set text_lde = "abcdefghijklmnopqrstuvwxyzäüöß" %}
 {% set text_lru = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя" %}
+{% set text_llat = "æåçèéêëìíîïðñòóôõöøùúûüýþāăąćĉċčďđēĕėęěĝğġģĥħĩīĭįıĳĵķ" %}
 {% filter upper %}
     {{ text_lde }}
     {{ text_lru }}
+    {{ text_llat }}
 {% endfilter %}
 
 {% set text_ude = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÜÖẞ" %}
 {% set text_uru = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ" %}
+{% set text_llat = "ÆÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĲĴĶ" %}
 {% filter lower %}
     {{ text_ude }}
     {{ text_uru }}
+    {{ text_llat }}
 {% endfilter %}
 
 {{ '' | default("bla") }}
