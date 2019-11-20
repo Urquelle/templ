@@ -18,20 +18,26 @@
 
 {% set text_lde = "abcdefghijklmnopqrstuvwxyzäüöß" %}
 {% set text_lru = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя" %}
-{% set text_llat = "æåçèéêëìíîïðñòóôõöøùúûüýþāăąćĉċčďđēĕėęěĝğġģĥħĩīĭįıĳĵķ" %}
+{% set text_lbasic_lat = "æåçèéêëìíîïðñòóôõöøùúûüýþāăąćĉċčďđēĕėęěĝğġģĥħĩīĭįıĳĵķÿ" %}
+{% set text_lsupp_lat = "łńņň" %}
+
 {% filter upper %}
     {{ text_lde }}
     {{ text_lru }}
-    {{ text_llat }}
+    {{ text_lbasic_lat }}
+    {{ text_lsupp_lat }}
 {% endfilter %}
 
 {% set text_ude = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÜÖẞ" %}
 {% set text_uru = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ" %}
-{% set text_llat = "ÆÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĲĴĶ" %}
+{% set text_ubasic_lat = "ÆÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĲĴĶŸ" %}
+{% set text_usupp_lat = "ŁŃŅŇ" %}
+
 {% filter lower %}
     {{ text_ude }}
     {{ text_uru }}
-    {{ text_llat }}
+    {{ text_ubasic_lat }}
+    {{ text_usupp_lat }}
 {% endfilter %}
 
 {{ '' | default("bla") }}
@@ -40,3 +46,7 @@
 {{ '<div>escape</div>' | e }}
 {{ "name %s alter %d und %.2f" | format(user.name, user.age, 7.53) | upper }}
 {{ "lorem ipsum dolor" | truncate(length = 9, end = " ???") }}
+
+{% for entry in {'b': 'bbb', 'a': 'aaa'} | dictsort %}
+    {{ entry }}
+{% endfor %}

@@ -97,13 +97,18 @@ utf8_char_goto(char *input, size_t count) {
 global_var char global_toupper_buf[5];
 internal_proc char *
 utf8_toupper(char *str) {
-    /* @INFO: tabelle mit werten für die zeichen https://unicode-table.com/ */
+    /*
+     * @INFO: tabelle mit werten für die zeichen
+     *        https://unicode-table.com/
+     *        https://www.utf8-chartable.de/unicode-utf8-table.pl
+     */
 
     size_t size = utf8_char_size(str);
     memcpy(global_toupper_buf, str, size);
 
-    u8 c0 = (u8)str[0];
+    u8 c0 =                (u8)str[0];
     u8 c1 = ( size > 1 ) ? (u8)str[1] : 0;
+    u8 c2 = ( size > 2 ) ? (u8)str[2] : 0;
 
     erstes_if (
         /* @INFO: ascii */
@@ -125,6 +130,18 @@ utf8_toupper(char *str) {
             global_toupper_buf[2] = (u8)0x9e;
             global_toupper_buf[3] = 0;
 
+        /*  @INFO: ÿ */
+        } else if ( c0 == 0xc3 && c1 == 0xbf ) {
+            global_toupper_buf[0] = (u8)0xc5;
+            global_toupper_buf[1] = (u8)0xb8;
+            global_toupper_buf[2] = 0;
+        } else if (
+            ( c0 == 0xc4 && c1 <= 0xb7 && (c1 & 0x1) == 1 ) ||
+            ( c0 == 0xc5 && c1 >= 0x82 && c1 <= 0x88 && (c1 & 0x1) == 0 )
+        ) {
+            global_toupper_buf[1] -= 0x1;
+            global_toupper_buf[2]  = 0;
+
         /* @INFO: рстуфхцчшщъыьэюя ё */
         } else if ( c0 == 0xd1 ) {
 
@@ -140,9 +157,6 @@ utf8_toupper(char *str) {
             }
 
             global_toupper_buf[2] = 0;
-        } else if ( c0 == 0xc4 && c1 <= 0xb7 && (c1 & 0x1) == 1) {
-            global_toupper_buf[1] -= 0x1;
-            global_toupper_buf[2]  = 0;
         }
 
     /* @AUFGABE: überprüfen ob zeichen klein ist, bevor konvertierung */
@@ -160,7 +174,11 @@ utf8_toupper(char *str) {
 global_var char global_tolower_buf[5];
 internal_proc char *
 utf8_tolower(char *str) {
-    /* @INFO: tabelle mit werten für die zeichen https://unicode-table.com/ */
+    /*
+     * @INFO: tabelle mit werten für die zeichen
+     *        https://unicode-table.com/
+     *        https://www.utf8-chartable.de/unicode-utf8-table.pl
+     */
 
     size_t size = utf8_char_size(str);
     memcpy(global_tolower_buf, str, size);
@@ -196,6 +214,15 @@ utf8_tolower(char *str) {
         } else if ( c0 == 0xc4 && c1 <= 0xb6 && (c1 & 0x1) == 0 ) {
             global_tolower_buf[1] += 0x1;
             global_tolower_buf[2]  = 0;
+        } else if ( c0 == 0xc5 && c1 >= 0x81 && c1 <= 0x87 && (c1 & 0x1) == 1 ) {
+            global_tolower_buf[1] += 0x1;
+            global_tolower_buf[2]  = 0;
+
+        /* @INFO: Ÿ */
+        } else if ( c0 == 0xc5 && c1 == 0xb8 ) {
+            global_tolower_buf[0] = (u8)0xc3;
+            global_tolower_buf[1] = (u8)0xbf;
+            global_tolower_buf[2] = 0;
         }
     } else if ( size == 3 ) {
 

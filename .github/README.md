@@ -177,6 +177,28 @@ main(int argc, char **argv) {
 
 `templ` supports unicode with the utf-8 encoding for string literals as well as names. be aware though that right now only limited amount of transformation in filters is supported.
 
+below is a list of character ranges which have lower-/uppercase conversion support.
+
+* ascii
+* latin-basic
+* latin-1 supplement
+* latin extended-a
+* cyrillic
+
+```
+ABCDEFGHIJKLMNOPQRSTUVWXYZÄÜÖẞ
+АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ
+ÆÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĲĴĶŸ
+ŁŃŅŇ
+
+abcdefghijklmnopqrstuvwxyzäüöß
+абвгдеёжзийклмнопрстуфхцчшщъыьэюя
+æåçèéêëìíîïðñòóôõöøùúûüýþāăąćĉċčďđēĕėęěĝğġģĥħĩīĭįıĳĵķÿ
+łńņň
+```
+
+characters that are not supported will be printed back as they are.
+
 ### template
 
 ```jinja
