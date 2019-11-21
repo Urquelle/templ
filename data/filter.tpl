@@ -47,6 +47,6 @@
 {{ "name %s alter %d und %.2f" | format(user.name, user.age, 7.53) | upper }}
 {{ "lorem ipsum dolor" | truncate(length = 9, end = " ???") }}
 
-{% for key, val in {'b': 'bbb', 'z': 'zzz', 'c': 'ccc', 'f': 'fff', 'a': 'aaa'} | dictsort(reverse = false) %}
-    {{ key }} -> {{ val }}
+{% for key, val in {'b': 'zzz', 'z': 'ccc', 'c': 'fff', 'f': 'aaa', 'a': 'bbb'} | dictsort(reverse = false, by = "value") %}
+    {{ key }} = {{ val }}
 {% endfor %}

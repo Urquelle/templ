@@ -60,7 +60,11 @@ internal_proc PROC_CALLBACK(filter_default) {
 
 internal_proc void
 quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
-    if ( *((*left)->val) != *((*right)->val)) {
+#define compneq(left, right) ((by == intern_str("key")) ? ((left)->name != (right)->name) : (*((left)->val) != *((right)->val)))
+#define compgt(left, right)  ((by == intern_str("key")) ? (utf8_strcmp((left)->name, (right)->name) > 0) : (*(b32 *)(*(left)->val > *(right)->val).ptr))
+#define complt(left, right)  ((by == intern_str("key")) ? (utf8_strcmp((left)->name, (right)->name) < 0) : (*(b32 *)(*(left)->val < *(right)->val).ptr))
+
+    if ( compneq(*left, *right) ) {
         Sym **ptr0 = left;
         Sym **ptr1 = left;
         Sym **ptr2 = left;
@@ -69,10 +73,7 @@ quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
 
         do {
             ptr2 = ptr2 + 1;
-
-            b32 check = ( reverse ) ?
-                *(b32 *)(*(*ptr2)->val > *pivot->val).ptr :
-                *(b32 *)(*(*ptr2)->val < *pivot->val).ptr;
+            b32 check = ( reverse ) ? ( compgt(*ptr2, pivot) ) : ( complt(*ptr2, pivot) );
 
             if ( check ) {
                 ptr0 = ptr1;
@@ -82,19 +83,23 @@ quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
                 *ptr1 = *ptr2;
                 *ptr2 = temp;
             }
-        } while ( *(*ptr2)->val != *(*right)->val );
+        } while ( compneq(*ptr2, *right) );
 
         Sym *temp = *left;
         *left = *ptr1;
         *ptr1 = temp;
 
-        if ( *(*ptr1)->val != *(*right)->val ) {
+        if ( compneq(*ptr1, *right) ) {
             ptr1 = ptr1 + 1;
         }
 
         quicksort(left, ptr0, case_sensitive, by, reverse);
         quicksort(ptr1, right, case_sensitive, by, reverse);
     }
+
+#undef compneq
+#undef compgt
+#undef complt
 }
 
 internal_proc PROC_CALLBACK(filter_dictsort) {
