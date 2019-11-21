@@ -191,7 +191,7 @@ PROC_CALLBACK(proc_loop) {
     Sym *loop_length    = sym_push_var("length",      type_int,  val_int(0));
     Sym *loop_cycle     = sym_push_proc("cycle",      type_proc(any_type, 0, 0), val_proc(any_type, 0, 0, proc_cycle));
     Sym *loop_depth     = sym_push_var("depth",       type_int,  val_int(depth + 1));
-    Sym *loop_depth0    = sym_push_var("depth0",      type_int,  val_int(depth + 1));
+    Sym *loop_depth0    = sym_push_var("depth0",      type_int,  val_int(depth0 + 1));
 
     scope_set(prev_scope);
     /* }}} */
