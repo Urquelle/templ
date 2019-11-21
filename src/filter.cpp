@@ -24,8 +24,11 @@ internal_proc PROC_CALLBACK(filter_batch) {
 internal_proc PROC_CALLBACK(filter_capitalize) {
     assert(operand->kind == VAL_STR);
 
-    char *result = strf("%s", val_str(operand));
-    utf8_toupper(result);
+    char *cap = utf8_toupper((char *)operand->ptr);
+    size_t cap_size = utf8_char_size(cap);
+    char *remainder = (char *)operand->ptr + cap_size;
+
+    char *result = strf("%.*s%s", cap_size, cap, remainder);
 
     return val_str(result);
 }
