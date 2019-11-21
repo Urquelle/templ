@@ -58,9 +58,70 @@ internal_proc PROC_CALLBACK(filter_default) {
     return operand;
 }
 
+internal_proc void
+quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
+    if ( *((*left)->val) != *((*right)->val)) {
+        Sym **ptr0 = left;
+        Sym **ptr1 = left;
+        Sym **ptr2 = left;
 
+        Sym *pivot = *left;
 
+        do {
+            ptr2 = ptr2 + 1;
 
+            b32 check = ( reverse ) ?
+                *(b32 *)(*(*ptr2)->val > *pivot->val).ptr :
+                *(b32 *)(*(*ptr2)->val < *pivot->val).ptr;
+
+            if ( check ) {
+                ptr0 = ptr1;
+                ptr1 = ptr1 + 1;
+
+                Sym *temp = *ptr1;
+                *ptr1 = *ptr2;
+                *ptr2 = temp;
+            }
+        } while ( *(*ptr2)->val != *(*right)->val );
+
+        Sym *temp = *left;
+        *left = *ptr1;
+        *ptr1 = temp;
+
+        if ( *(*ptr1)->val != *(*right)->val ) {
+            ptr1 = ptr1 + 1;
+        }
+
+        quicksort(left, ptr0, case_sensitive, by, reverse);
+        quicksort(ptr1, right, case_sensitive, by, reverse);
+    }
+}
+
+internal_proc PROC_CALLBACK(filter_dictsort) {
+    b32 case_sensitive = val_bool(narg("case_sensitive")->val);
+    char *by = val_str(narg("by")->val);
+    b32 reverse = val_bool(narg("reverse")->val);
+
+    Sym **syms = 0;
+    {
+        Scope *scope = (Scope *)operand->ptr;
+        for ( int i = 0; i < scope->num_syms; ++i ) {
+            buf_push(syms, scope->sym_list[i]);
+        }
+
+        quicksort(syms, syms + buf_len(syms)-1, case_sensitive, by, reverse);
+    }
+
+    Scope *scope = scope_new(0, "dictsort_dict");
+    Scope *prev_scope = scope_set(scope);
+    for ( int i = 0; i < buf_len(syms); ++i ) {
+        Sym *sym = syms[i];
+        sym_push_var(sym->name, sym->type, sym->val);
+    }
+    scope_set(prev_scope);
+
+    return val_dict(scope);
+}
 
 internal_proc PROC_CALLBACK(filter_escape) {
     char *result = "";

@@ -11,6 +11,8 @@
 #include <math.h>
 #include <locale>
 
+#define ALLOC_SIZE(arena, size) arena_alloc(arena, size)
+#define ALLOC_STRUCT(arena, s)  (s *)arena_alloc(arena, sizeof(s))
 #define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
 #define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
 #define ALIGN_UP(n, a) ALIGN_DOWN((n) + (a) - 1, (a))
@@ -101,6 +103,7 @@ internal_proc PROC_CALLBACK(filter_batch);
 internal_proc PROC_CALLBACK(filter_capitalize);
 internal_proc PROC_CALLBACK(filter_center);
 internal_proc PROC_CALLBACK(filter_default);
+internal_proc PROC_CALLBACK(filter_dictsort);
 internal_proc PROC_CALLBACK(filter_escape);
 internal_proc PROC_CALLBACK(filter_format);
 internal_proc PROC_CALLBACK(filter_lower);
@@ -345,6 +348,8 @@ namespace api {
 
 } /* namespace templ */
 
+#undef ALLOC_SIZE
+#undef ALLOC_STRUCT
 #undef ALIGN_DOWN
 #undef ALIGN_DOWN_PTR
 #undef ALIGN_UP

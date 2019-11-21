@@ -687,6 +687,11 @@ operator<(Val left, Val right) {
         val_set(&result, val_float(&left) < val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         val_set(&result, val_range0(&left) < val_range0(&right) && val_range1(&left) < val_range1(&right));
+    } else if ( left.kind == VAL_STR && right.kind == VAL_STR ) {
+        char *lval = val_str(&left);
+        char *rval = val_str(&right);
+        s32 t = utf8_strcmp(lval, rval);
+        val_set(&result, (t < 0) ? true : false );
     } else {
         illegal_path();
     }
@@ -737,6 +742,11 @@ operator>(Val &left, Val &right) {
         val_set(&result, val_float(&left) > val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
         val_set(&result, val_range0(&left) > val_range0(&right) && val_range1(&left) > val_range1(&right));
+    } else if ( left.kind == VAL_STR && right.kind == VAL_STR ) {
+        char *lval = val_str(&left);
+        char *rval = val_str(&right);
+        s32 t = utf8_strcmp(lval, rval);
+        val_set(&result, (t > 0) ? true : false );
     } else {
         illegal_path();
     }
@@ -2594,11 +2604,18 @@ resolve_filter(Expr *expr) {
 
 internal_proc void
 resolve_init_builtin_filter() {
-    Type_Field *attr_type[]    = { type_field("name", type_str) };
-    Type_Field *batch_type[]   = { type_field("line_count", type_int), type_field("fill_with", type_str) };
-    Type_Field *center_type[]  = { type_field("width", type_int, val_int(80)) };
-    Type_Field *default_type[] = { type_field("s", type_str), type_field("boolean", type_bool, val_bool(False)) };
-    Type_Field *trunc_type[]   = {
+    Type_Field *attr_type[]     = { type_field("name", type_str) };
+    Type_Field *batch_type[]    = { type_field("line_count", type_int), type_field("fill_with", type_str) };
+    Type_Field *center_type[]   = { type_field("width", type_int, val_int(80)) };
+    Type_Field *default_type[]  = { type_field("s", type_str), type_field("boolean", type_bool, val_bool(False)) };
+
+    Type_Field *dictsort_type[] = {
+        type_field("case_sensitive", type_bool, val_bool(false)),
+        type_field("by", type_str, val_str("key")),
+        type_field("reverse", type_bool, val_bool(false))
+    };
+
+    Type_Field *trunc_type[]    = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
         type_field("end", type_str, val_str("...")),
@@ -2612,6 +2629,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("center",     type_proc(center_type,   1, type_str), val_proc(center_type,   1, type_str, filter_center));
     sym_push_filter("default",    type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
     sym_push_filter("d",          type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
+    sym_push_filter("dictsort",   type_proc(dictsort_type, 3, type_str), val_proc(dictsort_type, 3, type_str, filter_dictsort));
     sym_push_filter("escape",     type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
     sym_push_filter("e",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
     sym_push_filter("format",     type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_format));

@@ -122,10 +122,8 @@ struct Joiner {
     Val *val;
 };
 PROC_CALLBACK(proc_joiner) {
-    Resolved_Arg *arg = narg("sep");
-
     Joiner *j = ALLOC_STRUCT(&templ_arena, Joiner);
-    j->val = arg->val;
+    j->val = narg("sep")->val;
     j->counter = 0;
 
     Val *result = val_proc(0, 0, type_str, proc_joiner_call);
@@ -149,7 +147,21 @@ PROC_CALLBACK(proc_joiner_call) {
 }
 
 PROC_CALLBACK(proc_loop) {
-    s32 depth = val_int(global_for_stmt->stmt_for.loop_depth->val);
+    s32 depth  = 1;
+    s32 depth0 = 0;
+
+    /* elternloop */ {
+        Scope *scope = (Scope *)operand->user_data;
+        Scope *prev_scope = scope_set(scope);
+
+        Sym *sym_depth  = sym_get(intern_str("depth"));
+        Sym *sym_depth0 = sym_get(intern_str("depth0"));
+
+        depth  = val_int(sym_depth->val);
+        depth0 = val_int(sym_depth0->val);
+
+        scope_set(prev_scope);
+    }
 
     Scope *scope_for = scope_enter("for");
 
@@ -207,31 +219,19 @@ PROC_CALLBACK(proc_loop) {
 }
 
 PROC_CALLBACK(proc_range) {
-    Resolved_Arg *arg = narg("start");
-    int start = val_int(arg->val);
-
-    arg = narg("stop");
-    int stop  = val_int(arg->val);
-
-    arg = narg("step");
-    int step = val_int(arg->val);
+    int start = val_int(narg("start")->val);
+    int stop  = val_int(narg("stop")->val);
+    int step  = val_int(narg("step")->val);
 
     return val_range(start, stop, step);
 }
 
 global_var char *global_lorem_ipsum = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
 PROC_CALLBACK(proc_lipsum) {
-    Resolved_Arg *arg = narg("n");
-    s32 n = val_int(arg->val);
-
-    arg = narg("html");
-    b32 html = val_bool(arg->val);
-
-    arg = narg("min");
-    s32 min = val_int(arg->val);
-
-    arg = narg("max");
-    s32 max = (s32)MIN(val_int(arg->val), utf8_strlen(global_lorem_ipsum));
+    s32 n    = val_int(narg("n")->val);
+    b32 html = val_bool(narg("html")->val);
+    s32 min  = val_int(narg("min")->val);
+    s32 max  = (s32)MIN(val_int(narg("max")->val), utf8_strlen(global_lorem_ipsum));
 
     char *result = "";
     for ( int i = 0; i < n; ++i ) {

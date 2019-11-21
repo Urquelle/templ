@@ -179,11 +179,10 @@ main(int argc, char **argv) {
 
 below is a list of character ranges which have lower-/uppercase conversion support.
 
-* ascii
-* latin-basic
-* latin-1 supplement
-* latin extended-a
-* cyrillic
+* [basic-latin](https://en.wikipedia.org/wiki/Basic_Latin_%28Unicode_block%29)
+* [latin-1 supplement](https://en.wikipedia.org/wiki/Latin-1_Supplement_%28Unicode_block%29)
+* [latin extended-a](https://en.wikipedia.org/wiki/Latin_Extended-A)
+* [cyrillic](https://en.wikipedia.org/wiki/Cyrillic_alphabets)
 
 ```
 ABCDEFGHIJKLMNOPQRSTUVWXYZÄÜÖẞ
@@ -198,6 +197,8 @@ abcdefghijklmnopqrstuvwxyzäüöß
 ```
 
 characters that are not supported will be printed back as they are.
+
+[table](https://www.utf8-chartable.de/unicode-utf8-table.pl) with all character blocks.
 
 ### template
 

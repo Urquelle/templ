@@ -729,6 +729,7 @@ parse_stmt_extends(Parser *p) {
         Expr *else_expr = name->if_expr->expr_if.else_expr;
         assert(else_expr->kind == EXPR_STR);
 
+        /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
         else_templ = parse_file(else_expr->expr_str.value);
     }
 
@@ -766,6 +767,7 @@ parse_stmt_include(Parser *p) {
                 fatal(p->lex.pos.name, p->lex.pos.row, "konnte datei %s nicht finden", name_expr->expr_str.value);
             }
 
+            /* @AUFGABE: überprüfen ob eine endlosschleife in includes besteht */
             if ( success ) {
                 buf_push(templ, parse_file(name_expr->expr_str.value));
             }
@@ -872,6 +874,7 @@ parse_stmt_import(Parser *p) {
     char *name = parse_name(p);
     expect_token(p, T_CODE_END);
 
+    /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
     return stmt_import(parse_file(filename), name);
 
 }
@@ -895,6 +898,7 @@ parse_stmt_from_import(Parser *p) {
 
     expect_token(p, T_CODE_END);
 
+    /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
     return stmt_from_import(parse_file(filename), syms, buf_len(syms));
 }
 

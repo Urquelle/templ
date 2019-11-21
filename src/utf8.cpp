@@ -94,6 +94,11 @@ utf8_char_goto(char *input, size_t count) {
     return result;
 }
 
+internal_proc s32
+utf8_strcmp(char *left, char *right) {
+    return strcmp(left, right);
+}
+
 global_var char global_toupper_buf[5];
 internal_proc char *
 utf8_toupper(char *str) {
@@ -137,9 +142,16 @@ utf8_toupper(char *str) {
             global_toupper_buf[2] = 0;
         } else if (
             ( c0 == 0xc4 && c1 <= 0xb7 && (c1 & 0x1) == 1 ) ||
-            ( c0 == 0xc5 && c1 >= 0x82 && c1 <= 0x88 && (c1 & 0x1) == 0 )
+            ( c0 == 0xc4 && c1 >= 0xba && c1 <= 0xbe && (c1 & 0x1) == 0 ) ||
+            ( c0 == 0xc5 && c1 >= 0x82 && c1 <= 0x88 && (c1 & 0x1) == 0 ) ||
+            ( c0 == 0xc5 && c1 >= 0x8b && c1 <= 0xbe && (c1 & 0x1) == 1 )
         ) {
             global_toupper_buf[1] -= 0x1;
+            global_toupper_buf[2]  = 0;
+
+        } else if ( c0 == 0xc5 && c1 == 0x80 ) {
+            global_toupper_buf[0] -= 0x01;
+            global_toupper_buf[1] += 0x3f;
             global_toupper_buf[2]  = 0;
 
         /* @INFO: рстуфхцчшщъыьэюя ё */
@@ -211,11 +223,18 @@ utf8_tolower(char *str) {
             global_tolower_buf[0] += 0x01;
             global_tolower_buf[1] += 0x10;
             global_tolower_buf[2] = 0;
-        } else if ( c0 == 0xc4 && c1 <= 0xb6 && (c1 & 0x1) == 0 ) {
+        } else if (
+            ( c0 == 0xc4 && c1 <= 0xb6 && (c1 & 0x1) == 0 ) ||
+            ( c0 == 0xc4 && c1 >= 0xb9 && c1 <= 0xbd && (c1 & 0x1) == 1 ) ||
+            ( c0 == 0xc5 && c1 >= 0x81 && c1 <= 0x87 && (c1 & 0x1) == 1 ) ||
+            ( c0 == 0xc5 && c1 >= 0x8a && c1 <= 0xbd && (c1 & 0x1) == 0 )
+        ) {
             global_tolower_buf[1] += 0x1;
             global_tolower_buf[2]  = 0;
-        } else if ( c0 == 0xc5 && c1 >= 0x81 && c1 <= 0x87 && (c1 & 0x1) == 1 ) {
-            global_tolower_buf[1] += 0x1;
+
+        } else if ( c0 == 0xc4 && c1 == 0xbf ) {
+            global_tolower_buf[0] += 0x01;
+            global_tolower_buf[1] -= 0x3f;
             global_tolower_buf[2]  = 0;
 
         /* @INFO: Ÿ */

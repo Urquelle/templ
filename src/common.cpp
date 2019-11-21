@@ -433,9 +433,6 @@ struct Arena {
     char **buckets;
 };
 
-#define ALLOC_SIZE(arena, size) arena_alloc(arena, size)
-#define ALLOC_STRUCT(arena, s)  (s *)arena_alloc(arena, sizeof(s))
-
 internal_proc void
 arena_init(Arena *arena, size_t size) {
     arena->base = (char *)xmalloc(size);

@@ -19,7 +19,7 @@
 {% set text_lde = "abcdefghijklmnopqrstuvwxyzäüöß" %}
 {% set text_lru = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя" %}
 {% set text_lbasic_lat = "æåçèéêëìíîïðñòóôõöøùúûüýþāăąćĉċčďđēĕėęěĝğġģĥħĩīĭįıĳĵķÿ" %}
-{% set text_lsupp_lat = "łńņň" %}
+{% set text_lsupp_lat = "ĺļľłńņňŋ" %}
 
 {% filter upper %}
     {{ text_lde }}
@@ -31,7 +31,7 @@
 {% set text_ude = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÜÖẞ" %}
 {% set text_uru = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ" %}
 {% set text_ubasic_lat = "ÆÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĲĴĶŸ" %}
-{% set text_usupp_lat = "ŁŃŅŇ" %}
+{% set text_usupp_lat = "ĹĻĽŁĿŃŅŇŊ" %}
 
 {% filter lower %}
     {{ text_ude }}
@@ -47,6 +47,6 @@
 {{ "name %s alter %d und %.2f" | format(user.name, user.age, 7.53) | upper }}
 {{ "lorem ipsum dolor" | truncate(length = 9, end = " ???") }}
 
-{% for entry in {'b': 'bbb', 'a': 'aaa'} | dictsort %}
-    {{ entry }}
+{% for key, val in {'b': 'bbb', 'z': 'zzz', 'c': 'ccc', 'f': 'fff', 'a': 'aaa'} | dictsort(reverse = false) %}
+    {{ key }} -> {{ val }}
 {% endfor %}
