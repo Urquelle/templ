@@ -232,12 +232,27 @@ val_str(Val *val) {
     return (char *)val->ptr;
 }
 
+struct Resolved_Pair {
+    Val *key;
+    Val *value;
+};
+
+internal_proc Resolved_Pair *
+resolved_pair(Val *key, Val *value) {
+    Resolved_Pair *result = ALLOC_STRUCT(&resolve_arena, Resolved_Pair);
+
+    result->key = key;
+    result->value = value;
+
+    return result;
+}
+
 internal_proc Val *
-val_pair(Resolved_Pair *pair) {
-    Val *result = val_new(VAL_PAIR, sizeof(Resolved_Pair*));
+val_pair(Val *key, Val *value) {
+    Val *result = val_new(VAL_PAIR, sizeof(Val *)*2);
 
     result->len = 1;
-    result->ptr = pair;
+    result->ptr = resolved_pair(key, value);
 
     return result;
 }
@@ -303,6 +318,7 @@ internal_proc Val *
 val_dict(Scope *scope) {
     Val *result = val_new(VAL_DICT, sizeof(Map));
 
+    result->len = (scope) ? scope->num_syms : 0;
     result->ptr = scope;
 
     return result;
@@ -1179,24 +1195,6 @@ resolved_arg(Pos pos, char *name, Type *type, Val *val) {
     return result;
 }
 /* }}} */
-/* resolved_pair {{{ */
-struct Resolved_Pair {
-    Pos pos;
-    Val *key;
-    Val *value;
-};
-
-internal_proc Resolved_Pair *
-resolved_pair(Pos pos, Val *key, Val *value) {
-    Resolved_Pair *result = ALLOC_STRUCT(&resolve_arena, Resolved_Pair);
-
-    result->pos = pos;
-    result->key = key;
-    result->value = value;
-
-    return result;
-}
-/* }}} */
 /* resolved_expr {{{ */
 struct Resolved_Expr {
     Expr_Kind kind;
@@ -1320,18 +1318,20 @@ val_elem(Val *val, int idx) {
             result = *((Val **)val->ptr + idx);
         } break;
 
-        case VAL_DICT: {
-            if ( idx < val->len ) {
-                result = ((Val **)val->ptr)[idx];
-            }
+        case VAL_PAIR: {
+            Resolved_Pair *pair = (Resolved_Pair *)val->ptr;
+            result = (idx == 0) ? pair->key : pair->value;
         } break;
 
-        case VAL_PAIR: {
-            idx %= 2;
-            if ( idx == 0 ) {
-                result = ((Resolved_Pair *)val->ptr)->key;
-            } else {
-                result = ((Resolved_Pair *)val->ptr)->value;
+        case VAL_DICT: {
+            if ( idx < val->len ) {
+                Scope *scope = (Scope *)val->ptr;
+                Sym *sym = scope->sym_list[idx];
+
+                /* @AUFGABE: die val_pairs bei der erstellung
+                 *           der dict anlegen
+                 */
+                result = val_pair(val_str(sym->name), sym->val);
             }
         } break;
 
