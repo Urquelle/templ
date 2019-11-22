@@ -130,21 +130,24 @@ internal_proc PROC_CALLBACK(filter_dictsort) {
 
 internal_proc PROC_CALLBACK(filter_escape) {
     char *result = "";
+    char *ptr = (char *)operand->ptr;
 
     for ( int i = 0; i < operand->len; ++i ) {
-        char c = ((char *)operand->ptr)[i];
-
-        erstes_if ( c == '<' ) {
-            result = strf("%s%s", result, "&lt;");
-        } else if ( c == '>' ) {
-            result = strf("%s%s", result, "&gt;");
-        } else if ( c == '&' ) {
-            result = strf("%s%s", result, "&amp;");
-        } else if ( c == ' ' ) {
-            result = strf("%s%s", result, "&nbsp;");
+        erstes_if ( *ptr == '<' ) {
+            result = strf("%s&lt;", result);
+        } else if ( *ptr == '>' ) {
+            result = strf("%s&gt;", result);
+        } else if ( *ptr == '&' ) {
+            result = strf("%s&amp;", result);
+        } else if ( *ptr == '\'' ) {
+            result = strf("%s&#39;", result);
+        } else if ( *ptr == '"' ) {
+            result = strf("%s&#34;", result);
         } else {
-            result = strf("%s%c", result, c);
+            result = strf("%s%.*s", result, utf8_char_size(ptr), ptr);
         }
+
+        ptr += utf8_char_size(ptr);
     }
 
     return val_str(result);

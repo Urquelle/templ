@@ -434,11 +434,25 @@ next_raw_token(Lexer *lex) {
             lex->token.kind = T_VAR_END;
             next(lex);
         }
-    } else if ( c == '\'' || c == '"' ) {
+    } else if ( c == '\'' ) {
         lex->token.kind = T_STR;
         next(lex);
 
-        while (at0(lex) != '"' && at0(lex) != '\'') {
+        while (at0(lex) != '\'') {
+            if ( at0(lex) == '\\' ) {
+                next(lex);
+            }
+
+            next(lex);
+        }
+
+        lex->token.str_value = intern_str(start+utf8_char_size(start), utf8_char_lastbyte(lex->input));
+        next(lex);
+    } else if ( c == '"' ) {
+        lex->token.kind = T_STR;
+        next(lex);
+
+        while (at0(lex) != '"') {
             if ( at0(lex) == '\\' ) {
                 next(lex);
             }
