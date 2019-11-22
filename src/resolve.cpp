@@ -2619,6 +2619,10 @@ resolve_init_builtin_filter() {
         type_field("binary", type_bool, val_bool(false))
     };
 
+    Type_Field *float_type[] = {
+        type_field("default", type_float, val_float(0.0f))
+    };
+
     Type_Field *trunc_type[]    = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
@@ -2638,6 +2642,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("e",              type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
     sym_push_filter("filesizeformat", type_proc(fs_type,       1, type_str), val_proc(fs_type,       1, type_str, filter_filesizeformat));
     sym_push_filter("first",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_first));
+    sym_push_filter("float",          type_proc(float_type,    1, type_str), val_proc(float_type,    1, type_str, filter_float));
     sym_push_filter("format",         type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_format));
     sym_push_filter("lower",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_lower));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str), val_proc(trunc_type,    4, type_str, filter_truncate));

@@ -357,6 +357,8 @@ the following loop variables can be used inside a `for` loop:
 * loop.last
 * loop.length
 * loop.cycle
+* loop.depth
+* loop()
 
 ### block
 
@@ -385,7 +387,7 @@ additional templates can be included into a template. `include` statement suppor
 ### extends
 
 ```jinja2
-{% extends "<template>" %}
+{% extends "<template>" <if expr> %}
 ```
 
 ### filter
@@ -409,3 +411,47 @@ additional templates can be included into a template. `include` statement suppor
 {% raw %}
 {% endraw %}
 ```
+
+## filter
+
+ongoing process of implementing the vast amount of filters. the following filters are implemented in [dev](https://github.com/NoobSaibot/templ/tree/dev):
+
+* abs
+* attr
+* capitalize
+* center
+* default
+* dictsort
+* escape
+* filesizeformat
+* first
+* float
+* format
+* lower
+* truncate
+* upper
+
+## tests
+
+most of the tests present in the jinja2 spec are already implemented in [dev](https://github.com/NoobSaibot/templ/tree/dev).
+
+* callable
+* defined
+* devisibleby
+* equal
+* even
+* ge
+* gt
+* in
+* iterable
+* le
+* lt
+* mapping
+* ne
+* none
+* number
+* odd
+* sameas
+* sequence
+* string
+* undefined

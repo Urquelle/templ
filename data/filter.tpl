@@ -45,14 +45,18 @@
 {{ false | default("true", true, foo = "bar") }}
 {{ '<div>"&escape"</div>' | e }}
 {{ "name %s alter %d und %.2f" | format(user.name, user.age, 7.53) | upper }}
-{{ "lorem ipsum dolor" | truncate(length = 9, end = " ???") }}
+{{ lipsum() | truncate(length = 9, end = " ???", killwords=true) }}
 
 {% for key, val in {'b': 'zzz', 'z': 'ccc', 'c': 'fff', 'f': 'aaa', 'a': 'bbb'} | dictsort(reverse = false, by = "key") %}
     {{ key }} = {{ val }}
 {% endfor %}
 
-dateigröße {{ 43 | filesizeformat }}
-dateigröße {{ 15243 | filesizeformat(true) }}
-dateigröße {{ 34252342 | filesizeformat }}
+filesize {{ 43 | filesizeformat }}
+filesize {{ 15243 | filesizeformat(true) }}
+filesize {{ 34252342 | filesizeformat }}
 
 {{ ["fff", "bbb", "sss"] | first }}
+{{ "abc" | first }}
+
+{{ "3.14" | float }}
+{{ "abc" | float(3.14) }}

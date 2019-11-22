@@ -183,6 +183,14 @@ internal_proc PROC_CALLBACK(filter_first) {
     return val_elem(operand, 0);
 }
 
+internal_proc PROC_CALLBACK(filter_float) {
+    char *end = 0;
+    f32 f = strtof(val_str(operand), &end);
+    Val *result = (end == operand->ptr) ? narg("default")->val : val_float(f);
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(filter_format) {
     assert(operand->kind == VAL_STR);
 
