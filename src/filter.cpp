@@ -60,9 +60,11 @@ internal_proc PROC_CALLBACK(filter_default) {
 
 internal_proc void
 quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
-#define compneq(left, right) ((by == intern_str("key")) ? ((left)->name != (right)->name) : (*((left)->val) != *((right)->val)))
-#define compgt(left, right)  ((by == intern_str("key")) ? (utf8_strcmp((left)->name, (right)->name) > 0) : (*(b32 *)(*(left)->val > *(right)->val).ptr))
-#define complt(left, right)  ((by == intern_str("key")) ? (utf8_strcmp((left)->name, (right)->name) < 0) : (*(b32 *)(*(left)->val < *(right)->val).ptr))
+    char *key = intern_str("key");
+
+#define compneq(left, right) ((by == key) ? (utf8_strcmp((left)->name, (right)->name) != 0) : (*((left)->val) != *((right)->val)))
+#define compgt(left, right)  ((by == key) ? (utf8_strcmp((left)->name, (right)->name)  > 0) : (*(b32 *)(*(left)->val > *(right)->val).ptr))
+#define complt(left, right)  ((by == key) ? (utf8_strcmp((left)->name, (right)->name)  < 0) : (*(b32 *)(*(left)->val < *(right)->val).ptr))
 
     if ( compneq(*left, *right) ) {
         Sym **ptr0 = left;
@@ -149,6 +151,30 @@ internal_proc PROC_CALLBACK(filter_escape) {
 
         ptr += utf8_char_size(ptr);
     }
+
+    return val_str(result);
+}
+
+internal_proc PROC_CALLBACK(filter_filesizeformat) {
+    char *suff_bin[] = {
+        { "Bytes" }, { "kiB" }, { "MiB" }, { "GiB" }, { "TiB" }, { "PiB" },
+        { "EiB" }, { "ZiB" }, { "YiB" }
+    };
+
+    char *suff_dec[] = {
+        { "Bytes" }, { "kB" }, { "MB" }, { "GB" }, { "TB" }, { "PB" },
+        { "EB" }, { "ZB" }, { "YB" }
+    };
+
+    b32 binary = val_bool(narg("binary")->val);
+    int c = (binary) ? 1024 : 1000;
+    char **suff = (binary) ? suff_bin : suff_dec;
+
+    s64 size = val_int(operand);
+    s32 mag = (s32)(log(size)/log(c));
+    f32 calc_size = ( mag ) ? ((f32)size/(mag*c)) : (f32)size;
+
+    char *result = strf("%.3f %s", calc_size, suff[mag]);
 
     return val_str(result);
 }

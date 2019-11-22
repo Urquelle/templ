@@ -2615,6 +2615,10 @@ resolve_init_builtin_filter() {
         type_field("reverse", type_bool, val_bool(false))
     };
 
+    Type_Field *fs_type[] = {
+        type_field("binary", type_bool, val_bool(false))
+    };
+
     Type_Field *trunc_type[]    = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
@@ -2622,20 +2626,21 @@ resolve_init_builtin_filter() {
         type_field("leeway", type_int, val_int(0)),
     };
 
-    sym_push_filter("abs",        type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_abs));
-    sym_push_filter("attr",       type_proc(attr_type,     1, type_str), val_proc(attr_type,     1, type_str, filter_attr));
-    sym_push_filter("batch",      type_proc(batch_type,    1, type_str), val_proc(batch_type,    1, type_str, filter_attr));
-    sym_push_filter("capitalize", type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_capitalize));
-    sym_push_filter("center",     type_proc(center_type,   1, type_str), val_proc(center_type,   1, type_str, filter_center));
-    sym_push_filter("default",    type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
-    sym_push_filter("d",          type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
-    sym_push_filter("dictsort",   type_proc(dictsort_type, 3, type_str), val_proc(dictsort_type, 3, type_str, filter_dictsort));
-    sym_push_filter("escape",     type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
-    sym_push_filter("e",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
-    sym_push_filter("format",     type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_format));
-    sym_push_filter("lower",      type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_lower));
-    sym_push_filter("truncate",   type_proc(trunc_type,    4, type_str), val_proc(trunc_type,    4, type_str, filter_truncate));
-    sym_push_filter("upper",      type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_upper));
+    sym_push_filter("abs",            type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_abs));
+    sym_push_filter("attr",           type_proc(attr_type,     1, type_str), val_proc(attr_type,     1, type_str, filter_attr));
+    sym_push_filter("batch",          type_proc(batch_type,    1, type_str), val_proc(batch_type,    1, type_str, filter_attr));
+    sym_push_filter("capitalize",     type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_capitalize));
+    sym_push_filter("center",         type_proc(center_type,   1, type_str), val_proc(center_type,   1, type_str, filter_center));
+    sym_push_filter("default",        type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
+    sym_push_filter("d",              type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
+    sym_push_filter("dictsort",       type_proc(dictsort_type, 3, type_str), val_proc(dictsort_type, 3, type_str, filter_dictsort));
+    sym_push_filter("escape",         type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
+    sym_push_filter("e",              type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
+    sym_push_filter("filesizeformat", type_proc(fs_type,       1, type_str), val_proc(fs_type,       1, type_str, filter_filesizeformat));
+    sym_push_filter("format",         type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_format));
+    sym_push_filter("lower",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_lower));
+    sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str), val_proc(trunc_type,    4, type_str, filter_truncate));
+    sym_push_filter("upper",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_upper));
 }
 
 internal_proc void

@@ -47,6 +47,10 @@
 {{ "name %s alter %d und %.2f" | format(user.name, user.age, 7.53) | upper }}
 {{ "lorem ipsum dolor" | truncate(length = 9, end = " ???") }}
 
-{% for key, val in {'b': 'zzz', 'z': 'ccc', 'c': 'fff', 'f': 'aaa', 'a': 'bbb'} | dictsort(reverse = false, by = "value") %}
+{% for key, val in {'b': 'zzz', 'z': 'ccc', 'c': 'fff', 'f': 'aaa', 'a': 'bbb'} | dictsort(reverse = false, by = "key") %}
     {{ key }} = {{ val }}
 {% endfor %}
+
+dateigröße {{ 43 | filesizeformat }}
+dateigröße {{ 15243 | filesizeformat(true) }}
+dateigröße {{ 34252342 | filesizeformat }}
