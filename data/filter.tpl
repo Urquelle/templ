@@ -54,3 +54,5 @@
 dateigröße {{ 43 | filesizeformat }}
 dateigröße {{ 15243 | filesizeformat(true) }}
 dateigröße {{ 34252342 | filesizeformat }}
+
+{{ ["fff", "bbb", "sss"] | first }}

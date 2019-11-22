@@ -179,6 +179,10 @@ internal_proc PROC_CALLBACK(filter_filesizeformat) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_first) {
+    return val_elem(operand, 0);
+}
+
 internal_proc PROC_CALLBACK(filter_format) {
     assert(operand->kind == VAL_STR);
 
