@@ -31,6 +31,17 @@ main(int argc, char **argv) {
 
     templ_reset();
 
+    Templ_Var *user2 = templ_object("user2");
+    templ_var_set(user2, templ_var("name", "fred"));
+    templ_var_set(user2, templ_var("age", 23));
+    templ_var_set(user2, address);
+
+    Templ_Var *users = templ_list("users");
+    templ_var_add(users, user);
+    templ_var_add(users, user2);
+
+    templ_vars_add(&vars, users);
+
     Templ *templ2 = templ_compile_file(argv[1]);
     char *result2 = templ_render(templ2, &vars);
 

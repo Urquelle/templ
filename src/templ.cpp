@@ -190,7 +190,7 @@ struct Templ_Var {
     Type *type;
 };
 
-internal_proc Templ_Var *
+user_api Templ_Var *
 templ_object(char *name) {
     Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
     Scope *scope = scope_new(0, name);
@@ -200,6 +200,23 @@ templ_object(char *name) {
     result->type = type_dict(scope);
 
     return result;
+}
+
+user_api Templ_Var *
+templ_list(char *name) {
+    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+
+    result->name = intern_str(name);
+    result->val  = val_list(0, 0);
+    result->type = type_list;
+
+    return result;
+}
+
+user_api void
+templ_var_add(Templ_Var *container, Templ_Var *var) {
+    buf_push((Val **)container->val->ptr, var->val);
+    container->val->len = buf_len((Val **)container->val->ptr);
 }
 
 user_api Templ_Var *
@@ -246,7 +263,7 @@ templ_var(char *name, b32 val) {
     return result;
 }
 
-internal_proc Templ_Var *
+user_api Templ_Var *
 templ_var(char *name, Templ_Var *val) {
     return val;
 }
@@ -340,6 +357,7 @@ namespace api {
     using templ::templ_compile_file;
     using templ::templ_compile_string;
     using templ::templ_init;
+    using templ::templ_list;
     using templ::templ_object;
     using templ::templ_reset;
     using templ::templ_var;
