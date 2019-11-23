@@ -216,8 +216,11 @@ templ_list(char *name) {
 
 user_api void
 templ_var_add(Templ_Var *container, Templ_Var *var) {
-    buf_push((Val **)container->val->ptr, var->val);
-    container->val->len = buf_len((Val **)container->val->ptr);
+    Val **ptr = (Val **)container->val->ptr;
+
+    buf_push(ptr, var->val);
+    container->val->len = buf_len(ptr);
+    container->val->ptr = ptr;
 }
 
 user_api Templ_Var *
