@@ -288,6 +288,42 @@ internal_proc PROC_CALLBACK(filter_format) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_join) {
+    char *sep = val_str(narg("d")->val);
+    Val *attr = narg("attribute")->val;
+    char *result = "";
+
+    if (operand->len < 2) {
+        return operand;
+    }
+
+    if ( attr->kind == VAL_NONE ) {
+        result = strf("%s", val_to_char(val_elem(operand, 0)));
+        for ( int i = 1; i < operand->len; ++i ) {
+            result = strf("%s%s%s", result, sep, val_to_char(val_elem(operand, i)));
+        }
+    } else {
+        Val *v = val_elem(operand, 0);
+        Scope *scope = (Scope *)v->ptr;
+        Scope *prev_scope = scope_set(scope);
+
+        Sym *sym = sym_get(val_str(attr));
+        result = strf("%s", val_to_char(sym->val));
+
+        for ( int i = 1; i < operand->len; ++i ) {
+            v = val_elem(operand, i);
+            scope_set((Scope *)v->ptr);
+            sym = sym_get(val_str(attr));
+
+            result = strf("%s%s%s", result, sep, val_to_char(sym->val));
+        }
+
+        scope_set(prev_scope);
+    }
+
+    return val_str(result);
+}
+
 internal_proc PROC_CALLBACK(filter_lower) {
     assert(operand->kind == VAL_STR);
     char *str = val_str(operand);

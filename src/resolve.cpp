@@ -2623,6 +2623,11 @@ resolve_init_builtin_filter() {
         type_field("default", type_float, val_float(0.0f))
     };
 
+    Type_Field *join_type[] = {
+        type_field("d", type_str, val_str("")),
+        type_field("attribute", &type_none, val_none())
+    };
+
     Type_Field *trunc_type[]    = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
@@ -2645,6 +2650,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("float",          type_proc(float_type,    1, type_str), val_proc(float_type,    1, type_str, filter_float));
     sym_push_filter("format",         type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_format));
     sym_push_filter("lower",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_lower));
+    sym_push_filter("join",           type_proc(join_type,     2, type_str), val_proc(join_type,     2, type_str, filter_join));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str), val_proc(trunc_type,    4, type_str, filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_upper));
 }
