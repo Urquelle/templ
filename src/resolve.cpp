@@ -410,7 +410,7 @@ val_op(Token_Kind op, Val *val) {
 }
 
 internal_proc char *
-val_to_char(Val *val) {
+val_print(Val *val) {
     switch ( val->kind ) {
         case VAL_STR: {
             size_t len = utf8_str_size((char *)val->ptr, val->len);
@@ -451,7 +451,7 @@ val_to_char(Val *val) {
 
         case VAL_PAIR: {
             Resolved_Pair *pair = (Resolved_Pair *)val->ptr;
-            char *result = strf("pair(key = \"%s\", value = \"%s\")", val_to_char(pair->key), val_to_char(pair->value));
+            char *result = strf("pair(key = \"%s\", value = \"%s\")", val_print(pair->key), val_print(pair->value));
 
             return result;
         } break;

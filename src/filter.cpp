@@ -42,7 +42,7 @@ internal_proc PROC_CALLBACK(filter_center) {
 
     s32 padding = (s32)((width - operand->len) / 2);
 
-    char *result = strf("%*s%s%*s", padding, "", val_to_char(operand), padding, "");
+    char *result = strf("%*s%s%*s", padding, "", val_print(operand), padding, "");
 
     return val_str(result);
 }
@@ -225,7 +225,7 @@ internal_proc PROC_CALLBACK(filter_format) {
                         fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss string sein", arg->name);
                     }
 
-                    result = strf("%s%s", result, val_to_char(arg->val));
+                    result = strf("%s%s", result, val_print(arg->val));
                 } else {
                     if ( num_varargs ) {
                         Resolved_Arg *arg = varargs[0];
@@ -245,7 +245,7 @@ internal_proc PROC_CALLBACK(filter_format) {
                         fatal(arg->pos.name, arg->pos.row, "der datentyp des übergebenen arguments %s muss int sein", arg->name);
                     }
 
-                    result = strf("%s%s", result, val_to_char(arg->val));
+                    result = strf("%s%s", result, val_print(arg->val));
                 } else {
                     if ( num_varargs ) {
                         Resolved_Arg *arg = varargs[0];
@@ -308,9 +308,9 @@ internal_proc PROC_CALLBACK(filter_join) {
     }
 
     if ( attr->kind == VAL_NONE ) {
-        result = strf("%s", val_to_char(val_elem(operand, 0)));
+        result = strf("%s", val_print(val_elem(operand, 0)));
         for ( int i = 1; i < operand->len; ++i ) {
-            result = strf("%s%s%s", result, sep, val_to_char(val_elem(operand, i)));
+            result = strf("%s%s%s", result, sep, val_print(val_elem(operand, i)));
         }
     } else {
         Val *v = val_elem(operand, 0);
@@ -318,14 +318,14 @@ internal_proc PROC_CALLBACK(filter_join) {
         Scope *prev_scope = scope_set(scope);
 
         Sym *sym = sym_get(val_str(attr));
-        result = strf("%s", val_to_char(sym->val));
+        result = strf("%s", val_print(sym->val));
 
         for ( int i = 1; i < operand->len; ++i ) {
             v = val_elem(operand, i);
             scope_set((Scope *)v->ptr);
             sym = sym_get(val_str(attr));
 
-            result = strf("%s%s%s", result, sep, val_to_char(sym->val));
+            result = strf("%s%s%s", result, sep, val_print(sym->val));
         }
 
         scope_set(prev_scope);
