@@ -70,6 +70,8 @@ filesize {{ 34252342 | filesizeformat }}
 {{ lastlist | last }}
 {{ {'a': 'aaa', 'b': 'bbb' } | last }}
 
+{{ lastlist | length }}
+
 {{ ['a', 'b', 'c'] | join }}
 {{ ['a', 'z'] | join(d="🤹") }}
 {{ users | join(attribute="name", d="*") }}

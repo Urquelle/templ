@@ -72,6 +72,7 @@ struct Resolved_Expr;
 struct Resolved_Pair;
 struct Resolved_Stmt;
 struct Resolved_Templ;
+struct Scope;
 struct Stmt;
 struct Sym;
 struct Type;
@@ -112,6 +113,7 @@ internal_proc PROC_CALLBACK(filter_format);
 internal_proc PROC_CALLBACK(filter_int);
 internal_proc PROC_CALLBACK(filter_join);
 internal_proc PROC_CALLBACK(filter_last);
+internal_proc PROC_CALLBACK(filter_length);
 internal_proc PROC_CALLBACK(filter_lower);
 internal_proc PROC_CALLBACK(filter_truncate);
 internal_proc PROC_CALLBACK(filter_upper);
@@ -181,6 +183,7 @@ global_var char *symname_index = intern_str("index");
 #include "lex.cpp"
 #include "ast.cpp"
 #include "parser.cpp"
+#include "val.cpp"
 #include "resolve.cpp"
 #include "filter.cpp"
 #include "testers.cpp"

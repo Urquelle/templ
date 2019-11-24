@@ -340,6 +340,12 @@ internal_proc PROC_CALLBACK(filter_last) {
     return result;
 }
 
+internal_proc PROC_CALLBACK(filter_length) {
+    Val *result = val_int((int)operand->len);
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(filter_lower) {
     assert(operand->kind == VAL_STR);
     char *str = val_str(operand);
