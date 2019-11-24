@@ -449,6 +449,13 @@ val_to_char(Val *val) {
             return result;
         } break;
 
+        case VAL_PAIR: {
+            Resolved_Pair *pair = (Resolved_Pair *)val->ptr;
+            char *result = strf("pair(key = \"%s\", value = \"%s\")", val_to_char(pair->key), val_to_char(pair->value));
+
+            return result;
+        } break;
+
         case VAL_NONE: {
             return "none";
         } break;
@@ -2654,9 +2661,10 @@ resolve_init_builtin_filter() {
     sym_push_filter("first",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_first));
     sym_push_filter("float",          type_proc(float_type,    1, type_str), val_proc(float_type,    1, type_str, filter_float));
     sym_push_filter("format",         type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_format));
-    sym_push_filter("lower",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_lower));
     sym_push_filter("int",            type_proc(int_type,      2, type_str), val_proc(int_type,      2, type_str, filter_int));
     sym_push_filter("join",           type_proc(join_type,     2, type_str), val_proc(join_type,     2, type_str, filter_join));
+    sym_push_filter("last",           type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_last));
+    sym_push_filter("lower",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_lower));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str), val_proc(trunc_type,    4, type_str, filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_upper));
 }

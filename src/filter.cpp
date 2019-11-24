@@ -180,7 +180,9 @@ internal_proc PROC_CALLBACK(filter_filesizeformat) {
 }
 
 internal_proc PROC_CALLBACK(filter_first) {
-    return val_elem(operand, 0);
+    Val *result = val_elem(operand, 0);
+
+    return result;
 }
 
 internal_proc PROC_CALLBACK(filter_float) {
@@ -330,6 +332,12 @@ internal_proc PROC_CALLBACK(filter_join) {
     }
 
     return val_str(result);
+}
+
+internal_proc PROC_CALLBACK(filter_last) {
+    Val *result = val_elem(operand, (int)operand->len-1);
+
+    return result;
 }
 
 internal_proc PROC_CALLBACK(filter_lower) {

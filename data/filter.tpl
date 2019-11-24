@@ -66,6 +66,10 @@ filesize {{ 34252342 | filesizeformat }}
 {{ "abc" | int(10) }}
 {{ "110" | int(base=2) }}
 
+{% set lastlist = [1, 2, 3] %}
+{{ lastlist | last }}
+{{ {'a': 'aaa', 'b': 'bbb' } | last }}
+
 {{ ['a', 'b', 'c'] | join }}
 {{ ['a', 'z'] | join(d="🤹") }}
 {{ users | join(attribute="name", d="*") }}
