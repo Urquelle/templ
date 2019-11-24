@@ -61,6 +61,11 @@ filesize {{ 34252342 | filesizeformat }}
 {{ "3.14" | float }}
 {{ "abc" | float(3.14) }}
 
+{{ "53" | int }}
+{{ "abc" | int }}
+{{ "abc" | int(10) }}
+{{ "110" | int(base=2) }}
+
 {{ ['a', 'b', 'c'] | join }}
 {{ ['a', 'z'] | join(d="🤹") }}
 {{ users | join(attribute="name", d="*") }}

@@ -288,6 +288,14 @@ internal_proc PROC_CALLBACK(filter_format) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_int) {
+    char *end = 0;
+    s32 i = strtol(val_str(operand), &end, val_int(narg("base")->val));
+    Val *result = (end == operand->ptr) ? narg("default")->val : val_int(i);
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(filter_join) {
     char *sep = val_str(narg("d")->val);
     Val *attr = narg("attribute")->val;

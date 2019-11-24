@@ -109,6 +109,7 @@ internal_proc PROC_CALLBACK(filter_filesizeformat);
 internal_proc PROC_CALLBACK(filter_first);
 internal_proc PROC_CALLBACK(filter_float);
 internal_proc PROC_CALLBACK(filter_format);
+internal_proc PROC_CALLBACK(filter_int);
 internal_proc PROC_CALLBACK(filter_join);
 internal_proc PROC_CALLBACK(filter_lower);
 internal_proc PROC_CALLBACK(filter_truncate);
