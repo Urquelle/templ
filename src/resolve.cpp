@@ -482,7 +482,7 @@ val_elem(Val *val, int idx) {
         } break;
 
         case VAL_STR: {
-            result = val_str((char *)val->ptr + idx, 1);
+            result = val_str(utf8_char_goto((char *)val->ptr, idx), 1);
         } break;
 
         case VAL_DICT: {

@@ -94,7 +94,7 @@ first line
 
 {{ lastlist | length }}
 
-{% for c in "string" | list %}
+{% for c in "last l🤹ine" | list %}
     --{{ c }}--
 {% endfor %}
 
