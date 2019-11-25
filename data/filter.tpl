@@ -119,5 +119,5 @@ first line
 {% endfor %}
 
 --{{ [1, 2, 3] | max }}--
---{{ ['a', 'b', '🤹'] | max }}--
+--{{ ['a', 'D', 'c'] | max(case_sensitive=false) }}--
 

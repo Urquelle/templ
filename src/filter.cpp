@@ -488,7 +488,14 @@ internal_proc PROC_CALLBACK(filter_max) {
         Val *left  = val_elem(operand, i);
         Val *right = val_elem(operand, i+1);
 
-        result = (*(b32 *)(*left > *right).ptr) ? left : right;
+        if ( !case_sensitive && left->kind == VAL_STR && right->kind == VAL_STR ) {
+            char *left_str  = utf8_str_tolower(val_str(left));
+            char *right_str = utf8_str_tolower(val_str(right));
+
+            result = (utf8_strcmp(left_str, right_str) < 0) ? right : left;
+        } else {
+            result = (*(b32 *)(*left > *right).ptr) ? left : right;
+        }
     }
 
     return result;
