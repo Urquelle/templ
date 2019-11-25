@@ -77,6 +77,12 @@ filesize {{ 34252342 | filesizeformat }}
     {% endfor %}
 {% endfor %}
 
+{% filter indent(first=true, blank=true) %}
+first line
+     
+  last line🤹
+{% endfilter %}
+
 {{ "53" | int }}
 {{ "abc" | int }}
 {{ "abc" | int(10) }}

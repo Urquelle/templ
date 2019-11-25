@@ -328,6 +328,44 @@ internal_proc PROC_CALLBACK(filter_groupby) {
     return val_list(vals, buf_len(vals));
 }
 
+internal_proc PROC_CALLBACK(filter_indent) {
+    s32 width = val_int(narg("width")->val);
+    b32 first = val_bool(narg("first")->val);
+    b32 blank = val_bool(narg("blank")->val);
+
+    char *result = "";
+    char *ptr = (char *)operand->ptr;
+
+    if ( first ) {
+        result = strf("%*s", width, "");
+    }
+
+    while ( *ptr ) {
+        result = strf("%s%c", result, *ptr);
+
+        if ( *ptr == '\n' ) {
+            char *newline = ptr+1;
+            b32 line_is_blank = true;
+
+            while ( *newline && *newline != '\n' ) {
+                if ( *newline != ' ' && *newline != '\t' ) {
+                    line_is_blank = false;
+                    break;
+                }
+                newline++;
+            }
+
+            if ( !line_is_blank || blank ) {
+                result = strf("\n%s%*s", result, width, "");
+            }
+        }
+
+        ptr++;
+    }
+
+    return val_str(result);
+}
+
 internal_proc PROC_CALLBACK(filter_int) {
     char *end = 0;
     s32 i = strtol(val_str(operand), &end, val_int(narg("base")->val));

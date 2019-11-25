@@ -1781,6 +1781,12 @@ resolve_init_builtin_filter() {
         type_field("attribute", type_str)
     };
 
+    Type_Field *indent_type[] = {
+        type_field("width", type_int, val_int(4)),
+        type_field("first", type_bool, val_bool(false)),
+        type_field("blank", type_bool, val_bool(false))
+    };
+
     Type_Field *int_type[] = {
         type_field("default", type_int, val_int(0)),
         type_field("base", type_int, val_int(10))
@@ -1821,6 +1827,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("float",          type_proc(float_type,    1, type_str),  val_proc(float_type,    1, type_str,  filter_float));
     sym_push_filter("format",         type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_format));
     sym_push_filter("groupby",        type_proc(groupby_type,  1, groupby_ret), val_proc(groupby_type,  1, groupby_ret, filter_groupby));
+    sym_push_filter("indent",         type_proc(indent_type,   3, type_str),  val_proc(indent_type,   3, type_str,  filter_indent));
     sym_push_filter("int",            type_proc(int_type,      2, type_str),  val_proc(int_type,      2, type_str,  filter_int));
     sym_push_filter("join",           type_proc(join_type,     2, type_str),  val_proc(join_type,     2, type_str,  filter_join));
     sym_push_filter("last",           type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_last));

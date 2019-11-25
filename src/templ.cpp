@@ -111,6 +111,7 @@ internal_proc PROC_CALLBACK(filter_first);
 internal_proc PROC_CALLBACK(filter_float);
 internal_proc PROC_CALLBACK(filter_format);
 internal_proc PROC_CALLBACK(filter_groupby);
+internal_proc PROC_CALLBACK(filter_indent);
 internal_proc PROC_CALLBACK(filter_int);
 internal_proc PROC_CALLBACK(filter_join);
 internal_proc PROC_CALLBACK(filter_last);
