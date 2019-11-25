@@ -454,6 +454,34 @@ internal_proc PROC_CALLBACK(filter_lower) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_map) {
+    char *attribute = 0;
+    for ( int i = 0; i < num_kwargs; ++i ) {
+        Resolved_Arg *kwarg = kwargs[i];
+        if ( kwarg->name == intern_str("attribute") ) {
+            attribute = val_str(kwarg->val);
+        }
+    }
+
+    Scope *prev_scope = current_scope;
+    Val **vals = 0;
+    if ( attribute ) {
+        for ( int i = 0; i < operand->len; ++i ) {
+            Val *elem = val_elem(operand, i);
+            assert(elem->kind == VAL_DICT);
+            scope_set((Scope *)elem->ptr);
+            Sym *sym = sym_get(attribute);
+
+            if ( sym ) {
+                buf_push(vals, sym->val);
+            }
+        }
+    }
+
+    scope_set(prev_scope);
+    return val_list(vals, buf_len(vals));
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);

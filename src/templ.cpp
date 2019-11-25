@@ -118,6 +118,7 @@ internal_proc PROC_CALLBACK(filter_last);
 internal_proc PROC_CALLBACK(filter_length);
 internal_proc PROC_CALLBACK(filter_list);
 internal_proc PROC_CALLBACK(filter_lower);
+internal_proc PROC_CALLBACK(filter_map);
 internal_proc PROC_CALLBACK(filter_truncate);
 internal_proc PROC_CALLBACK(filter_upper);
 

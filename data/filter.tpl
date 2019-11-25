@@ -114,3 +114,7 @@ first line
 {{ ['a', 'z'] | join(d="🤹") }}
 {{ users | join(attribute="name", d="*") }}
 
+{% for it in users | map(attribute="name") %}
+    --{{ it }}--
+{% endfor %}
+

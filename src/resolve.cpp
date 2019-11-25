@@ -1838,6 +1838,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("length",         type_proc(0,             0, type_int),  val_proc(0,             0, type_int,  filter_length));
     sym_push_filter("list",           type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_list));
     sym_push_filter("lower",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_lower));
+    sym_push_filter("map",            type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_map));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }
