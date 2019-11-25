@@ -1801,6 +1801,11 @@ resolve_init_builtin_filter() {
         type_field("attribute", &type_none, val_none())
     };
 
+    Type_Field *max_type[] = {
+        type_field("case_sensitive", type_bool, val_bool(false)),
+        type_field("attribute", type_str, val_none())
+    };
+
     Type_Field *trunc_type[]    = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
@@ -1839,7 +1844,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("list",           type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_list));
     sym_push_filter("lower",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_lower));
     sym_push_filter("map",            type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_map));
-    sym_push_filter("max",            type_proc(0,             0, type_int),  val_proc(0,             0, type_int,  filter_max));
+    sym_push_filter("max",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_max));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }

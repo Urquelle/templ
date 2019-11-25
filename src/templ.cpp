@@ -162,6 +162,8 @@ internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt, Resolved_Templ *templ);
 internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
+internal_proc char            * utf8_char_tolower(char *str);
+internal_proc char            * utf8_char_toupper(char *str);
 
 global_var char               * gen_result = "";
 global_var int                  gen_indent   = 0;

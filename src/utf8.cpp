@@ -49,6 +49,40 @@ utf8_str_size(char *str) {
     return result;
 }
 
+internal_proc size_t
+utf8_str_uppersize(char *str) {
+    char *ptr = str;
+    size_t len = utf8_strlen(str);
+    size_t result = 0;
+
+    for ( int i = 0; i < len; ++i ) {
+        size_t old_size = utf8_char_size(ptr);
+        char *c = utf8_char_toupper(ptr);
+        size_t size = utf8_char_size(c);
+        result += size;
+        ptr += old_size;
+    }
+
+    return result;
+}
+
+internal_proc size_t
+utf8_str_lowersize(char *str) {
+    char *ptr = str;
+    size_t len = utf8_strlen(str);
+    size_t result = 0;
+
+    for ( int i = 0; i < len; ++i ) {
+        size_t old_size = utf8_char_size(ptr);
+        char *c = utf8_char_tolower(ptr);
+        size_t size = utf8_char_size(c);
+        result += size;
+        ptr += old_size;
+    }
+
+    return result;
+}
+
 internal_proc void
 utf8_char_write(char *dest, char *c) {
     size_t num_bytes = utf8_char_size(c);
@@ -101,7 +135,7 @@ utf8_strcmp(char *left, char *right) {
 
 global_var char global_toupper_buf[5];
 internal_proc char *
-utf8_toupper(char *str) {
+utf8_char_toupper(char *str) {
     /*
      * @INFO: tabelle mit werten für die zeichen
      *        https://unicode-table.com/
@@ -183,9 +217,29 @@ utf8_toupper(char *str) {
     return global_toupper_buf;
 }
 
+internal_proc char *
+utf8_str_toupper(char *str) {
+    size_t offset = 0;
+    size_t size = utf8_str_uppersize(str);
+
+    char *result = (char *)calloc(1, size+1);
+
+    for ( int i = 0; i < utf8_strlen(str); ++i ) {
+        size_t old_len = utf8_char_size(str + offset);
+        char *c = utf8_char_toupper(str + offset);
+        size_t len = utf8_char_size(c);
+
+        sprintf_s(result, size+1, "%s%.*s", result, (int)len, c);
+        offset += old_len;
+    }
+    result[size] = 0;
+
+    return result;
+}
+
 global_var char global_tolower_buf[5];
 internal_proc char *
-utf8_tolower(char *str) {
+utf8_char_tolower(char *str) {
     /*
      * @INFO: tabelle mit werten für die zeichen
      *        https://unicode-table.com/
@@ -258,5 +312,25 @@ utf8_tolower(char *str) {
     }
 
     return global_tolower_buf;
+}
+
+internal_proc char *
+utf8_str_tolower(char *str) {
+    size_t size = utf8_str_lowersize(str);
+    char *result = (char *)calloc(1, size+1);
+    size_t str_len = utf8_strlen(str);
+    size_t offset = 0;
+
+    for ( int i = 0; i < str_len; ++i ) {
+        size_t old_len = utf8_char_size(str + offset);
+        char *c = utf8_char_tolower(str + offset);
+        size_t len = utf8_char_size(c);
+
+        sprintf_s(result, size+1, "%s%.*s", result, (int)len, c);
+        offset += old_len;
+    }
+    result[size] = 0;
+
+    return result;
 }
 

@@ -24,7 +24,7 @@ internal_proc PROC_CALLBACK(filter_batch) {
 internal_proc PROC_CALLBACK(filter_capitalize) {
     assert(operand->kind == VAL_STR);
 
-    char *cap = utf8_toupper((char *)operand->ptr);
+    char *cap = utf8_char_toupper((char *)operand->ptr);
     size_t cap_size = utf8_char_size(cap);
     char *remainder = (char *)operand->ptr + cap_size;
 
@@ -109,6 +109,9 @@ internal_proc PROC_CALLBACK(filter_dictsort) {
     char *by = val_str(narg("by")->val);
     b32 reverse = val_bool(narg("reverse")->val);
 
+    /* @AUFGABE: eventuell umbauen um ein pair zurückzugeben. dabei kann auch
+     *           einfacher auf case_sensitive eingegangen werden
+     */
     Sym **syms = 0;
     {
         Scope *scope = (Scope *)operand->ptr;
@@ -439,17 +442,7 @@ internal_proc PROC_CALLBACK(filter_list) {
 internal_proc PROC_CALLBACK(filter_lower) {
     assert(operand->kind == VAL_STR);
     char *str = val_str(operand);
-    char *result = "";
-
-    size_t offset = 0;
-    for ( int i = 0; i < utf8_strlen(str); ++i ) {
-        size_t old_len = utf8_char_size(str + offset);
-        char *c = utf8_tolower(str + offset);
-        size_t len = utf8_char_size(c);
-
-        result = strf("%s%.*s", result, len, c);
-        offset += old_len;
-    }
+    char *result = utf8_str_tolower(str);
 
     return val_str(result);
 }
@@ -486,6 +479,9 @@ internal_proc PROC_CALLBACK(filter_max) {
     if ( operand->len == 1 ) {
         return operand;
     }
+
+    b32 case_sensitive = val_bool(narg("case_sensitive")->val);
+    Val *attribute = narg("attribute")->val;
 
     Val *result = 0;
     for ( int i = 0; i < operand->len-1; ++i ) {
@@ -550,17 +546,7 @@ internal_proc PROC_CALLBACK(filter_truncate) {
 internal_proc PROC_CALLBACK(filter_upper) {
     assert(operand->kind == VAL_STR);
     char *str = val_str(operand);
-    char *result = "";
-
-    size_t offset = 0;
-    for ( int i = 0; i < utf8_strlen(str); ++i ) {
-        size_t old_len = utf8_char_size(str + offset);
-        char *c = utf8_toupper(str + offset);
-        size_t len = utf8_char_size(c);
-
-        result = strf("%s%.*s", result, len, c);
-        offset += old_len;
-    }
+    char *result = utf8_str_toupper(str);
 
     return val_str(result);
 }
