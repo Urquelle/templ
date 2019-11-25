@@ -482,6 +482,22 @@ internal_proc PROC_CALLBACK(filter_map) {
     return val_list(vals, buf_len(vals));
 }
 
+internal_proc PROC_CALLBACK(filter_max) {
+    if ( operand->len == 1 ) {
+        return operand;
+    }
+
+    Val *result = 0;
+    for ( int i = 0; i < operand->len-1; ++i ) {
+        Val *left  = val_elem(operand, i);
+        Val *right = val_elem(operand, i+1);
+
+        result = (*(b32 *)(*left > *right).ptr) ? left : right;
+    }
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);
