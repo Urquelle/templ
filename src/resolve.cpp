@@ -52,6 +52,10 @@ struct Type {
         } type_tuple;
 
         struct {
+            Type *base;
+        } type_list;
+
+        struct {
             Type_Field **params;
             size_t num_params;
             Type *ret;
@@ -84,8 +88,24 @@ global_var Type *type_int;
 global_var Type *type_float;
 global_var Type *type_str;
 global_var Type *type_range;
-global_var Type *type_list;
 global_var Type *type_any;
+
+internal_proc Type *
+type_base(Type *type) {
+    Type *result = 0;
+
+    switch ( type->kind ) {
+        case TYPE_LIST: {
+            result = type->type_list.base;
+        } break;
+
+        default: {
+            result = type;
+        } break;
+    }
+
+    return result;
+}
 
 internal_proc Type *
 type_new(Type_Kind kind) {
@@ -129,6 +149,15 @@ type_module(char *name, Scope *scope) {
     result->scope = scope;
 
     result->type_module.name = name;
+
+    return result;
+}
+
+internal_proc Type *
+type_list(Type *type) {
+    Type *result = type_new(TYPE_LIST);
+
+    result->type_list.base = type;
 
     return result;
 }
@@ -662,11 +691,10 @@ resolved_expr_tuple(Resolved_Expr **exprs, size_t num_exprs, Type *type, Val *va
 }
 
 internal_proc Resolved_Expr *
-resolved_expr_list(Resolved_Expr **expr, size_t num_expr, Val *val) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_LIST, type_list);
+resolved_expr_list(Resolved_Expr **expr, size_t num_expr, Type *type, Val *val) {
+    Resolved_Expr *result = resolved_expr_new(EXPR_LIST, type);
 
     result->val = val;
-    result->type = type_list;
     result->expr_list.expr = expr;
     result->expr_list.num_expr = num_expr;
 
@@ -1046,16 +1074,18 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         case STMT_FOR: {
             Scope *scope_for = scope_enter("for");
 
+            Resolved_Expr *set = resolve_expr(stmt->stmt_for.set);
+            Type *set_type = type_base(set->type);
+
             Sym **vars = 0;
             size_t num_vars = 0;
             for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
                 assert(stmt->stmt_for.vars[i]->kind == EXPR_NAME);
-                Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, type_any, val_undefined());
+                Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, set_type, val_undefined());
                 buf_push(vars, sym);
             }
 
             num_vars = buf_len(vars);
-            Resolved_Expr *set = resolve_expr(stmt->stmt_for.set);
 
             /* loop variablen {{{ */
             Type_Field *any_type[] = { type_field("s", type_any) };
@@ -1192,7 +1222,8 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         case STMT_FILTER: {
             Resolved_Expr **filter = 0;
             for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
-                buf_push(filter, resolve_filter(stmt->stmt_filter.filter[i]));
+                Resolved_Expr *f = resolve_filter(stmt->stmt_filter.filter[i]);
+                buf_push(filter, f);
             }
 
             Resolved_Stmt **stmts = 0;
@@ -1249,7 +1280,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             /* macro variablen {{{ */
             sym_push_var("name",      type_str, val_str(macro_name));
             sym_push_var("arguments", type_tuple(num_param_names), val_tuple(param_names, num_param_names));
-            sym_push_var("varargs",   type_list, val_undefined());
+            sym_push_var("varargs",   type_list(type_any), val_undefined());
             /* }}} */
 
             Resolved_Stmt **stmts = 0;
@@ -1574,13 +1605,16 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *base = resolve_expr(expr->expr_field.expr);
 
             Type *type = base->type;
-            assert(type->kind == TYPE_DICT || type->kind == TYPE_PROC);
 
-            Scope *prev_scope = scope_set(type->scope);
-            Sym *sym = resolve_name(expr->expr_field.field);
-            scope_set(prev_scope);
+            if ( type->kind == TYPE_DICT || type->kind == TYPE_PROC ) {
+                Scope *prev_scope = scope_set(type->scope);
+                Sym *sym = resolve_name(expr->expr_field.field);
+                scope_set(prev_scope);
 
-            result = resolved_expr_field(base, sym->val, sym->type, expr->expr_field.field);
+                result = resolved_expr_field(base, sym->val, sym->type, expr->expr_field.field);
+            } else {
+                result = resolved_expr_field(base, val_undefined(), type_any, expr->expr_field.field);
+            }
         } break;
 
         case EXPR_RANGE: {
@@ -1641,7 +1675,7 @@ resolve_expr(Expr *expr) {
                 buf_push(vals, resolved_expr->val);
             }
 
-            result = resolved_expr_list(index, buf_len(index), val_list(vals, buf_len(vals)));
+            result = resolved_expr_list(index, buf_len(index), type_list(type_any), val_list(vals, buf_len(vals)));
         } break;
 
         case EXPR_TUPLE: {
@@ -1695,7 +1729,8 @@ resolve_expr(Expr *expr) {
 
     Resolved_Expr **filters = 0;
     for ( int i = 0; i < expr->num_filters; ++i ) {
-        buf_push(filters, resolve_filter(expr->filters[i]));
+        Resolved_Expr *filter = resolve_filter(expr->filters[i]);
+        buf_push(filters, filter);
     }
 
     result->filters = filters;
@@ -1742,6 +1777,10 @@ resolve_init_builtin_filter() {
         type_field("default", type_float, val_float(0.0f))
     };
 
+    Type_Field *groupby_type[] = {
+        type_field("attribute", type_str)
+    };
+
     Type_Field *int_type[] = {
         type_field("default", type_int, val_int(0)),
         type_field("base", type_int, val_int(10))
@@ -1759,28 +1798,36 @@ resolve_init_builtin_filter() {
         type_field("leeway", type_int, val_int(0)),
     };
 
-    sym_push_filter("abs",            type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_abs));
-    sym_push_filter("attr",           type_proc(attr_type,     1, type_str), val_proc(attr_type,     1, type_str, filter_attr));
-    sym_push_filter("batch",          type_proc(batch_type,    1, type_str), val_proc(batch_type,    1, type_str, filter_attr));
-    sym_push_filter("capitalize",     type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_capitalize));
-    sym_push_filter("center",         type_proc(center_type,   1, type_str), val_proc(center_type,   1, type_str, filter_center));
-    sym_push_filter("count",          type_proc(0,             0, type_int), val_proc(0,             0, type_int, filter_length));
-    sym_push_filter("default",        type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
-    sym_push_filter("d",              type_proc(default_type,  2, type_str), val_proc(default_type,  2, type_str, filter_default));
-    sym_push_filter("dictsort",       type_proc(dictsort_type, 3, type_str), val_proc(dictsort_type, 3, type_str, filter_dictsort));
-    sym_push_filter("escape",         type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
-    sym_push_filter("e",              type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_escape));
-    sym_push_filter("filesizeformat", type_proc(fs_type,       1, type_str), val_proc(fs_type,       1, type_str, filter_filesizeformat));
-    sym_push_filter("first",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_first));
-    sym_push_filter("float",          type_proc(float_type,    1, type_str), val_proc(float_type,    1, type_str, filter_float));
-    sym_push_filter("format",         type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_format));
-    sym_push_filter("int",            type_proc(int_type,      2, type_str), val_proc(int_type,      2, type_str, filter_int));
-    sym_push_filter("join",           type_proc(join_type,     2, type_str), val_proc(join_type,     2, type_str, filter_join));
-    sym_push_filter("last",           type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_last));
-    sym_push_filter("length",         type_proc(0,             0, type_int), val_proc(0,             0, type_int, filter_length));
-    sym_push_filter("lower",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_lower));
-    sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str), val_proc(trunc_type,    4, type_str, filter_truncate));
-    sym_push_filter("upper",          type_proc(0,             0, type_str), val_proc(0,             0, type_str, filter_upper));
+    Scope *groupby_scope = scope_new(0, "groupby");
+    Scope *prev_scope = scope_set(groupby_scope);
+    sym_push_var("grouper", type_str);
+    sym_push_var("list", type_dict(0));
+    scope_set(prev_scope);
+    Type *groupby_ret = type_list(type_dict(groupby_scope));
+
+    sym_push_filter("abs",            type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_abs));
+    sym_push_filter("attr",           type_proc(attr_type,     1, type_str),  val_proc(attr_type,     1, type_str,  filter_attr));
+    sym_push_filter("batch",          type_proc(batch_type,    1, type_str),  val_proc(batch_type,    1, type_str,  filter_attr));
+    sym_push_filter("capitalize",     type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_capitalize));
+    sym_push_filter("center",         type_proc(center_type,   1, type_str),  val_proc(center_type,   1, type_str,  filter_center));
+    sym_push_filter("count",          type_proc(0,             0, type_int),  val_proc(0,             0, type_int,  filter_length));
+    sym_push_filter("default",        type_proc(default_type,  2, type_str),  val_proc(default_type,  2, type_str,  filter_default));
+    sym_push_filter("d",              type_proc(default_type,  2, type_str),  val_proc(default_type,  2, type_str,  filter_default));
+    sym_push_filter("dictsort",       type_proc(dictsort_type, 3, type_str),  val_proc(dictsort_type, 3, type_str,  filter_dictsort));
+    sym_push_filter("escape",         type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_escape));
+    sym_push_filter("e",              type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_escape));
+    sym_push_filter("filesizeformat", type_proc(fs_type,       1, type_str),  val_proc(fs_type,       1, type_str,  filter_filesizeformat));
+    sym_push_filter("first",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_first));
+    sym_push_filter("float",          type_proc(float_type,    1, type_str),  val_proc(float_type,    1, type_str,  filter_float));
+    sym_push_filter("format",         type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_format));
+    sym_push_filter("groupby",        type_proc(groupby_type,  1, groupby_ret), val_proc(groupby_type,  1, groupby_ret, filter_groupby));
+    sym_push_filter("int",            type_proc(int_type,      2, type_str),  val_proc(int_type,      2, type_str,  filter_int));
+    sym_push_filter("join",           type_proc(join_type,     2, type_str),  val_proc(join_type,     2, type_str,  filter_join));
+    sym_push_filter("last",           type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_last));
+    sym_push_filter("length",         type_proc(0,             0, type_int),  val_proc(0,             0, type_int,  filter_length));
+    sym_push_filter("lower",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_lower));
+    sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
+    sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }
 
 internal_proc void
@@ -1863,10 +1910,6 @@ resolve_init_builtin_types() {
 
     type_range = type_new(TYPE_RANGE);
     type_range->size = PTR_SIZE;
-
-    type_list  = type_new(TYPE_LIST);
-    type_list->size = 0;
-    type_list->flags = TYPE_FLAGS_ITERABLE;
 
     type_any   = type_new(TYPE_ANY);
     type_any->size = PTR_SIZE;

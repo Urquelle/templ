@@ -110,6 +110,7 @@ internal_proc PROC_CALLBACK(filter_filesizeformat);
 internal_proc PROC_CALLBACK(filter_first);
 internal_proc PROC_CALLBACK(filter_float);
 internal_proc PROC_CALLBACK(filter_format);
+internal_proc PROC_CALLBACK(filter_groupby);
 internal_proc PROC_CALLBACK(filter_int);
 internal_proc PROC_CALLBACK(filter_join);
 internal_proc PROC_CALLBACK(filter_last);
@@ -151,7 +152,6 @@ internal_proc Stmt            * parse_stmt_lit(Parser *p);
 internal_proc char            * parse_str(Parser *p);
 internal_proc Expr            * parse_tester(Parser *p);
 internal_proc Resolved_Templ  * resolve(Parsed_Templ *d, b32 with_context = true);
-internal_proc void              resolve_add_block(char *name, Resolved_Stmt *block);
 internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
@@ -214,7 +214,7 @@ templ_list(char *name) {
 
     result->name = intern_str(name);
     result->val  = val_list(0, 0);
-    result->type = type_list;
+    result->type = type_list(type_any);
 
     return result;
 }
@@ -224,6 +224,7 @@ templ_var_add(Templ_Var *container, Templ_Var *var) {
     Val **ptr = (Val **)container->val->ptr;
 
     buf_push(ptr, var->val);
+    container->type->type_list.base = var->type;
     container->val->len = buf_len(ptr);
     container->val->ptr = ptr;
 }

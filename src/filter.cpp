@@ -290,6 +290,44 @@ internal_proc PROC_CALLBACK(filter_format) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_groupby) {
+    char *attribute = val_str(narg("attribute")->val);
+
+    Scope *prev_scope = current_scope;
+    Map list = {};
+    char **keys = 0;
+
+    for ( int i = 0; i < operand->len; ++i ) {
+        Val *v = val_elem(operand, i);
+        assert(v->kind == VAL_DICT);
+
+        scope_set((Scope *)v->ptr);
+        Sym *sym = sym_get(attribute);
+
+        char *key = intern_str(val_print(sym->val));
+
+        Val **vals = (Val **)map_get(&list, key);
+        buf_push(keys, key);
+        buf_push(vals, v);
+        map_put(&list, key, vals);
+    }
+
+    Val **vals = 0;
+    for ( int i = 0; i < buf_len(keys); ++i ) {
+        Scope *scope = scope_new(0, keys[i]);
+        scope_set(scope);
+        sym_push_var(intern_str("grouper"), type_str, val_str(keys[i]));
+
+        Val **v = (Val **)map_get(&list, keys[i]);
+        sym_push_var(intern_str("list"), type_list(type_any), val_list(v, buf_len(v)));
+        buf_push(vals, val_dict(scope));
+    }
+
+    scope_set(prev_scope);
+
+    return val_list(vals, buf_len(vals));
+}
+
 internal_proc PROC_CALLBACK(filter_int) {
     char *end = 0;
     s32 i = strtol(val_str(operand), &end, val_int(narg("base")->val));

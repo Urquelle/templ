@@ -451,7 +451,7 @@ val_print(Val *val) {
 
         case VAL_PAIR: {
             Resolved_Pair *pair = (Resolved_Pair *)val->ptr;
-            char *result = strf("pair(key = \"%s\", value = \"%s\")", val_print(pair->key), val_print(pair->value));
+            char *result = strf("%s", val_print(pair->value));
 
             return result;
         } break;

@@ -61,6 +61,22 @@ filesize {{ 34252342 | filesizeformat }}
 {{ "3.14" | float }}
 {{ "abc" | float(3.14) }}
 
+{% for group in users | groupby("age") %}
+    age {{ group.grouper }}
+    <hr>
+    {% for user in group.list %}
+        <li>{{ user.name }} :{{ user.address.city }}</li>
+    {% endfor %}
+{% endfor %}
+
+{% for grouper, list in users | groupby("age") %}
+    age {{ grouper }}
+    <hr>
+    {% for user in list %}
+        <li>{{ user.name }} :{{ user.address.city }}</li>
+    {% endfor %}
+{% endfor %}
+
 {{ "53" | int }}
 {{ "abc" | int }}
 {{ "abc" | int(10) }}

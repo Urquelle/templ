@@ -14,6 +14,10 @@ internal_proc Iterator
 iterator_init(Val *container) {
     Iterator result = {};
 
+    if ( container->kind == VAL_PAIR ) {
+        container = ((Resolved_Pair *)container->ptr)->value;
+    }
+
     assert(container->kind == VAL_RANGE || container->kind == VAL_LIST || container->kind == VAL_TUPLE || container->kind == VAL_DICT);
 
     result.container = container;
@@ -412,8 +416,12 @@ exec_stmt(Resolved_Stmt *stmt) {
                 val_set(stmt->stmt_for.loop_revindex0->val, (s32)list->len-1);
 
                 for ( Iterator it = iterator_init(list); iterator_valid(&it); iterator_next(&it) ) {
-                    for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
-                        stmt->stmt_for.vars[i]->val = val_elem(it.val, i);
+                    if ( stmt->stmt_for.num_vars == 1 ) {
+                        stmt->stmt_for.vars[0]->val = it.val;
+                    } else {
+                        for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
+                            stmt->stmt_for.vars[i]->val = val_elem(it.val, i);
+                        }
                     }
 
                     if ( stmt->stmt_for.set->if_expr ) {
