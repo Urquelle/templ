@@ -422,6 +422,20 @@ internal_proc PROC_CALLBACK(filter_length) {
     return result;
 }
 
+internal_proc PROC_CALLBACK(filter_list) {
+    if ( operand->kind == VAL_LIST ) {
+        return operand;
+    }
+
+    Val **vals = 0;
+    for ( int i = 0; i < operand->len; ++i ) {
+        Val *val = val_elem(operand, i);
+        buf_push(vals, val);
+    }
+
+    return val_list(vals, buf_len(vals));
+}
+
 internal_proc PROC_CALLBACK(filter_lower) {
     assert(operand->kind == VAL_STR);
     char *str = val_str(operand);

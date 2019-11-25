@@ -93,7 +93,7 @@ val_new(Val_Kind kind, size_t size) {
 
     result->kind = kind;
     result->size = size;
-    result->len  = 0;
+    result->len  = 1;
     result->ptr  = (void *)ALLOC_SIZE(&resolve_arena, size);
     result->user_data = 0;
 

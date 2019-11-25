@@ -94,6 +94,22 @@ first line
 
 {{ lastlist | length }}
 
+{% for c in "string" | list %}
+    --{{ c }}--
+{% endfor %}
+
+{% for it in 1 | list %}
+    --{{ it }}--
+{% endfor %}
+
+{% for it in [1, 2, 3] %}
+    --{{ it }}--
+{% endfor %}
+
+{% for it in {'vorname': 'friedrich', 'nachname': 'barbarossa' } %}
+    --{{ it }}--
+{% endfor %}
+
 {{ ['a', 'b', 'c'] | join }}
 {{ ['a', 'z'] | join(d="🤹") }}
 {{ users | join(attribute="name", d="*") }}
