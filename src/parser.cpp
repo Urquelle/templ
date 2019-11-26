@@ -723,6 +723,7 @@ parse_stmt_extends(Parser *p) {
 
     expect_token(p, T_CODE_END);
 
+    /* @AUFGABE: im thread verarbeiten */
     Parsed_Templ *templ = parse_file(name->expr_str.value);
     Parsed_Templ *else_templ = 0;
     if ( name->if_expr && name->if_expr->expr_if.else_expr ) {
@@ -730,6 +731,7 @@ parse_stmt_extends(Parser *p) {
         assert(else_expr->kind == EXPR_STR);
 
         /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
+        /* @AUFGABE: im thread verarbeiten */
         else_templ = parse_file(else_expr->expr_str.value);
     }
 
@@ -769,6 +771,7 @@ parse_stmt_include(Parser *p) {
 
             /* @AUFGABE: überprüfen ob eine endlosschleife in includes besteht */
             if ( success ) {
+                /* @AUFGABE: im thread verarbeiten */
                 buf_push(templ, parse_file(name_expr->expr_str.value));
             }
         }
@@ -779,6 +782,7 @@ parse_stmt_include(Parser *p) {
         }
 
         if ( success ) {
+            /* @AUFGABE: im thread verarbeiten */
             buf_push(templ, parse_file(expr->expr_str.value));
         }
     }
@@ -875,6 +879,7 @@ parse_stmt_import(Parser *p) {
     expect_token(p, T_CODE_END);
 
     /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
+    /* @AUFGABE: im thread verarbeiten */
     return stmt_import(parse_file(filename), name);
 
 }
@@ -899,6 +904,7 @@ parse_stmt_from_import(Parser *p) {
     expect_token(p, T_CODE_END);
 
     /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
+    /* @AUFGABE: im thread verarbeiten */
     return stmt_from_import(parse_file(filename), syms, buf_len(syms));
 }
 

@@ -63,8 +63,8 @@ quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
     char *key = intern_str("key");
 
 #define compneq(left, right) ((by == key) ? (utf8_strcmp((left)->name, (right)->name) != 0) : (*((left)->val) != *((right)->val)))
-#define compgt(left, right)  ((by == key) ? (utf8_strcmp((left)->name, (right)->name)  > 0) : (*(b32 *)(*(left)->val > *(right)->val).ptr))
-#define complt(left, right)  ((by == key) ? (utf8_strcmp((left)->name, (right)->name)  < 0) : (*(b32 *)(*(left)->val < *(right)->val).ptr))
+#define compgt(left, right)  ((by == key) ? (utf8_strcmp((left)->name, (right)->name)  > 0) : (*(left)->val > *(right)->val))
+#define complt(left, right)  ((by == key) ? (utf8_strcmp((left)->name, (right)->name)  < 0) : (*(left)->val < *(right)->val))
 
     if ( compneq(*left, *right) ) {
         Sym **ptr0 = left;
@@ -504,7 +504,7 @@ internal_proc PROC_CALLBACK(filter_max) {
 
             result = (utf8_strcmp(left_str, right_str) > 0) ? result : right;
         } else {
-            result = (*(b32 *)(*left_tmp > *right_tmp).ptr) ? result : right;
+            result = (*left_tmp > *right_tmp) ? result : right;
         }
     }
 
@@ -540,11 +540,18 @@ internal_proc PROC_CALLBACK(filter_min) {
 
             result = (utf8_strcmp(left_str, right_str) < 0) ? result : right;
         } else {
-            result = (*(b32 *)(*left_tmp < *right_tmp).ptr) ? result : right;
+            result = (*left_tmp < *right_tmp) ? result : right;
         }
     }
 
     return result;
+}
+
+internal_proc PROC_CALLBACK(filter_pprint) {
+    b32 verbose = val_bool(narg("verbose")->val);
+    char *result = val_pprint(operand, verbose);
+
+    return val_str(result);
 }
 
 internal_proc PROC_CALLBACK(filter_truncate) {

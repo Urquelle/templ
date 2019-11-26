@@ -121,6 +121,7 @@ internal_proc PROC_CALLBACK(filter_lower);
 internal_proc PROC_CALLBACK(filter_map);
 internal_proc PROC_CALLBACK(filter_max);
 internal_proc PROC_CALLBACK(filter_min);
+internal_proc PROC_CALLBACK(filter_pprint);
 internal_proc PROC_CALLBACK(filter_truncate);
 internal_proc PROC_CALLBACK(filter_upper);
 
@@ -166,6 +167,8 @@ internal_proc Sym             * sym_get(char *name);
 internal_proc char            * sym_name(Sym *sym);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
 internal_proc Val             * sym_val(Sym *sym);
+internal_proc char            * type_field_name(Type_Field *field);
+internal_proc Val             * type_field_value(Type_Field *field);
 internal_proc char            * utf8_char_tolower(char *str);
 internal_proc char            * utf8_char_toupper(char *str);
 

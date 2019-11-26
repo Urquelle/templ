@@ -130,3 +130,6 @@ first line
 {% set min_user = users | min(case_sensitive=false, attribute="name") %}
 --{{ min_user.name }}--
 
+{{ users | pprint }}
+{{ range | pprint }}
+

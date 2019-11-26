@@ -17,6 +17,20 @@ type_field(char *name, Type *type, Val *default_value = val_undefined()) {
     return result;
 }
 
+internal_proc char *
+type_field_name(Type_Field *field) {
+    char *result = field->name;
+
+    return result;
+}
+
+internal_proc Val *
+type_field_value(Type_Field *field) {
+    Val *result = field->default_value;
+
+    return result;
+}
+
 enum Type_Kind {
     TYPE_NONE,
     TYPE_ANY,
@@ -1774,6 +1788,10 @@ resolve_init_builtin_filter() {
         type_field("attribute", type_str, val_none())
     };
 
+    Type_Field *pprint_type[] = {
+        type_field("verbose", type_bool, val_bool(false))
+    };
+
     Type_Field *trunc_type[]    = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
@@ -1814,6 +1832,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("map",            type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_map));
     sym_push_filter("max",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_max));
     sym_push_filter("min",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_min));
+    sym_push_filter("pprint",         type_proc(pprint_type,   1, type_str),  val_proc(pprint_type,   1, type_str,  filter_pprint));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }

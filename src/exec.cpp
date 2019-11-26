@@ -97,48 +97,40 @@ exec_expr(Resolved_Expr *expr) {
         case EXPR_BINARY: {
             switch ( expr->expr_binary.op ) {
                 case T_MUL: {
-                    Val calc = *exec_expr(expr->expr_binary.left) * *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = *exec_expr(expr->expr_binary.left) * *exec_expr(expr->expr_binary.right);
                 } break;
 
                 case T_DIV: {
-                    Val calc = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
                 } break;
 
                 case T_DIV_TRUNC: {
-                    Val calc = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
-                    result = val_int((int)*(float *)calc.ptr);
+                    Val *c = *exec_expr(expr->expr_binary.left) / *exec_expr(expr->expr_binary.right);
+                    result = val_int((int)*(float *)c->ptr);
                 } break;
 
                 case T_PLUS: {
-                    Val calc = *exec_expr(expr->expr_binary.left) + *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = *exec_expr(expr->expr_binary.left) + *exec_expr(expr->expr_binary.right);
                 } break;
 
                 case T_MINUS: {
-                    Val calc = *exec_expr(expr->expr_binary.left) - *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = *exec_expr(expr->expr_binary.left) - *exec_expr(expr->expr_binary.right);
                 } break;
 
                 case T_LT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) < *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = val_bool(*exec_expr(expr->expr_binary.left) < *exec_expr(expr->expr_binary.right));
                 } break;
 
                 case T_LEQ: {
-                    Val calc = *exec_expr(expr->expr_binary.left) <= *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = val_bool(*exec_expr(expr->expr_binary.left) <= *exec_expr(expr->expr_binary.right));
                 } break;
 
                 case T_GT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) > *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = val_bool(*exec_expr(expr->expr_binary.left) > *exec_expr(expr->expr_binary.right));
                 } break;
 
                 case T_GEQ: {
-                    Val calc = *exec_expr(expr->expr_binary.left) >= *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = val_bool(*exec_expr(expr->expr_binary.left) >= *exec_expr(expr->expr_binary.right));
                 } break;
 
                 case T_AND: {
@@ -152,13 +144,11 @@ exec_expr(Resolved_Expr *expr) {
                 } break;
 
                 case T_PERCENT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) % *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = *exec_expr(expr->expr_binary.left) % *exec_expr(expr->expr_binary.right);
                 } break;
 
                 case T_POT: {
-                    Val calc = *exec_expr(expr->expr_binary.left) ^ *exec_expr(expr->expr_binary.right);
-                    result = val_copy(&calc);
+                    result = *exec_expr(expr->expr_binary.left) ^ *exec_expr(expr->expr_binary.right);
                 } break;
 
                 case T_EQL: {
