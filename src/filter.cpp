@@ -554,6 +554,13 @@ internal_proc PROC_CALLBACK(filter_pprint) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_random) {
+    s32 idx = rand() % operand->len;
+    Val *result = val_elem(operand, idx);
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);

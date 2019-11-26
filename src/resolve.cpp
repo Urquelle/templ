@@ -1833,6 +1833,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("max",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_max));
     sym_push_filter("min",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_min));
     sym_push_filter("pprint",         type_proc(pprint_type,   1, type_str),  val_proc(pprint_type,   1, type_str,  filter_pprint));
+    sym_push_filter("random",         type_proc(0,             0, type_any),  val_proc(0,             0, type_any,  filter_random));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }
