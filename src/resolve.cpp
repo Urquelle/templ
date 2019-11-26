@@ -273,6 +273,20 @@ sym_clear() {
     }
 }
 
+internal_proc char *
+sym_name(Sym *sym) {
+    char *result = sym->name;
+
+    return result;
+}
+
+internal_proc Val *
+sym_val(Sym *sym) {
+    Val *result = sym->val;
+
+    return result;
+}
+
 internal_proc Sym *
 sym_push(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
     name = intern_str(name);
@@ -458,52 +472,6 @@ struct Resolved_Expr {
         } expr_list;
     };
 };
-
-internal_proc Val *
-val_elem(Val *val, int idx) {
-    Val *result = val;
-
-    switch ( val->kind ) {
-        case VAL_RANGE: {
-            result = val_int(val_range0(val) + idx);
-        } break;
-
-        case VAL_LIST: {
-            result = *((Val **)val->ptr + idx);
-        } break;
-
-        case VAL_TUPLE: {
-            result = *((Val **)val->ptr + idx);
-        } break;
-
-        case VAL_PAIR: {
-            Resolved_Pair *pair = (Resolved_Pair *)val->ptr;
-            result = (idx == 0) ? pair->key : pair->value;
-        } break;
-
-        case VAL_STR: {
-            result = val_str(utf8_char_goto((char *)val->ptr, idx), 1);
-        } break;
-
-        case VAL_DICT: {
-            if ( idx < val->len ) {
-                Scope *scope = (Scope *)val->ptr;
-                Sym *sym = scope->sym_list[idx];
-
-                /* @AUFGABE: die val_pairs bei der erstellung
-                 *           der dict anlegen
-                 */
-                result = val_pair(val_str(sym->name), sym->val);
-            }
-        } break;
-
-        default: {
-            warn(0, 0, "nicht unterstützter datentyp übergeben");
-        }
-    }
-
-    return result;
-}
 
 internal_proc Resolved_Expr *
 resolved_expr_new(Expr_Kind kind, Type *type = 0) {
@@ -1845,6 +1813,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("lower",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_lower));
     sym_push_filter("map",            type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_map));
     sym_push_filter("max",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_max));
+    sym_push_filter("min",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_min));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }

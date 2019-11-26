@@ -120,6 +120,7 @@ internal_proc PROC_CALLBACK(filter_list);
 internal_proc PROC_CALLBACK(filter_lower);
 internal_proc PROC_CALLBACK(filter_map);
 internal_proc PROC_CALLBACK(filter_max);
+internal_proc PROC_CALLBACK(filter_min);
 internal_proc PROC_CALLBACK(filter_truncate);
 internal_proc PROC_CALLBACK(filter_upper);
 
@@ -161,7 +162,10 @@ internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt, Resolved_Templ *templ);
 internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
+internal_proc Sym             * sym_get(char *name);
+internal_proc char            * sym_name(Sym *sym);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
+internal_proc Val             * sym_val(Sym *sym);
 internal_proc char            * utf8_char_tolower(char *str);
 internal_proc char            * utf8_char_toupper(char *str);
 

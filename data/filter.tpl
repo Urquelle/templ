@@ -121,3 +121,12 @@ first line
 --{{ [1, 2, 3] | max }}--
 --{{ ['a', 'D', 'c'] | max(case_sensitive=false) }}--
 
+{% set max_user = users | max(case_sensitive=false, attribute="name") %}
+--{{ max_user.name }}--
+
+--{{ [1, 2, 3] | min }}--
+--{{ ['a', 'D', 'c'] | min(case_sensitive=false) }}--
+
+{% set min_user = users | min(case_sensitive=false, attribute="name") %}
+--{{ min_user.name }}--
+

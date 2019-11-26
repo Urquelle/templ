@@ -50,6 +50,22 @@ scope_set(Scope *scope) {
 
     return result;
 }
+
+internal_proc Sym *
+scope_attr(Scope *scope, char *attribute) {
+    Scope *prev_scope = scope_set(scope);
+    Sym *result = sym_get(attribute);
+    scope_set(prev_scope);
+
+    return result;
+}
+
+internal_proc Sym *
+scope_elem(Scope *scope, size_t idx) {
+    Sym *result = scope->sym_list[idx];
+
+    return result;
+}
 /* }}} */
 /* val {{{ */
 enum Val_Kind {
@@ -884,6 +900,51 @@ operator||(Val left, Val right) {
     }
 
     return left_result || right_result;
+}
+
+internal_proc Val *
+val_elem(Val *val, int idx) {
+    Val *result = val;
+
+    switch ( val->kind ) {
+        case VAL_RANGE: {
+            result = val_int(val_range0(val) + idx);
+        } break;
+
+        case VAL_LIST: {
+            result = *((Val **)val->ptr + idx);
+        } break;
+
+        case VAL_TUPLE: {
+            result = *((Val **)val->ptr + idx);
+        } break;
+
+        case VAL_PAIR: {
+            Resolved_Pair *pair = (Resolved_Pair *)val->ptr;
+            result = (idx == 0) ? pair->key : pair->value;
+        } break;
+
+        case VAL_STR: {
+            result = val_str(utf8_char_goto((char *)val->ptr, idx), 1);
+        } break;
+
+        case VAL_DICT: {
+            if ( idx < val->len ) {
+                Sym *sym = scope_elem((Scope *)val->ptr, idx);
+
+                /* @AUFGABE: die val_pairs bei der erstellung
+                 *           der dict anlegen
+                 */
+                result = val_pair(val_str(sym_name(sym)), sym_val(sym));
+            }
+        } break;
+
+        default: {
+            warn(0, 0, "nicht unterstützter datentyp übergeben");
+        }
+    }
+
+    return result;
 }
 /* }}} */
 

@@ -483,18 +483,64 @@ internal_proc PROC_CALLBACK(filter_max) {
     b32 case_sensitive = val_bool(narg("case_sensitive")->val);
     Val *attribute = narg("attribute")->val;
 
-    Val *result = 0;
-    for ( int i = 0; i < operand->len-1; ++i ) {
-        Val *left  = val_elem(operand, i);
-        Val *right = val_elem(operand, i+1);
+    Val *result = val_elem(operand, 0);
+    for ( int i = 1; i < operand->len; ++i ) {
+        Val *right = val_elem(operand, i);
 
-        if ( !case_sensitive && left->kind == VAL_STR && right->kind == VAL_STR ) {
-            char *left_str  = utf8_str_tolower(val_str(left));
-            char *right_str = utf8_str_tolower(val_str(right));
+        Val *left_tmp = result;
+        Val *right_tmp = right;
 
-            result = (utf8_strcmp(left_str, right_str) < 0) ? right : left;
+        if ( attribute->kind != VAL_NONE ) {
+            assert(result->kind == VAL_DICT);
+            assert(right->kind == VAL_DICT);
+
+            left_tmp  = scope_attr((Scope *)result->ptr, val_str(attribute))->val;
+            right_tmp = scope_attr((Scope *)right->ptr, val_str(attribute))->val;
+        }
+
+        if ( !case_sensitive && left_tmp->kind == VAL_STR && right_tmp->kind == VAL_STR ) {
+            char *left_str  = utf8_str_tolower(val_str(left_tmp));
+            char *right_str = utf8_str_tolower(val_str(right_tmp));
+
+            result = (utf8_strcmp(left_str, right_str) > 0) ? result : right;
         } else {
-            result = (*(b32 *)(*left > *right).ptr) ? left : right;
+            result = (*(b32 *)(*left_tmp > *right_tmp).ptr) ? result : right;
+        }
+    }
+
+    return result;
+}
+
+internal_proc PROC_CALLBACK(filter_min) {
+    if ( operand->len == 1 ) {
+        return operand;
+    }
+
+    b32 case_sensitive = val_bool(narg("case_sensitive")->val);
+    Val *attribute = narg("attribute")->val;
+
+    Val *result = val_elem(operand, 0);
+    for ( int i = 1; i < operand->len; ++i ) {
+        Val *right  = val_elem(operand, i);
+
+        Val *left_tmp  = result;
+        Val *right_tmp = right;
+
+        if ( attribute->kind != VAL_NONE ) {
+            assert(result->kind == VAL_DICT);
+            assert(right->kind == VAL_DICT);
+
+            left_tmp  = scope_attr((Scope *)result->ptr, val_str(attribute))->val;
+            right_tmp = scope_attr((Scope *)right->ptr, val_str(attribute))->val;
+        }
+
+        if ( !case_sensitive && left_tmp->kind == VAL_STR && right_tmp->kind == VAL_STR ) {
+            char *left_str  = utf8_str_tolower(val_str(left_tmp));
+            char *right_str = utf8_str_tolower(val_str(right_tmp));
+
+            result = (utf8_strcmp(left_str, right_str) < 0) ? result : right;
+        } else {
+            result = (*(b32 *)(*left_tmp < *right_tmp).ptr) ? result : right;
         }
     }
 
