@@ -11,8 +11,7 @@ internal_proc PROC_CALLBACK(test_defined) {
 }
 
 internal_proc PROC_CALLBACK(test_divisibleby) {
-    s32 s = val_int(narg("s")->val);
-
+    s32 s = val_int(narg("num")->val);
     b32 result = (val_int(operand) % s) == 0;
 
     return val_bool(result);

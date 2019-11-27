@@ -138,3 +138,15 @@ first line
 --{{ [1, 2, 3, 4, 5] | random }}--
 --{{ "abcdef" | random }}--
 
+{% for it in [1, 2, 3] | reject("divisibleby", 3) %}
+    --{{ it }}--
+{% endfor %}
+
+{% for it in [1, 2, 3, 4, 5] | reject("odd") %}
+    --{{ it }}--
+{% endfor %}
+
+{% for it in [1, 2, 3, 4, 5] | reject("even") %}
+    --{{ it }}--
+{% endfor %}
+

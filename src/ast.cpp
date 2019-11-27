@@ -4,6 +4,7 @@ ast_dup(void *src, size_t size) {
         return NULL;
     }
 
+    /* @AUFGABE: arena benutzen */
     void *ptr = xmalloc(size);
     memcpy(ptr, src, size);
 

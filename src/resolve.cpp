@@ -1834,36 +1834,38 @@ resolve_init_builtin_filter() {
     sym_push_filter("min",            type_proc(max_type,      2, type_any),  val_proc(max_type,      2, type_any,  filter_min));
     sym_push_filter("pprint",         type_proc(pprint_type,   1, type_str),  val_proc(pprint_type,   1, type_str,  filter_pprint));
     sym_push_filter("random",         type_proc(0,             0, type_any),  val_proc(0,             0, type_any,  filter_random));
+    sym_push_filter("reject",         type_proc(0,             0, type_any),  val_proc(0,             0, type_any,  filter_reject));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }
 
 internal_proc void
 resolve_init_builtin_testers() {
+    Type_Field *divby_type[] = { type_field("num", type_int) };
     Type_Field *int_type[]  = { type_field("s",    type_int) };
     Type_Field *any_type[]  = { type_field("s",    type_any) };
 
-    sym_push_test("callable",    type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_callable));
-    sym_push_test("defined",     type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_defined));
-    sym_push_test("divisibleby", type_proc(int_type, 1, type_bool), val_proc(int_type,  1, type_bool, test_divisibleby));
-    sym_push_test("eq",          type_proc(int_type, 1, type_bool), val_proc(int_type,  1, type_bool, test_eq));
-    sym_push_test("escaped",     type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_escaped));
-    sym_push_test("even",        type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_even));
-    sym_push_test("ge",          type_proc(int_type, 1, type_bool), val_proc(int_type,  1, type_bool, test_ge));
-    sym_push_test("gt",          type_proc(int_type, 1, type_bool), val_proc(int_type,  1, type_bool, test_gt));
-    sym_push_test("in",          type_proc(any_type, 1, type_bool), val_proc(any_type,  1, type_bool, test_in));
-    sym_push_test("iterable",    type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_iterable));
-    sym_push_test("le",          type_proc(int_type, 1, type_bool), val_proc(int_type,  1, type_bool, test_le));
-    sym_push_test("lt",          type_proc(int_type, 1, type_bool), val_proc(int_type,  1, type_bool, test_lt));
-    sym_push_test("mapping",     type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_mapping));
-    sym_push_test("ne",          type_proc(int_type, 1, type_bool), val_proc(int_type,  1, type_bool, test_ne));
-    sym_push_test("none",        type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_none));
-    sym_push_test("number",      type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_number));
-    sym_push_test("odd",         type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_odd));
-    sym_push_test("sameas",      type_proc(any_type, 1, type_bool), val_proc(any_type,  1, type_bool, test_sameas));
-    sym_push_test("sequence",    type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_sequence));
-    sym_push_test("string",      type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_string));
-    sym_push_test("undefined",   type_proc(0,        0, type_bool), val_proc(0,         0, type_bool, test_undefined));
+    sym_push_test("callable",    type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_callable));
+    sym_push_test("defined",     type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_defined));
+    sym_push_test("divisibleby", type_proc(divby_type, 1, type_bool), val_proc(divby_type,  1, type_bool, test_divisibleby));
+    sym_push_test("eq",          type_proc(int_type,   1, type_bool), val_proc(int_type,    1, type_bool, test_eq));
+    sym_push_test("escaped",     type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_escaped));
+    sym_push_test("even",        type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_even));
+    sym_push_test("ge",          type_proc(int_type,   1, type_bool), val_proc(int_type,    1, type_bool, test_ge));
+    sym_push_test("gt",          type_proc(int_type,   1, type_bool), val_proc(int_type,    1, type_bool, test_gt));
+    sym_push_test("in",          type_proc(any_type,   1, type_bool), val_proc(any_type,    1, type_bool, test_in));
+    sym_push_test("iterable",    type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_iterable));
+    sym_push_test("le",          type_proc(int_type,   1, type_bool), val_proc(int_type,    1, type_bool, test_le));
+    sym_push_test("lt",          type_proc(int_type,   1, type_bool), val_proc(int_type,    1, type_bool, test_lt));
+    sym_push_test("mapping",     type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_mapping));
+    sym_push_test("ne",          type_proc(int_type,   1, type_bool), val_proc(int_type,    1, type_bool, test_ne));
+    sym_push_test("none",        type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_none));
+    sym_push_test("number",      type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_number));
+    sym_push_test("odd",         type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_odd));
+    sym_push_test("sameas",      type_proc(any_type,   1, type_bool), val_proc(any_type,    1, type_bool, test_sameas));
+    sym_push_test("sequence",    type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_sequence));
+    sym_push_test("string",      type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_string));
+    sym_push_test("undefined",   type_proc(0,          0, type_bool), val_proc(0,           0, type_bool, test_undefined));
 }
 
 internal_proc void
@@ -1894,8 +1896,8 @@ resolve_init_builtin_procs() {
 }
 
 internal_proc void
-resolve_init_arenas() {
-    arena_init(&resolve_arena, MB(100));
+resolve_init_arenas(size_t size) {
+    arena_init(&resolve_arena, size);
 }
 
 internal_proc void
@@ -1939,9 +1941,9 @@ resolve_reset() {
 }
 
 internal_proc void
-resolve_init() {
+resolve_init(size_t arena_size) {
     resolve_init_scope();
-    resolve_init_arenas();
+    resolve_init_arenas(arena_size);
     resolve_init_builtin_types();
     resolve_init_builtin_procs();
     resolve_init_builtin_filter();

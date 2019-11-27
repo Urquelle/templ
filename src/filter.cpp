@@ -561,6 +561,58 @@ internal_proc PROC_CALLBACK(filter_random) {
     return result;
 }
 
+internal_proc PROC_CALLBACK(filter_reject) {
+    Sym *sym = scope_attr(&tester_scope, val_str(varargs[0]->val));
+    assert(sym->val->kind == VAL_PROC);
+    Val_Proc *proc = (Val_Proc *)sym->val->ptr;
+
+    assert(num_varargs > 0);
+    Resolved_Arg **tester_varargs = (Resolved_Arg **)varargs + 1;
+    Resolved_Expr **tester_args = (Resolved_Expr **)args + 1;
+    Map tester_nargs = {};
+    char **tester_narg_keys = 0;
+
+    /* @INFO: args in nargs speichern bei übereinstimmung. das erste argument
+     *        wird übersprungen, da es sich um den namen des testers handelt.
+     */
+    for ( int i = 0; i < num_args-1; ++i ) {
+        Resolved_Expr *arg = tester_args[i];
+        if ( sym->type->type_proc.num_params > i ) {
+            Type_Field *param = sym->type->type_proc.params[i];
+            map_put(&tester_nargs, param->name,
+                    resolved_arg(arg->pos, param->name, arg->type, arg->val));
+        }
+    }
+
+    /* @INFO: kwargs in nargs speichern bei übereinstimmung */
+    for ( int i = 0; i < num_kwargs; ++i ) {
+        Resolved_Arg *kwarg = kwargs[i];
+        for ( int j = 0; j < sym->type->type_proc.num_params; ++j ) {
+            Type_Field *param = sym->type->type_proc.params[j];
+
+            if ( kwarg->name == param->name ) {
+                map_put(&tester_nargs, param->name, kwarg);
+            }
+        }
+    }
+
+    Val **result = 0;
+    for ( int i = 0; i < operand->len; ++i ) {
+        Val *elem = val_elem(operand, i);
+
+        Val *ret = proc->callback(
+                elem, args, num_args, &tester_nargs,
+                tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
+                tester_varargs, num_varargs-1);
+
+        if ( val_bool(ret) ) {
+            buf_push(result, elem);
+        }
+    }
+
+    return val_list(result, buf_len(result));
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);

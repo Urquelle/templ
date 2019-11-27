@@ -44,3 +44,10 @@ os_file_exists(char *filename) {
     return result;
 }
 
+internal_proc void *
+os_mem_alloc(size_t size) {
+    void *result = VirtualAlloc(NULL, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+
+    return result;
+}
+

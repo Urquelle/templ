@@ -23,6 +23,7 @@
 #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
+/* @AUFGABE: werden args überhaupt genutzt? */
 #define PROC_CALLBACK(name)   Val * name(Val *operand, Resolved_Expr **args, size_t num_args, Map *nargs, char **narg_keys, size_t num_narg_keys, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
 
 #define erstes_if      if
@@ -123,6 +124,7 @@ internal_proc PROC_CALLBACK(filter_max);
 internal_proc PROC_CALLBACK(filter_min);
 internal_proc PROC_CALLBACK(filter_pprint);
 internal_proc PROC_CALLBACK(filter_random);
+internal_proc PROC_CALLBACK(filter_reject);
 internal_proc PROC_CALLBACK(filter_truncate);
 internal_proc PROC_CALLBACK(filter_upper);
 
@@ -189,6 +191,7 @@ global_var Resolved_Templ     * current_templ;
 global_var Map                  global_blocks;
 global_var Arena                parse_arena;
 global_var Arena                resolve_arena;
+global_var Arena                exec_arena;
 global_var Arena                templ_arena;
 
 global_var char *symname_loop = intern_str("loop");
@@ -357,7 +360,9 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
         size_t exec_arena_size)
 {
     arena_init(&templ_arena, MB(100));
-    resolve_init();
+    arena_init(&parse_arena, parse_arena_size);
+
+    resolve_init(resolve_arena_size);
 }
 
 namespace api {

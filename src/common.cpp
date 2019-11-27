@@ -435,14 +435,14 @@ struct Arena {
 
 internal_proc void
 arena_init(Arena *arena, size_t size) {
-    arena->base = (char *)xmalloc(size);
+    arena->base = (char *)os_mem_alloc(size);
     arena->ptr  = arena->base;
     arena->size = 0;
 }
 
 internal_proc void
 arena_grow(Arena *arena, size_t size) {
-    char *buf = (char *)xmalloc(MAX(size, ARENA_SIZE));
+    char *buf = (char *)os_mem_alloc(MAX(size, ARENA_SIZE));
     arena->base = buf;
     arena->ptr = buf;
     arena->size = 0;
