@@ -722,6 +722,39 @@ internal_proc PROC_CALLBACK(filter_replace) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(filter_reverse) {
+    if ( operand->len == 1 ) {
+        return operand;
+    }
+
+    Val *result = 0;
+    if ( operand->kind == VAL_STR ) {
+        char *str = "";
+        int i = 1;
+        size_t size = utf8_str_size((char *)operand->ptr);
+        while ( i <= size ) {
+            int offset = (int)size - i;
+            char c = ((char *)operand->ptr)[offset];
+            str = strf("%s%c", str, c);
+            i++;
+        }
+
+        result = val_str(str);
+    } else {
+        Val **vals = 0;
+        int i = 1;
+        while ( i <= operand->len ) {
+            Val *val = val_elem(operand, (int)operand->len - i);
+            buf_push(vals, val);
+            i++;
+        }
+
+        result = val_list(vals, buf_len(vals));
+    }
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);

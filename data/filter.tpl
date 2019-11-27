@@ -161,3 +161,9 @@ first line
 {{ "schifffahrtsgesellschaft" | replace("schiff", "segel") }}
 {{ "waldstraßewald" | replace("wald", "see", 1) }}
 
+{% for it in [1, 2, 3] | reverse %}
+    --{{ it }}--
+{% endfor %}
+
+{{ "abcdef" | reverse }}
+
