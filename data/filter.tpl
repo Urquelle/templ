@@ -150,3 +150,11 @@ first line
     --{{ it }}--
 {% endfor %}
 
+{% for user in users | rejectattr("name", "eq", "noob") %}
+    --{{ user.name }}--
+{% endfor %}
+
+{% for user in users | rejectattr("age", "gt", 20) %}
+    --{{ user.name }}: {{ user.age }}--
+{% endfor %}
+
