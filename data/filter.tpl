@@ -158,3 +158,6 @@ first line
     --{{ user.name }}: {{ user.age }}--
 {% endfor %}
 
+{{ "schifffahrtsgesellschaft" | replace("schiff", "segel") }}
+{{ "waldstraßewald" | replace("wald", "see", 1) }}
+

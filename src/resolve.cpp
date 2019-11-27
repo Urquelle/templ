@@ -1792,6 +1792,12 @@ resolve_init_builtin_filter() {
         type_field("verbose", type_bool, val_bool(false))
     };
 
+    Type_Field *replace_type[] = {
+        type_field("old", type_str),
+        type_field("new", type_str),
+        type_field("count", type_int, val_none())
+    };
+
     Type_Field *trunc_type[]    = {
         type_field("length", type_int, val_int(255)),
         type_field("killwords", type_bool, val_bool(False)),
@@ -1836,6 +1842,7 @@ resolve_init_builtin_filter() {
     sym_push_filter("random",         type_proc(0,             0, type_any),  val_proc(0,             0, type_any,  filter_random));
     sym_push_filter("reject",         type_proc(0,             0, type_any),  val_proc(0,             0, type_any,  filter_reject));
     sym_push_filter("rejectattr",     type_proc(0,             0, type_any),  val_proc(0,             0, type_any,  filter_rejectattr));
+    sym_push_filter("replace",        type_proc(replace_type,  3, type_any),  val_proc(replace_type,  3, type_any,  filter_replace));
     sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),  val_proc(trunc_type,    4, type_str,  filter_truncate));
     sym_push_filter("upper",          type_proc(0,             0, type_str),  val_proc(0,             0, type_str,  filter_upper));
 }

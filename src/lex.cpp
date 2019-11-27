@@ -153,19 +153,8 @@ at1(Lexer *lex) {
 
 internal_proc void
 refill(Lexer *lex) {
-    char pos0 = (status_is_error()) ? 0 : *lex->input;
-    char pos1 = (status_is_error()) ? 0 : *utf8_char_next(lex->input);
-
-    if ( pos0 == 0 ) {
-        lex->at[0] = 0;
-        lex->at[1] = 0;
-    } else if ( pos1 == 0 ) {
-        lex->at[0] = pos0;
-        lex->at[1] = 0;
-    } else {
-        lex->at[0] = pos0;
-        lex->at[1] = pos1;
-    }
+    lex->at[0] = (status_is_error()) ? 0 : ((*lex->input) ? *lex->input : 0);
+    lex->at[1] = (status_is_error()) ? 0 : ((*lex->input) ? *utf8_char_next(lex->input) : 0);
 }
 
 internal_proc void
@@ -301,7 +290,6 @@ next_raw_token(Lexer *lex) {
     char c = at0(lex);
     if ( c == 0 ) {
         lex->token.kind = T_EOF;
-        next(lex);
     } else if ( c == ',' ) {
         lex->token.kind = T_COMMA;
         next(lex);

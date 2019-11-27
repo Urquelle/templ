@@ -683,6 +683,45 @@ internal_proc PROC_CALLBACK(filter_rejectattr) {
     return val_str("");
 }
 
+internal_proc PROC_CALLBACK(filter_replace) {
+    char *str = val_str(operand);
+    char  *old_str = val_str(narg("old")->val);
+    size_t old_size = utf8_str_size(old_str);
+    char  *new_str = val_str(narg("new")->val);
+    size_t new_size = utf8_str_size(new_str);
+    Resolved_Arg *count_arg = narg("count");
+    s32 count = ( count_arg->val->kind == VAL_NONE ) ? -1 : val_int(count_arg->val);
+
+    char *result = "";
+    char *substr_ptr = strstr(str, old_str);
+    char *ptr = str;
+    while ( substr_ptr && count ) {
+        result = "";
+
+        while ( ptr != substr_ptr ) {
+            result = strf("%s%c", result, *ptr);
+            ptr++;
+        }
+
+        for ( int i = 0; i < new_size; ++i ) {
+            result = strf("%s%c", result, new_str[i]);
+        }
+
+        ptr += old_size;
+        while ( *ptr ) {
+            result = strf("%s%c", result, *ptr);
+            ptr++;
+        }
+
+        substr_ptr = strstr(result, old_str);
+        ptr = result;
+
+        count--;
+    }
+
+    return val_str(result);
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);

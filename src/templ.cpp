@@ -126,6 +126,7 @@ internal_proc PROC_CALLBACK(filter_pprint);
 internal_proc PROC_CALLBACK(filter_random);
 internal_proc PROC_CALLBACK(filter_reject);
 internal_proc PROC_CALLBACK(filter_rejectattr);
+internal_proc PROC_CALLBACK(filter_replace);
 internal_proc PROC_CALLBACK(filter_truncate);
 internal_proc PROC_CALLBACK(filter_upper);
 
