@@ -437,7 +437,17 @@ val_print(Val *val) {
     switch ( val->kind ) {
         case VAL_STR: {
             size_t len = utf8_str_size((char *)val->ptr, val->len);
-            char *result = strf("%.*s", (int)len, (char *)val->ptr);
+            char *result = "";
+            char *ptr = (char *)val->ptr;
+
+            for ( int i = 0; i < len; ++i ) {
+                if ( *(ptr + i) == '\\' ) {
+                    continue;
+                }
+
+                result = strf("%s%c", result, *(ptr + i));
+            }
+
             return result;
         } break;
 
