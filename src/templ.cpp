@@ -429,6 +429,7 @@ namespace api {
     using templ::Templ_Vars;
     using templ::json_parse;
     using templ::os_file_write;
+    using templ::os_file_read;
     using templ::status_error_get;
     using templ::status_filename;
     using templ::status_is_error;

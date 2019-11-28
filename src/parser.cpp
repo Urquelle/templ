@@ -1089,10 +1089,11 @@ internal_proc Stmt *
 parse_stmt_lit(Parser *p) {
     char *lit = 0;
 
-    if ( !p->lex.trim_blocks ||
-         !is_prev_token(p, T_CODE_END) ||
-          p->lex.token.literal[0] != '\n' )
-    {
+    if ( !is_token(p, T_COMMENT) && (
+            !p->lex.trim_blocks ||
+            !is_prev_token(p, T_CODE_END) ||
+            p->lex.token.literal[0] != '\n')
+    ) {
         buf_printf(lit, "%s", p->lex.token.literal);
     }
 
