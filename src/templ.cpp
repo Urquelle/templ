@@ -76,6 +76,7 @@ struct Resolved_Templ;
 struct Scope;
 struct Stmt;
 struct Sym;
+struct Templ_Var;
 struct Type;
 struct Type_Field;
 struct Val;
@@ -128,6 +129,7 @@ internal_proc PROC_CALLBACK(filter_reject);
 internal_proc PROC_CALLBACK(filter_rejectattr);
 internal_proc PROC_CALLBACK(filter_replace);
 internal_proc PROC_CALLBACK(filter_reverse);
+internal_proc PROC_CALLBACK(filter_round);
 internal_proc PROC_CALLBACK(filter_truncate);
 internal_proc PROC_CALLBACK(filter_upper);
 
@@ -173,6 +175,7 @@ internal_proc Sym             * sym_get(char *name);
 internal_proc char            * sym_name(Sym *sym);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
 internal_proc Val             * sym_val(Sym *sym);
+user_api void                   templ_var_set(Templ_Var *var, Templ_Var *value);
 internal_proc char            * type_field_name(Type_Field *field);
 internal_proc Val             * type_field_value(Type_Field *field);
 internal_proc char            * utf8_char_tolower(char *str);
@@ -190,6 +193,7 @@ global_var Resolved_Templ     * current_templ;
 #include "os.cpp"
 #include "utf8.cpp"
 #include "common.cpp"
+#include "json.cpp"
 
 global_var Map                  global_blocks;
 global_var Arena                parse_arena;
@@ -298,6 +302,48 @@ templ_var(char *name, Templ_Var *val) {
     return val;
 }
 
+user_api Templ_Var *
+templ_var(char *name, Json_Node *node) {
+    Templ_Var *result = 0;
+
+    switch ( node->kind ) {
+        case JSON_INT: {
+            result = templ_var(name, node->json_int.value);
+        } break;
+
+        case JSON_STR: {
+            result = templ_var(name, node->json_str.value);
+        } break;
+
+        case JSON_FLOAT: {
+            result = templ_var(name, node->json_float.value);
+        } break;
+
+        case JSON_BOOL: {
+            result = templ_var(name, node->json_bool.value);
+        } break;
+
+        case JSON_ARRAY: {
+            result = templ_list(name);
+
+            for ( int i = 0; i < node->json_array.num_vals; ++i ) {
+                templ_var_add(result, templ_var("", node->json_array.vals[i]));
+            }
+        } break;
+
+        case JSON_OBJECT: {
+            result = templ_object(name);
+
+            for ( int i = 0; i < node->json_object.num_pairs; ++i ) {
+                Json_Pair *pair = node->json_object.pairs[i];
+                templ_var_set(result, templ_var(pair->name, pair->value));
+            }
+        } break;
+    }
+
+    return result;
+}
+
 user_api void
 templ_var_set(Templ_Var *var, Templ_Var *value) {
     Scope *prev_scope = scope_set((Scope *)var->val->ptr);
@@ -369,10 +415,12 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
 }
 
 namespace api {
+    using templ::Json_Node;
     using templ::Status;
     using templ::Templ;
     using templ::Templ_Var;
     using templ::Templ_Vars;
+    using templ::json_parse;
     using templ::os_file_write;
     using templ::status_error_get;
     using templ::status_filename;

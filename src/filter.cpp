@@ -755,6 +755,23 @@ internal_proc PROC_CALLBACK(filter_reverse) {
     return result;
 }
 
+internal_proc PROC_CALLBACK(filter_round) {
+    s32 precision = val_int(narg("precision")->val);
+    char *method  = val_str(narg("method")->val);
+    f32 value = val_float(operand);
+
+    f32 result = 0;
+    if ( method == intern_str("common") ) {
+        result = round(value);
+    } else if ( method == intern_str("ceil") ) {
+        result = ceil(value);
+    } else {
+        result = floor(value);
+    }
+
+    return val_float(result);
+}
+
 internal_proc PROC_CALLBACK(filter_truncate) {
     size_t len = MIN(operand->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);

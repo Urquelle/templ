@@ -61,5 +61,16 @@ main(int argc, char **argv) {
         status_reset();
     }
 
+    templ_reset();
+
+    Json_Node *node = json_parse("{ \"Accept-Language\": \"en-US,en;q=0.8\", \"Host\": \"headers.jsontest.com\", \"Accept-Charset\": \"ISO-8859-1,utf-8;q=0.7,*;q=0.3\", \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\", \"pi\": 3.14 }");
+    Templ *templ3 = templ_compile_string("{{ header[\"Accept-Language\"] }}: {{ header.Host }} in {{ header.Accept }}");
+
+    Templ_Var *http_header = templ_var("header", node);
+    Templ_Vars http_vars = templ_vars();
+    templ_vars_add(&http_vars, http_header);
+
+    char *result3 = templ_render(templ3, &http_vars);
+
     return 0;
 }
