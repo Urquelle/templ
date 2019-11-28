@@ -1,5 +1,9 @@
 struct Json_Node;
 
+global_var char *json_keyword_true = intern_str("true");
+global_var char *json_keyword_false = intern_str("false");
+global_var char *json_keyword_null = intern_str("null");
+
 struct Json_Pair {
     char *name;
     Json_Node *value;
@@ -148,7 +152,13 @@ json_parse_node(char **str) {
                 Json_Node *name = json_parse_node(str);
                 assert(name->kind == JSON_STR);
                 SKIP_WHITESPACE();
-                if ( **str != ':' ) { /* fehler */ } else { (*str)++; }
+
+                if ( **str != ':' ) {
+                    fatal(0, 0, "':' expected, got '%1s'", **str);
+                } else {
+                    (*str)++;
+                }
+
                 Json_Node *value = json_parse_node(str);
 
                 buf_push(pairs, json_pair(name->json_str.value, value));
@@ -256,11 +266,11 @@ json_parse_node(char **str) {
         }
 
         char *name = intern_str(start, (*str)-1);
-        if ( name == intern_str("true") ) {
+        erstes_if ( name == json_keyword_true ) {
             result = json_bool(true);
-        } else if ( name == intern_str("false") ) {
+        } else if ( name == json_keyword_false ) {
             result = json_bool(false);
-        } else if ( name == intern_str("null") ) {
+        } else if ( name == json_keyword_null ) {
             result = json_null();
         } else {
             fatal(0, 0, "unrecognized value %s", name);
@@ -272,11 +282,15 @@ json_parse_node(char **str) {
 #undef SKIP_WHITESPACE
 }
 
-internal_proc Json_Node *
+internal_proc Json_Node **
 json_parse(char *str) {
     char *ptr = str;
+    Json_Node **result = 0;
 
-    Json_Node *result = json_parse_node(&ptr);
+    while ( *ptr ) {
+        Json_Node *node = json_parse_node(&ptr);
+        buf_push(result, node);
+    }
 
     return result;
 }

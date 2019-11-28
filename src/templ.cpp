@@ -253,46 +253,48 @@ templ_var_add(Templ_Var *container, Templ_Var *var) {
     container->val->ptr = ptr;
 }
 
-user_api Templ_Var *
-templ_var(char *name, char *val) {
+internal_proc Templ_Var *
+templ_var_new(char *name, Type *type) {
     Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
 
     result->name = intern_str(name);
+    result->type = type;
+
+    return result;
+}
+
+user_api Templ_Var *
+templ_var(char *name, char *val) {
+    Templ_Var *result = templ_var_new(name, type_str);
+
     result->val  = val_str(val);
-    result->type = type_str;
 
     return result;
 }
 
 user_api Templ_Var *
 templ_var(char *name, s32 val) {
-    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+    Templ_Var *result = templ_var_new(name, type_int);
 
-    result->name = intern_str(name);
     result->val  = val_int(val);
-    result->type = type_int;
 
     return result;
 }
 
 user_api Templ_Var *
 templ_var(char *name, f32 val) {
-    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+    Templ_Var *result = templ_var_new(name, type_float);
 
-    result->name = intern_str(name);
     result->val  = val_float(val);
-    result->type = type_float;
 
     return result;
 }
 
 user_api Templ_Var *
 templ_var(char *name, b32 val) {
-    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+    Templ_Var *result = templ_var_new(name, type_bool);
 
-    result->name = intern_str(name);
     result->val  = val_bool(val);
-    result->type = type_bool;
 
     return result;
 }
@@ -321,6 +323,11 @@ templ_var(char *name, Json_Node *node) {
 
         case JSON_BOOL: {
             result = templ_var(name, node->json_bool.value);
+        } break;
+
+        case JSON_NULL: {
+            result = templ_var_new(name, &type_none);
+            result->val = val_none();
         } break;
 
         case JSON_ARRAY: {
