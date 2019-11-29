@@ -19,6 +19,11 @@ json_pair(char *name, Json_Node *value) {
     return result;
 }
 
+struct Json {
+    Json_Node **nodes;
+    size_t num_nodes;
+};
+
 enum Json_Node_Kind {
     JSON_STR,
     JSON_INT,
@@ -282,15 +287,17 @@ json_parse_node(char **str) {
 #undef SKIP_WHITESPACE
 }
 
-internal_proc Json_Node **
+internal_proc Json
 json_parse(char *str) {
     char *ptr = str;
-    Json_Node **result = 0;
+    Json_Node **nodes = 0;
 
     while ( *ptr ) {
         Json_Node *node = json_parse_node(&ptr);
-        buf_push(result, node);
+        buf_push(nodes, node);
     }
+
+    Json result = { nodes, buf_len(nodes) };
 
     return result;
 }

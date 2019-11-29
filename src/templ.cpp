@@ -422,7 +422,7 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
 }
 
 namespace api {
-    using templ::Json_Node;
+    using templ::Json;
     using templ::Status;
     using templ::Templ;
     using templ::Templ_Var;

@@ -198,15 +198,17 @@ main(int argc, char **argv) {
 
 there's a simple, and built-in support for json which is implemented in the
 [src/json.cpp](https://github.com/NoobSaibot/templ/blob/dev/src/json.cpp). the
-`json_parse` method, will parse a given json string, and return a list `Json_Node **`
-of `Json_Node *` elements, which in return can be transformed into a `Templ_Var` and
-be given to the render method, as shown in the example below.
+`json_parse` method, will parse a given json string, and return a `Json`
+structure.
+
+`Json` contains a list of `Json_Node *` elements, from which a `Templ_Var` can be created, and pushed into
+template context.
 
 ```cpp
-    Json_Node **nodes = json_parse("{ \"Accept-Language\": \"en-US,en;q=0.8\", \"Host\": \"headers.jsontest.com\", \"Accept-Charset\": \"ISO-8859-1,utf-8;q=0.7,*;q=0.3\", \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\" }");
+    Json json = json_parse("{ \"Accept-Language\": \"en-US,en;q=0.8\", \"Host\": \"headers.jsontest.com\", \"Accept-Charset\": \"ISO-8859-1,utf-8;q=0.7,*;q=0.3\", \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\" }");
     Templ *templ = templ_compile_string("{{ header[\"Accept-Language\"] }}: {{ header.Host }} in {{ header.Accept }}");
 
-    Templ_Var *http_header = templ_var("header", nodes[0]);
+    Templ_Var *http_header = templ_var("header", json.nodes[0]);
     Templ_Vars http_vars = templ_vars();
     templ_vars_add(&http_vars, http_header);
 
