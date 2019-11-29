@@ -643,8 +643,6 @@ parse_stmt_if(Parser *p) {
     expect_token(p, T_CODE_END);
 
     Stmt *if_stmt = stmt_if(cond, 0, 0);
-    Stmt **stmt_elseifs = 0;
-    Stmt *stmt_else = 0;
     Stmt *curr_stmt = if_stmt;
 
     while ( status_is_not_error() ) {

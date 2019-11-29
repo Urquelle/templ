@@ -423,6 +423,7 @@ map_put(Map *map, void *key, void *val) {
 internal_proc void
 map_reset(Map *map) {
     map->len = 0;
+    map->cap = 0;
 }
 
 enum { ARENA_SIZE = 1024*1024, ARENA_ALIGNMENT = 8 };
