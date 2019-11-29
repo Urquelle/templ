@@ -333,8 +333,8 @@ templ_var(char *name, Json_Node *node) {
         case JSON_ARRAY: {
             result = templ_list(name);
 
-            for ( int i = 0; i < node->json_array.num_vals; ++i ) {
-                templ_var_add(result, templ_var("", node->json_array.vals[i]));
+            for ( int i = 0; i < node->json_array.num_nodes; ++i ) {
+                templ_var_add(result, templ_var("", node->json_array.nodes[i]));
             }
         } break;
 

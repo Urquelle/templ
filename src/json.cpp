@@ -56,8 +56,8 @@ struct Json_Node {
         } json_bool;
 
         struct {
-            Json_Node **vals;
-            size_t num_vals;
+            Json_Node **nodes;
+            size_t num_nodes;
         } json_array;
 
         struct {
@@ -115,11 +115,11 @@ json_bool(b32 value) {
 }
 
 internal_proc Json_Node *
-json_array(Json_Node **vals, size_t num_vals) {
+json_array(Json_Node **nodes, size_t num_nodes) {
     Json_Node *result = json_new(JSON_ARRAY);
 
-    result->json_array.vals = vals;
-    result->json_array.num_vals = num_vals;
+    result->json_array.nodes = nodes;
+    result->json_array.num_nodes = num_nodes;
 
     return result;
 }
@@ -143,7 +143,7 @@ json_null() {
 
 internal_proc Json_Node *
 json_parse_node(char **str) {
-#define SKIP_WHITESPACE() do { while ( **str == ' ' || **str == '\t' ) { (*str)++; } } while(false)
+#define SKIP_WHITESPACE() do { while ( **str && (**str == ' ' || **str == '\t' || **str == '\n') ) { (*str)++; } } while(false)
 
     Json_Node *result = 0;
     SKIP_WHITESPACE();
@@ -186,6 +186,7 @@ json_parse_node(char **str) {
         if ( **str != ']' ) {
             do {
                 Json_Node *node = json_parse_node(str);
+                buf_push(nodes, node);
                 SKIP_WHITESPACE();
             } while ( (**str == ',') ? (*str)++, true : false );
         }
@@ -264,7 +265,7 @@ json_parse_node(char **str) {
         } else {
             result = json_int(int_value*mult, exp);
         }
-    } else {
+    } else if ( **str != 0 ) {
         char *start = *str;
         while ( **str >= 'a' && **str <= 'z' ) {
             (*str)++;
@@ -294,9 +295,12 @@ json_parse(char *str) {
 
     while ( *ptr ) {
         Json_Node *node = json_parse_node(&ptr);
-        buf_push(nodes, node);
+        if ( node ) {
+            buf_push(nodes, node);
+        }
     }
 
+    /* @AUFGABE: nodes in permanenten speicher verschieben */
     Json result = { nodes, buf_len(nodes) };
 
     return result;
