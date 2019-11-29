@@ -20,8 +20,7 @@ json_pair(char *name, Json_Node *value) {
 }
 
 struct Json {
-    Json_Node **nodes;
-    size_t num_nodes;
+    Json_Node *node;
 };
 
 enum Json_Node_Kind {
@@ -291,17 +290,9 @@ json_parse_node(char **str) {
 internal_proc Json
 json_parse(char *str) {
     char *ptr = str;
-    Json_Node **nodes = 0;
 
-    while ( *ptr ) {
-        Json_Node *node = json_parse_node(&ptr);
-        if ( node ) {
-            buf_push(nodes, node);
-        }
-    }
-
-    /* @AUFGABE: nodes in permanenten speicher verschieben */
-    Json result = { nodes, buf_len(nodes) };
+    Json_Node *node = json_parse_node(&ptr);
+    Json result = { node };
 
     return result;
 }

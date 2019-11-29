@@ -66,7 +66,7 @@ main(int argc, char **argv) {
     Json json = json_parse(R"foo([
         {
             "name": "noob",
-            "age" : "25",
+            "age" : 25,
             "address": {
                 "city": "frankfurt",
                 "street": "siegerstr. 2"
@@ -74,7 +74,7 @@ main(int argc, char **argv) {
         },
         {
             "name": "reinhold",
-            "age" : "23",
+            "age" : 23,
             "address": {
                 "city": "leipzig",
                 "street": "mozartstr. 20"
@@ -84,7 +84,7 @@ main(int argc, char **argv) {
 
     Templ *templ3 = templ_compile_string("{{ users[0].name }}: {{ users[0].address.city }} -- {{ users[1].name }}: {{ users[1].address.city }}");
 
-    Templ_Var *json_users = templ_var("users", json.nodes[0]);
+    Templ_Var *json_users = templ_var("users", json);
     Templ_Vars json_vars = templ_vars();
 
     templ_vars_add(&json_vars, json_users);

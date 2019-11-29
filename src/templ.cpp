@@ -351,6 +351,13 @@ templ_var(char *name, Json_Node *node) {
     return result;
 }
 
+user_api Templ_Var *
+templ_var(char *name, Json json) {
+    Templ_Var *result = templ_var(name, json.node);
+
+    return result;
+}
+
 user_api void
 templ_var_set(Templ_Var *var, Templ_Var *value) {
     Scope *prev_scope = scope_set((Scope *)var->val->ptr);
