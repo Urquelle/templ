@@ -205,14 +205,33 @@ structure.
 template context.
 
 ```cpp
-    Json json = json_parse("{ \"Accept-Language\": \"en-US,en;q=0.8\", \"Host\": \"headers.jsontest.com\", \"Accept-Charset\": \"ISO-8859-1,utf-8;q=0.7,*;q=0.3\", \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\" }");
-    Templ *templ = templ_compile_string("{{ header[\"Accept-Language\"] }}: {{ header.Host }} in {{ header.Accept }}");
+    Json json = json_parse(R"foo([
+        {
+            "name": "noob",
+            "age" : "25",
+            "address": {
+                "city": "frankfurt",
+                "street": "siegerstr. 2"
+            }
+        },
+        {
+            "name": "reinhold",
+            "age" : "23",
+            "address": {
+                "city": "leipzig",
+                "street": "mozartstr. 20"
+            }
+        }
+    ])foo");
 
-    Templ_Var *http_header = templ_var("header", json.nodes[0]);
-    Templ_Vars http_vars = templ_vars();
-    templ_vars_add(&http_vars, http_header);
+    Templ *templ = templ_compile_string("{{ users[0].name }}: {{ users[0].address.city }} -- {{ users[1].name }}: {{ users[1].address.city }}");
 
-    char *result = templ_render(templ, &http_vars);
+    Templ_Var *users = templ_var("users", json.nodes[0]);
+    Templ_Vars vars = templ_vars();
+
+    templ_vars_add(&vars, users);
+
+    char *result = templ_render(templ, &vars);
 ```
 
 ## unicode

@@ -63,14 +63,33 @@ main(int argc, char **argv) {
 
     templ_reset();
 
-    Json json = json_parse("{ \"Accept-Language\": \"en-US,en;q=0.8\", \"Host\": \"headers.jsontest.com\", \"Accept-Charset\": \"ISO-8859-1,utf-8;q=0.7,*;q=0.3\", \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\" }");
-    Templ *templ3 = templ_compile_string("{{ header[\"Accept-Language\"] }}: {{ header.Host }} in {{ header.Accept }}");
+    Json json = json_parse(R"foo([
+        {
+            "name": "noob",
+            "age" : "25",
+            "address": {
+                "city": "frankfurt",
+                "street": "siegerstr. 2"
+            }
+        },
+        {
+            "name": "reinhold",
+            "age" : "23",
+            "address": {
+                "city": "leipzig",
+                "street": "mozartstr. 20"
+            }
+        }
+    ])foo");
 
-    Templ_Var *http_header = templ_var("header", json.nodes[0]);
-    Templ_Vars http_vars = templ_vars();
-    templ_vars_add(&http_vars, http_header);
+    Templ *templ3 = templ_compile_string("{{ users[0].name }}: {{ users[0].address.city }} -- {{ users[1].name }}: {{ users[1].address.city }}");
 
-    char *result3 = templ_render(templ3, &http_vars);
+    Templ_Var *json_users = templ_var("users", json.nodes[0]);
+    Templ_Vars json_vars = templ_vars();
+
+    templ_vars_add(&json_vars, json_users);
+
+    char *result3 = templ_render(templ3, &json_vars);
 
     return 0;
 }
