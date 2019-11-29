@@ -96,7 +96,7 @@ internal_proc void
 parser_init(Parser *p, char *input, char *name) {
     p->lex.input = input;
     p->lex.pos.name = name;
-    p->lex.pos.row = 1;
+    p->lex.pos.line = 1;
     p->lex.token.pos = p->lex.pos;
 
     p->lex.ignore_whitespace = false;
@@ -145,7 +145,7 @@ expect_token(Parser *p, Token_Kind kind) {
     if ( is_token(p, kind) ) {
         next_token(&p->lex);
     } else {
-        fatal(p->lex.pos.name, p->lex.pos.row, "unerwartetes token. erwartet %s, erhalten %s", tokenkind_to_str(kind), tokenkind_to_str(p->lex.token.kind));
+        fatal(p->lex.pos.name, p->lex.pos.line, "unerwartetes token. erwartet %s, erhalten %s", tokenkind_to_str(kind), tokenkind_to_str(p->lex.token.kind));
     }
 }
 
@@ -192,14 +192,14 @@ is_str(Parser *p, char *str) {
 internal_proc void
 expect_str(Parser *p, char *str) {
     if ( !match_str(p, str) ) {
-        fatal(p->lex.pos.name, p->lex.pos.row, "zeichenkette \"%s\" erwartet, stattdessen \"%s\" gefunden", str, p->lex.token.literal);
+        fatal(p->lex.pos.name, p->lex.pos.line, "zeichenkette \"%s\" erwartet, stattdessen \"%s\" gefunden", str, p->lex.token.literal);
     }
 }
 
 internal_proc void
 expect_keyword(Parser *p, char *expected_keyword) {
     if ( !match_keyword(p, expected_keyword) ) {
-        fatal(p->lex.pos.name, p->lex.pos.row, "schlüsselwort \"%s\" erwartet, stattdessen \"%s\" gefunden", expected_keyword, p->lex.token.literal);
+        fatal(p->lex.pos.name, p->lex.pos.line, "schlüsselwort \"%s\" erwartet, stattdessen \"%s\" gefunden", expected_keyword, p->lex.token.literal);
     }
 }
 
@@ -764,7 +764,7 @@ parse_stmt_include(Parser *p) {
 
             b32 success = os_file_exists(name_expr->expr_str.value);
             if ( !success && !ignore_missing ) {
-                fatal(p->lex.pos.name, p->lex.pos.row, "konnte datei %s nicht finden", name_expr->expr_str.value);
+                fatal(p->lex.pos.name, p->lex.pos.line, "konnte datei %s nicht finden", name_expr->expr_str.value);
             }
 
             /* @AUFGABE: überprüfen ob eine endlosschleife in includes besteht */
@@ -776,7 +776,7 @@ parse_stmt_include(Parser *p) {
     } else {
         b32 success = os_file_exists(expr->expr_str.value);
         if ( !success && !ignore_missing ) {
-            fatal(p->lex.pos.name, p->lex.pos.row, "konnte datei %s nicht finden", expr->expr_str.value);
+            fatal(p->lex.pos.name, p->lex.pos.line, "konnte datei %s nicht finden", expr->expr_str.value);
         }
 
         if ( success ) {
@@ -1054,7 +1054,7 @@ parse_stmt(Parser *p) {
             result = parse_stmt_continue(p);
         } else {
             result = &stmt_illegal;
-            fatal(p->lex.pos.name, p->lex.pos.row, "unbekanntes token aufgetreten: %s", tokenkind_to_str(p->lex.token.kind));
+            fatal(p->lex.pos.name, p->lex.pos.line, "unbekanntes token aufgetreten: %s", tokenkind_to_str(p->lex.token.kind));
         }
     } else if ( match_token(p, T_VAR_BEGIN) ) {
         result = parse_stmt_var(p);

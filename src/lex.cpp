@@ -1,6 +1,6 @@
 struct Pos {
     char *name;
-    s64 row;
+    s64 line;
     char *start;
 };
 
@@ -162,7 +162,7 @@ next(Lexer *lex, int count = 1) {
     if ( !status_is_error() ) {
         for ( int i = 0; i < count; ++i ) {
             if (at0(lex) == '\n') {
-                lex->pos.row++;
+                lex->pos.line++;
             }
 
             if (lex->input == 0) break;

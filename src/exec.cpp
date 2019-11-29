@@ -256,7 +256,7 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         default: {
-            fatal(expr->pos.name, expr->pos.row, "unerwarteter ausdruck");
+            fatal(expr->pos.name, expr->pos.line, "unerwarteter ausdruck");
             illegal_path();
         } break;
     }

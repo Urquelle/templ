@@ -1406,7 +1406,7 @@ resolve_expr_cond(Expr *expr) {
 
     /* @AUFGABE: int, str akzeptieren */
     if ( result->type != type_bool ) {
-        fatal(expr->pos.name, expr->pos.row, "boolischen ausdruck erwartet");
+        fatal(expr->pos.name, expr->pos.line, "boolischen ausdruck erwartet");
     }
 
     return result;
@@ -1445,7 +1445,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
         Arg *arg = expr->expr_call.args[i];
 
         if ( must_be_named && !arg->name ) {
-            fatal(expr->pos.name, expr->pos.row, "nach benamten parameter müssen alle folgende parameter benamt sein");
+            fatal(expr->pos.name, expr->pos.line, "nach benamten parameter müssen alle folgende parameter benamt sein");
         }
 
         char *name = 0;
@@ -1703,7 +1703,7 @@ resolve_expr(Expr *expr) {
         } break;
 
         default: {
-            fatal(expr->pos.name, expr->pos.row, "nicht unterstützter ausdruck");
+            fatal(expr->pos.name, expr->pos.line, "nicht unterstützter ausdruck");
         } break;
     }
 
