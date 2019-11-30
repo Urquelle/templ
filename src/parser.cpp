@@ -31,6 +31,7 @@ global_var char *keyword_endfor;
 global_var char *keyword_endif;
 global_var char *keyword_endmacro;
 global_var char *keyword_endraw;
+global_var char *keyword_endset;
 global_var char *keyword_endwith;
 global_var char *keyword_extends;
 global_var char *keyword_false;
@@ -70,6 +71,7 @@ init_keywords() {
     ADD_KEYWORD(endif);
     ADD_KEYWORD(endmacro);
     ADD_KEYWORD(endraw);
+    ADD_KEYWORD(endset);
     ADD_KEYWORD(endwith);
     ADD_KEYWORD(extends);
     ADD_KEYWORD(false);
@@ -824,11 +826,23 @@ parse_stmt_set(Parser *p) {
         buf_push(names, name);
     } while ( match_token(p, T_COMMA) );
 
-    expect_token(p, T_ASSIGN);
-    Expr *expr = parse_expr(p);
-    expect_token(p, T_CODE_END);
+    if ( match_token(p, T_ASSIGN) ) {
+        Expr *expr = parse_expr(p);
+        expect_token(p, T_CODE_END);
 
-    return stmt_set(names, buf_len(names), expr);
+        return stmt_set(names, buf_len(names), expr);
+    }
+
+    expect_token(p, T_CODE_END);
+    Stmt **stmts = 0;
+    Stmt *stmt = parse_stmt(p);
+
+    while ( stmt->kind != STMT_ENDSET ) {
+        buf_push(stmts, stmt);
+        stmt = parse_stmt(p);
+    }
+
+    return stmt_set_block(names, buf_len(names), stmts, buf_len(stmts));
 }
 
 internal_proc Stmt *
@@ -1007,6 +1021,12 @@ parse_stmt_endmacro(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_endset(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return &stmt_endset;
+}
+
+internal_proc Stmt *
 parse_stmt_endwith(Parser *p) {
     expect_token(p, T_CODE_END);
     return &stmt_endwith;
@@ -1032,6 +1052,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_endfilter(p);
         } else if ( match_keyword(p, keyword_endmacro) ) {
             result = parse_stmt_endmacro(p);
+        } else if ( match_keyword(p, keyword_endset) ) {
+            result = parse_stmt_endset(p);
         } else if ( match_keyword(p, keyword_endwith) ) {
             result = parse_stmt_endwith(p);
         } else if ( match_keyword(p, keyword_else) ) {

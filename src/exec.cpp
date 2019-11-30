@@ -394,6 +394,22 @@ exec_stmt(Resolved_Stmt *stmt) {
             }
         } break;
 
+        case STMT_SET_BLOCK: {
+            assert(stmt->stmt_set_block.num_names == 1);
+            Val *dest = exec_expr(stmt->stmt_set_block.names[0]);
+
+            char *old_gen_result = gen_result;
+            char *temp = "";
+            gen_result = temp;
+
+            for ( int i = 0; i < stmt->stmt_set_block.num_stmts; ++i ) {
+                exec_stmt(stmt->stmt_set_block.stmts[i]);
+            }
+
+            exec_stmt_set(dest, val_str(gen_result));
+            gen_result = old_gen_result;
+        } break;
+
         case STMT_FOR: {
             global_for_stmt = stmt;
             Val *list = exec_expr(stmt->stmt_for.set);

@@ -257,8 +257,10 @@ PROC_CALLBACK(proc_namespace) {
 
 PROC_CALLBACK(proc_list_append) {
     assert(expr->kind == EXPR_FIELD);
+    assert(expr->expr_field.base->kind == EXPR_NAME);
 
-    Val *val = expr->expr_field.base->val;
+    Sym *sym = sym_get(expr->expr_field.base->expr_name.name);
+    Val *val = sym->val;
     Val *elem = narg("elem")->val;
 
     Val **vals = 0;
@@ -267,9 +269,6 @@ PROC_CALLBACK(proc_list_append) {
     }
 
     buf_push(vals, elem);
-
-    assert(expr->expr_field.base->kind == EXPR_NAME);
-    Sym *sym = sym_get(expr->expr_field.base->expr_name.name);
     sym->val = val_list(vals, buf_len(vals));
 
     return val_none();

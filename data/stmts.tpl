@@ -163,3 +163,8 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
 {% for it in xxx %}
     --{{ it }}--
 {% endfor %}
+
+{% set test_result %}
+    {{ "hallo" }}
+{% endset %}
+{{ test_result }}

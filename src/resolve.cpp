@@ -765,6 +765,13 @@ struct Resolved_Stmt {
         } stmt_set;
 
         struct {
+            Resolved_Expr **names;
+            size_t num_names;
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+        } stmt_set_block;
+
+        struct {
             Resolved_Expr **filter;
             size_t num_filter;
             Resolved_Stmt **stmts;
@@ -915,6 +922,20 @@ resolved_stmt_set(Resolved_Expr **names, size_t num_names, Resolved_Expr *expr) 
     result->stmt_set.names = names;
     result->stmt_set.num_names = num_names;
     result->stmt_set.expr = expr;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_set_block(Resolved_Expr **names, size_t num_names,
+        Resolved_Stmt **stmts, size_t num_stmts)
+{
+    Resolved_Stmt *result = resolved_stmt_new(STMT_SET_BLOCK);
+
+    result->stmt_set_block.names = names;
+    result->stmt_set_block.num_names = num_names;
+    result->stmt_set_block.stmts = stmts;
+    result->stmt_set_block.num_stmts = num_stmts;
 
     return result;
 }
@@ -1223,6 +1244,25 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             }
 
             result = resolved_stmt_set(names, buf_len(names), expr);
+        } break;
+
+        case STMT_SET_BLOCK: {
+            Resolved_Expr **names = 0;
+            for ( int i = 0; i < stmt->stmt_set_block.num_names; ++i ) {
+                Expr *name = stmt->stmt_set_block.names[i];
+                Resolved_Expr *resolved_name = resolve_expr(name);
+                Sym *sym = sym_push_var(name->expr_name.value, &type_undefined, val_undefined());
+                buf_push(names, resolved_name);
+            }
+
+            Resolved_Stmt **stmts = 0;
+            for ( int i = 0; i < stmt->stmt_set_block.num_stmts; ++i ) {
+                Stmt *set_stmt = stmt->stmt_set_block.stmts[i];
+                Resolved_Stmt *resolved_stmt = resolve_stmt(set_stmt, templ);
+                buf_push(stmts, resolved_stmt);
+            }
+
+            result = resolved_stmt_set_block(names, buf_len(names), stmts, buf_len(stmts));
         } break;
 
         case STMT_FILTER: {

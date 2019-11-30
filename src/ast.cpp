@@ -397,6 +397,7 @@ enum Stmt_Kind {
     STMT_ENDFOR,
     STMT_ENDIF,
     STMT_ENDMACRO,
+    STMT_ENDSET,
     STMT_ENDWITH,
     STMT_EXTENDS,
     STMT_FILTER,
@@ -409,6 +410,7 @@ enum Stmt_Kind {
     STMT_MACRO,
     STMT_RAW,
     STMT_SET,
+    STMT_SET_BLOCK,
     STMT_VAR,
     STMT_WITH,
 };
@@ -469,6 +471,13 @@ struct Stmt {
         } stmt_set;
 
         struct {
+            Expr **names;
+            size_t num_names;
+            Stmt **stmts;
+            size_t num_stmts;
+        } stmt_set_block;
+
+        struct {
             Expr **filter;
             size_t num_filter;
             Stmt **stmts;
@@ -520,6 +529,7 @@ global_var Stmt stmt_endblock  = { STMT_ENDBLOCK };
 global_var Stmt stmt_endfilter = { STMT_ENDFILTER };
 global_var Stmt stmt_endfor    = { STMT_ENDFOR };
 global_var Stmt stmt_endif     = { STMT_ENDIF };
+global_var Stmt stmt_endset    = { STMT_ENDSET };
 global_var Stmt stmt_endmacro  = { STMT_ENDMACRO };
 global_var Stmt stmt_endwith   = { STMT_ENDWITH };
 global_var Stmt stmt_break     = { STMT_BREAK };
@@ -635,6 +645,18 @@ stmt_set(Expr **names, size_t num_names, Expr *expr) {
     result->stmt_set.names = (Expr **)AST_DUP(names);
     result->stmt_set.num_names = num_names;
     result->stmt_set.expr = expr;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_set_block(Expr **names, size_t num_names, Stmt **stmts, size_t num_stmts) {
+    Stmt *result = stmt_new(STMT_SET_BLOCK);
+
+    result->stmt_set_block.names = (Expr **)AST_DUP(names);
+    result->stmt_set_block.num_names = num_names;
+    result->stmt_set_block.stmts = (Stmt **)AST_DUP(stmts);
+    result->stmt_set_block.num_stmts = num_stmts;
 
     return result;
 }
