@@ -255,3 +255,23 @@ PROC_CALLBACK(proc_namespace) {
     return val_dict(scope);
 }
 
+PROC_CALLBACK(proc_list_append) {
+    assert(expr->kind == EXPR_FIELD);
+
+    Val *val = expr->expr_field.base->val;
+    Val *elem = narg("elem")->val;
+
+    Val **vals = 0;
+    for ( int i = 0; i < val->len; ++i ) {
+        buf_push(vals, ((Val **)val->ptr)[i]);
+    }
+
+    buf_push(vals, elem);
+
+    assert(expr->expr_field.base->kind == EXPR_NAME);
+    Sym *sym = sym_get(expr->expr_field.base->expr_name.name);
+    sym->val = val_list(vals, buf_len(vals));
+
+    return val_none();
+}
+

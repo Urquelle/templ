@@ -158,4 +158,8 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
 {{ ns.bla }}
 {{ ns.blö }}
 
-{% do di['a'] %}
+{% set xxx = [1, 2, 3] %}
+{% do xxx.append(4) %}
+{% for it in xxx %}
+    --{{ it }}--
+{% endfor %}

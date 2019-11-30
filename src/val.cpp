@@ -12,6 +12,8 @@ global_var Scope global_scope;
 global_var Scope system_scope;
 global_var Scope tester_scope;
 
+global_var Scope list_scope;
+
 global_var Scope *current_scope = &global_scope;
 
 internal_proc Scope *
@@ -333,6 +335,7 @@ val_list(Val **vals, size_t num_vals) {
 
     result->ptr = (Val **)AST_DUP(vals);
     result->len = num_vals;
+    result->scope = &list_scope;
 
     return result;
 }

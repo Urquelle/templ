@@ -178,7 +178,7 @@ exec_expr(Resolved_Expr *expr) {
             Resolved_Expr *tester = expr->expr_is.tester;
             Val_Proc *proc = (Val_Proc *)tester->expr_call.expr->val->ptr;
 
-            result = proc->callback( operand,
+            result = proc->callback( operand, expr->expr_is.operand,
                     tester->expr_call.args, tester->expr_call.num_args,
                     tester->expr_call.nargs, tester->expr_call.narg_keys,
                     tester->expr_call.num_narg_keys, tester->expr_call.kwargs,
@@ -194,7 +194,7 @@ exec_expr(Resolved_Expr *expr) {
             Val *val = exec_expr(expr->expr_call.expr);
             Val_Proc *proc = (Val_Proc *)val->ptr;
 
-            result = proc->callback(val,
+            result = proc->callback(val, expr->expr_call.expr,
                     expr->expr_call.args, expr->expr_call.num_args,
                     expr->expr_call.nargs, expr->expr_call.narg_keys,
                     expr->expr_call.num_narg_keys, expr->expr_call.kwargs,
@@ -234,8 +234,8 @@ exec_expr(Resolved_Expr *expr) {
             Val *set = exec_expr(expr->expr_subscript.expr);
             Val *index = exec_expr(expr->expr_subscript.index);
 
-            if ( set->scope ) {
-                assert(index->kind == VAL_STR);
+            if ( index->kind == VAL_STR ) {
+                assert(set->scope);
 
                 Scope *prev_scope = scope_set(set->scope);
                 Sym *sym = sym_get(val_str(index));
@@ -261,7 +261,7 @@ exec_expr(Resolved_Expr *expr) {
     for ( int i = 0; i < expr->num_filters; ++i ) {
         Resolved_Expr *filter = expr->filters[i];
         Val_Proc *proc = (Val_Proc *)filter->expr_call.expr->val->ptr;
-        result = proc->callback( result,
+        result = proc->callback( result, filter,
                 filter->expr_call.args, filter->expr_call.num_args,
                 filter->expr_call.nargs, filter->expr_call.narg_keys,
                 filter->expr_call.num_narg_keys, filter->expr_call.kwargs,
@@ -518,7 +518,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                 Resolved_Expr *filter = stmt->stmt_filter.filter[i];
 
                 Val_Proc *proc = (Val_Proc *)filter->expr_call.expr->val->ptr;
-                result = proc->callback( result,
+                result = proc->callback( result, filter,
                         filter->expr_call.args, filter->expr_call.num_args,
                         filter->expr_call.nargs, filter->expr_call.narg_keys,
                         filter->expr_call.num_narg_keys, filter->expr_call.kwargs,

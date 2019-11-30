@@ -599,7 +599,7 @@ internal_proc PROC_CALLBACK(filter_reject) {
         Val *elem = val_elem(operand, i);
 
         Val *ret = proc->callback(
-                elem, args, num_args, &tester_nargs,
+                elem, expr, args, num_args, &tester_nargs,
                 tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                 tester_varargs, num_varargs-1);
 
@@ -666,7 +666,7 @@ internal_proc PROC_CALLBACK(filter_rejectattr) {
             Sym *elem_sym = scope_attr(elem->scope, attr);
 
             Val *ret = proc->callback(
-                    elem_sym->val, args, num_args, &tester_nargs,
+                    elem_sym->val, expr, args, num_args, &tester_nargs,
                     tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                     tester_varargs, num_varargs-1);
 

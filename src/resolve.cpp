@@ -172,6 +172,7 @@ type_list(Type *type) {
     Type *result = type_new(TYPE_LIST);
 
     result->type_list.base = type;
+    result->scope = &list_scope;
 
     return result;
 }
@@ -1906,6 +1907,7 @@ resolve_init_builtin_procs() {
     Type_Field *range_args[]  = { type_field("start", type_int, val_int(0)), type_field("stop", type_int), type_field("step", type_int, val_int(1)) };
     Type_Field *lipsum_args[] = { type_field("n",     type_int, val_int(5)), type_field("html", type_bool, val_bool(true)), type_field("min", type_int, val_int(20)), type_field("max", type_int, val_int(100)) };
     Type_Field *joiner_args[] = { type_field("sep",   type_str, val_str(",")) };
+    Type_Field *append_type[] = { type_field("elem", type_any) };
 
     Scope *cycler_scope = scope_new(0, "cycler");
     Scope *prev_scope = scope_set(cycler_scope);
@@ -1926,6 +1928,11 @@ resolve_init_builtin_procs() {
 
     Scope *ns_scope = scope_new(0, "namespace");
     sym_push_sysproc("namespace", type_proc(0, 0, type_dict(ns_scope)), val_proc(0, 0, type_dict(ns_scope), proc_namespace));
+
+    /* @INFO: list funktionen bereitstellen */
+    prev_scope = scope_set(&list_scope);
+    sym_push_proc("append", type_proc(append_type, 1, type_list(type_any)), val_proc(append_type, 1, type_list(type_any), proc_list_append));
+    scope_set(prev_scope);
 }
 
 internal_proc void
@@ -1966,6 +1973,8 @@ resolve_init_scope() {
     global_scope.name = "global scope";
 
     global_scope.parent = &system_scope;
+
+    list_scope.name = "list scope";
 }
 
 internal_proc void

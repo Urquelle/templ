@@ -958,6 +958,7 @@ parse_stmt_with(Parser *p) {
 internal_proc Stmt *
 parse_stmt_do(Parser *p) {
     Expr *expr = parse_expr(p);
+    expect_token(p, T_CODE_END);
 
     return stmt_do(expr);
 }
