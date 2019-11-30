@@ -10,7 +10,7 @@ main(int argc, char **argv) {
     os_file_read("data.json", &data);
     Json json = json_parse(data);
 
-    Templ *templ = templ_compile_string("{{ users[0].name }}: {{ users[0].address.city }} -- {{ users[1].name }}: {{ users[1].address.city }}");
+    Templ *templ = templ_compile_file("main.tpl");
 
     Templ_Var *users = templ_var("users", json);
     Templ_Vars vars = templ_vars();

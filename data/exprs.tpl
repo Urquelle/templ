@@ -1,6 +1,6 @@
 <div>exprs.tpl</div>
 
-{{ user.name }} ist {{ user.age }} jahre alt und wohnt in {{ user.address.city }}
+{{ users[0].name }} ist {{ users[0].age }} jahre alt und wohnt in {{ users[0].address.city }}
 -1*5%2 = {{ -1*5%2 }}
 20/7 = {{ 20/7 }}
 20//7 = {{ 20//7 }}

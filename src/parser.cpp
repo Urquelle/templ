@@ -18,76 +18,78 @@ parser_input(Parser *p) {
 
 global_var char ** keywords;
 global_var char *keyword_and;
-global_var char *keyword_or;
-global_var char *keyword_true;
-global_var char *keyword_false;
-global_var char *keyword_none;
-global_var char *keyword_if;
+global_var char *keyword_block;
+global_var char *keyword_break;
+global_var char *keyword_continue;
+global_var char *keyword_do;
 global_var char *keyword_elif;
 global_var char *keyword_else;
-global_var char *keyword_for;
-global_var char *keyword_from;
-global_var char *keyword_in;
-global_var char *keyword_is;
-global_var char *keyword_endfor;
-global_var char *keyword_endif;
+global_var char *keyword_embed;
 global_var char *keyword_endblock;
 global_var char *keyword_endfilter;
+global_var char *keyword_endfor;
+global_var char *keyword_endif;
 global_var char *keyword_endmacro;
 global_var char *keyword_endraw;
 global_var char *keyword_endwith;
 global_var char *keyword_extends;
-global_var char *keyword_block;
-global_var char *keyword_embed;
-global_var char *keyword_set;
+global_var char *keyword_false;
 global_var char *keyword_filter;
-global_var char *keyword_include;
-global_var char *keyword_macro;
+global_var char *keyword_for;
+global_var char *keyword_from;
+global_var char *keyword_if;
 global_var char *keyword_import;
-global_var char *keyword_raw;
+global_var char *keyword_in;
+global_var char *keyword_include;
+global_var char *keyword_is;
+global_var char *keyword_macro;
+global_var char *keyword_none;
 global_var char *keyword_not;
-global_var char *keyword_with;
-global_var char *keyword_break;
-global_var char *keyword_continue;
+global_var char *keyword_or;
+global_var char *keyword_raw;
 global_var char *keyword_recursive;
+global_var char *keyword_set;
+global_var char *keyword_true;
+global_var char *keyword_with;
 
 internal_proc void
 init_keywords() {
 #define ADD_KEYWORD(K) keyword_##K = intern_str(#K); buf_push(keywords, keyword_##K)
 
     ADD_KEYWORD(and);
-    ADD_KEYWORD(or);
-    ADD_KEYWORD(true);
-    ADD_KEYWORD(false);
-    ADD_KEYWORD(none);
-    ADD_KEYWORD(if);
+    ADD_KEYWORD(block);
+    ADD_KEYWORD(break);
+    ADD_KEYWORD(continue);
+    ADD_KEYWORD(do);
     ADD_KEYWORD(elif);
     ADD_KEYWORD(else);
-    ADD_KEYWORD(for);
-    ADD_KEYWORD(from);
-    ADD_KEYWORD(in);
-    ADD_KEYWORD(is);
-    ADD_KEYWORD(endfor);
-    ADD_KEYWORD(endif);
+    ADD_KEYWORD(embed);
     ADD_KEYWORD(endblock);
     ADD_KEYWORD(endfilter);
+    ADD_KEYWORD(endfor);
+    ADD_KEYWORD(endif);
     ADD_KEYWORD(endmacro);
     ADD_KEYWORD(endraw);
     ADD_KEYWORD(endwith);
     ADD_KEYWORD(extends);
-    ADD_KEYWORD(block);
-    ADD_KEYWORD(embed);
-    ADD_KEYWORD(set);
+    ADD_KEYWORD(false);
     ADD_KEYWORD(filter);
-    ADD_KEYWORD(include);
-    ADD_KEYWORD(macro);
+    ADD_KEYWORD(for);
+    ADD_KEYWORD(from);
+    ADD_KEYWORD(if);
     ADD_KEYWORD(import);
-    ADD_KEYWORD(raw);
+    ADD_KEYWORD(in);
+    ADD_KEYWORD(include);
+    ADD_KEYWORD(is);
+    ADD_KEYWORD(macro);
+    ADD_KEYWORD(none);
     ADD_KEYWORD(not);
-    ADD_KEYWORD(with);
-    ADD_KEYWORD(break);
-    ADD_KEYWORD(continue);
+    ADD_KEYWORD(or);
+    ADD_KEYWORD(raw);
     ADD_KEYWORD(recursive);
+    ADD_KEYWORD(set);
+    ADD_KEYWORD(true);
+    ADD_KEYWORD(with);
 
 #undef ADD_KEYWORD
 }
@@ -954,6 +956,13 @@ parse_stmt_with(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_do(Parser *p) {
+    Expr *expr = parse_expr(p);
+
+    return stmt_do(expr);
+}
+
+internal_proc Stmt *
 parse_stmt_break(Parser *p) {
     expect_token(p, T_CODE_END);
     return &stmt_break;
@@ -1052,6 +1061,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_break(p);
         } else if ( match_keyword(p, keyword_continue) ) {
             result = parse_stmt_continue(p);
+        } else if ( match_keyword(p, keyword_do) ) {
+            result = parse_stmt_do(p);
         } else {
             result = &stmt_illegal;
             fatal(p->lex.pos.name, p->lex.pos.line, "unbekanntes token aufgetreten: %s", tokenkind_to_str(p->lex.token.kind));

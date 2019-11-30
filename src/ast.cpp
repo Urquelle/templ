@@ -386,29 +386,31 @@ imported_sym(char *name, char *alias) {
 
 enum Stmt_Kind {
     STMT_NONE,
-    STMT_FOR,
-    STMT_IF,
     STMT_BLOCK,
-    STMT_ELSE,
-    STMT_ENDFOR,
-    STMT_ENDIF,
-    STMT_ENDBLOCK,
-    STMT_ENDFILTER,
-    STMT_ENDMACRO,
-    STMT_ENDWITH,
-    STMT_VAR,
-    STMT_LIT,
-    STMT_EXTENDS,
-    STMT_SET,
-    STMT_FILTER,
-    STMT_INCLUDE,
-    STMT_MACRO,
-    STMT_IMPORT,
-    STMT_FROM_IMPORT,
-    STMT_RAW,
-    STMT_WITH,
     STMT_BREAK,
     STMT_CONTINUE,
+    STMT_DO,
+    STMT_ELSE,
+    /* @AUFGABE: end statements loswerden */
+    STMT_ENDBLOCK,
+    STMT_ENDFILTER,
+    STMT_ENDFOR,
+    STMT_ENDIF,
+    STMT_ENDMACRO,
+    STMT_ENDWITH,
+    STMT_EXTENDS,
+    STMT_FILTER,
+    STMT_FOR,
+    STMT_FROM_IMPORT,
+    STMT_IF,
+    STMT_IMPORT,
+    STMT_INCLUDE,
+    STMT_LIT,
+    STMT_MACRO,
+    STMT_RAW,
+    STMT_SET,
+    STMT_VAR,
+    STMT_WITH,
 };
 
 struct Stmt {
@@ -428,6 +430,10 @@ struct Stmt {
             Stmt **else_stmts;
             size_t num_else_stmts;
         } stmt_for;
+
+        struct {
+            Expr *expr;
+        } stmt_do;
 
         struct {
             Expr *cond;
@@ -544,6 +550,15 @@ stmt_for(Expr **vars, size_t num_vars, Expr *set, Stmt **stmts,
 
     result->stmt_for.else_stmts = (Stmt **)AST_DUP(else_stmts);
     result->stmt_for.num_else_stmts = num_else_stmts;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_do(Expr *expr) {
+    Stmt *result = stmt_new(STMT_DO);
+
+    result->stmt_do.expr = expr;
 
     return result;
 }

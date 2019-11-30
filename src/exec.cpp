@@ -335,6 +335,10 @@ exec_stmt(Resolved_Stmt *stmt) {
             genf("%s", stmt->stmt_lit.lit);
         } break;
 
+        case STMT_DO: {
+            exec_expr(stmt->stmt_do.expr);
+        } break;
+
         case STMT_VAR: {
             Resolved_Expr *if_expr = stmt->stmt_var.expr->if_expr;
 

@@ -707,6 +707,10 @@ struct Resolved_Stmt {
         } stmt_var;
 
         struct {
+            Resolved_Expr *expr;
+        } stmt_do;
+
+        struct {
             Scope *scope;
             Sym **vars;
             size_t num_vars;
@@ -803,6 +807,15 @@ resolved_stmt_new(Stmt_Kind kind) {
     Resolved_Stmt *result = ALLOC_STRUCT(&resolve_arena, Resolved_Stmt);
 
     result->kind = kind;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_do(Resolved_Expr *expr) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_DO);
+
+    result->stmt_do.expr = expr;
 
     return result;
 }
@@ -1160,6 +1173,12 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             } else {
                 parent_block->stmt_block.child_block = result;
             }
+        } break;
+
+        case STMT_DO: {
+            Resolved_Expr *expr = resolve_expr(stmt->stmt_do.expr);
+
+            result = resolved_stmt_do(expr);
         } break;
 
         case STMT_LIT: {

@@ -157,3 +157,5 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
 {% set ns = namespace(bla = "bla", blö = "blö") %}
 {{ ns.bla }}
 {{ ns.blö }}
+
+{% do di['a'] %}
