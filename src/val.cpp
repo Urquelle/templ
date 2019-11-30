@@ -108,6 +108,7 @@ struct Val {
     size_t len;
     void  *ptr;
     void *user_data;
+    Scope *scope;
 };
 
 internal_proc Val *
@@ -119,6 +120,7 @@ val_new(Val_Kind kind, size_t size) {
     result->len  = 1;
     result->ptr  = (void *)ALLOC_SIZE(&resolve_arena, size);
     result->user_data = 0;
+    result->scope = 0;
 
     return result;
 }
@@ -130,7 +132,6 @@ val_none() {
     result->size = 0;
     result->len  = 0;
     result->ptr  = 0;
-    result->user_data = 0;
 
     return result;
 }
@@ -142,7 +143,6 @@ val_undefined() {
     result->size = 0;
     result->len  = 0;
     result->ptr  = 0;
-    result->user_data = 0;
 
     return result;
 }
@@ -341,8 +341,8 @@ internal_proc Val *
 val_dict(Scope *scope) {
     Val *result = val_new(VAL_DICT, sizeof(Map));
 
-    result->len = (scope) ? scope->num_syms : 0;
-    result->ptr = scope;
+    result->len   = (scope) ? scope->num_syms : 0;
+    result->scope = scope;
 
     return result;
 }
@@ -506,7 +506,7 @@ val_pprint(Val *val, b32 verbose = false) {
 
     if ( val->kind == VAL_DICT ) {
         result = strf("dict(\n");
-        Scope *scope = (Scope *)val->ptr;
+        Scope *scope = val->scope;
         for ( int i = 0; i < scope_num_elems(scope); ++i ) {
             Sym *sym = scope_elem(scope, i);
             result = strf("%s%s = %s\n", result, sym_name(sym), val_pprint(sym_val(sym)));
@@ -958,7 +958,7 @@ val_elem(Val *val, int idx) {
 
         case VAL_DICT: {
             if ( idx < val->len ) {
-                Sym *sym = scope_elem((Scope *)val->ptr, idx);
+                Sym *sym = scope_elem(val->scope, idx);
 
                 /* @AUFGABE: die val_pairs bei der erstellung
                  *           der dict anlegen

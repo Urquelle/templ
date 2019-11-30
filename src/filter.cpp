@@ -6,7 +6,7 @@ internal_proc PROC_CALLBACK(filter_abs) {
 }
 
 internal_proc PROC_CALLBACK(filter_attr) {
-    Scope *scope = (Scope *)operand->ptr;
+    Scope *scope = operand->scope;
     Scope *prev_scope = scope_set(scope);
 
     Sym *sym = sym_get(val_str(narg("name")->val));
@@ -114,7 +114,7 @@ internal_proc PROC_CALLBACK(filter_dictsort) {
      */
     Sym **syms = 0;
     {
-        Scope *scope = (Scope *)operand->ptr;
+        Scope *scope = operand->scope;
         for ( int i = 0; i < scope->num_syms; ++i ) {
             buf_push(syms, scope->sym_list[i]);
         }
@@ -302,7 +302,7 @@ internal_proc PROC_CALLBACK(filter_groupby) {
         Val *v = val_elem(operand, i);
         assert(v->kind == VAL_DICT);
 
-        scope_set((Scope *)v->ptr);
+        scope_set(v->scope);
         Sym *sym = sym_get(attribute);
 
         char *key = intern_str(val_print(sym->val));
@@ -391,7 +391,7 @@ internal_proc PROC_CALLBACK(filter_join) {
         }
     } else {
         Val *v = val_elem(operand, 0);
-        Scope *scope = (Scope *)v->ptr;
+        Scope *scope = v->scope;
         Scope *prev_scope = scope_set(scope);
 
         Sym *sym = sym_get(val_str(attr));
@@ -399,7 +399,7 @@ internal_proc PROC_CALLBACK(filter_join) {
 
         for ( int i = 1; i < operand->len; ++i ) {
             v = val_elem(operand, i);
-            scope_set((Scope *)v->ptr);
+            scope_set(v->scope);
             sym = sym_get(val_str(attr));
 
             result = strf("%s%s%s", result, sep, val_print(sym->val));
@@ -460,7 +460,7 @@ internal_proc PROC_CALLBACK(filter_map) {
         for ( int i = 0; i < operand->len; ++i ) {
             Val *elem = val_elem(operand, i);
             assert(elem->kind == VAL_DICT);
-            scope_set((Scope *)elem->ptr);
+            scope_set(elem->scope);
             Sym *sym = sym_get(attribute);
 
             if ( sym ) {
@@ -492,8 +492,8 @@ internal_proc PROC_CALLBACK(filter_max) {
             assert(result->kind == VAL_DICT);
             assert(right->kind == VAL_DICT);
 
-            left_tmp  = scope_attr((Scope *)result->ptr, val_str(attribute))->val;
-            right_tmp = scope_attr((Scope *)right->ptr, val_str(attribute))->val;
+            left_tmp  = scope_attr(result->scope, val_str(attribute))->val;
+            right_tmp = scope_attr(right->scope, val_str(attribute))->val;
         }
 
         if ( !case_sensitive && left_tmp->kind == VAL_STR && right_tmp->kind == VAL_STR ) {
@@ -528,8 +528,8 @@ internal_proc PROC_CALLBACK(filter_min) {
             assert(result->kind == VAL_DICT);
             assert(right->kind == VAL_DICT);
 
-            left_tmp  = scope_attr((Scope *)result->ptr, val_str(attribute))->val;
-            right_tmp = scope_attr((Scope *)right->ptr, val_str(attribute))->val;
+            left_tmp  = scope_attr(result->scope, val_str(attribute))->val;
+            right_tmp = scope_attr(right->scope, val_str(attribute))->val;
         }
 
         if ( !case_sensitive && left_tmp->kind == VAL_STR && right_tmp->kind == VAL_STR ) {
@@ -617,7 +617,7 @@ internal_proc PROC_CALLBACK(filter_rejectattr) {
         Val **vals = 0;
         for ( int i = 0; i < operand->len; ++i ) {
             Val *val = val_elem(operand, i);
-            Sym *sym = scope_attr((Scope *)val->ptr, attr);
+            Sym *sym = scope_attr(val->scope, attr);
 
             if ( val_bool(sym->val) ) {
                 buf_push(vals, val);
@@ -663,7 +663,7 @@ internal_proc PROC_CALLBACK(filter_rejectattr) {
         Val **result = 0;
         for ( int i = 0; i < operand->len; ++i ) {
             Val *elem = val_elem(operand, i);
-            Sym *elem_sym = scope_attr((Scope *)elem->ptr, attr);
+            Sym *elem_sym = scope_attr(elem->scope, attr);
 
             Val *ret = proc->callback(
                     elem_sym->val, args, num_args, &tester_nargs,

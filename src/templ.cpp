@@ -348,7 +348,7 @@ templ_var(char *name, Json json) {
 
 user_api void
 templ_var_set(Templ_Var *var, Templ_Var *value) {
-    Scope *prev_scope = scope_set((Scope *)var->val->ptr);
+    Scope *prev_scope = scope_set(var->val->scope);
     sym_push_var(value->name, value->type, value->val);
     scope_set(prev_scope);
 }

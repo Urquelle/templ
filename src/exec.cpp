@@ -85,9 +85,7 @@ exec_expr(Resolved_Expr *expr) {
 
         case EXPR_FIELD: {
             Val *base = exec_expr(expr->expr_field.base);
-            Scope *scope = (base->kind == VAL_DICT) ? (Scope *)base->ptr : (Scope *)base->user_data;
-
-            Scope *prev_scope = scope_set(scope);
+            Scope *prev_scope = scope_set(base->scope);
             Sym *sym = sym_get(expr->expr_field.field);
             scope_set(prev_scope);
 
@@ -236,11 +234,10 @@ exec_expr(Resolved_Expr *expr) {
             Val *set = exec_expr(expr->expr_subscript.expr);
             Val *index = exec_expr(expr->expr_subscript.index);
 
-            if ( set->kind == VAL_DICT ) {
+            if ( set->scope ) {
                 assert(index->kind == VAL_STR);
 
-                Scope *scope = (Scope *)set->ptr;
-                Scope *prev_scope = scope_set(scope);
+                Scope *prev_scope = scope_set(set->scope);
                 Sym *sym = sym_get(val_str(index));
                 result = sym->val;
 
@@ -320,10 +317,11 @@ exec_stmt_set(Val *dest, Val *source) {
             orig->ptr = intern_str(new_mem);
         }
     } else {
-        dest->kind = source->kind;
-        dest->size = source->size;
-        dest->len  = source->len;
-        dest->ptr  = source->ptr;
+        dest->kind  = source->kind;
+        dest->size  = source->size;
+        dest->len   = source->len;
+        dest->scope = source->scope;
+        dest->ptr   = source->ptr;
         dest->user_data = source->user_data;
     }
 }
@@ -560,7 +558,7 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_IMPORT: {
-            Scope *scope = (Scope *)stmt->stmt_module.sym->val->ptr;
+            Scope *scope = stmt->stmt_module.sym->val->scope;
             Scope *prev_scope = scope_set(scope);
 
             for ( int i = 0; i < stmt->stmt_module.num_stmts; ++i ) {

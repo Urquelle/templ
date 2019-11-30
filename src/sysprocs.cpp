@@ -17,7 +17,7 @@ PROC_CALLBACK(proc_super) {
 }
 
 PROC_CALLBACK(proc_exec_macro) {
-    Scope *scope = (Scope *)operand->user_data;
+    Scope *scope = operand->scope;
     Scope *prev_scope = scope_set(scope);
 
     for ( int i = 0; i < num_narg_keys; ++i ) {
@@ -61,7 +61,7 @@ PROC_CALLBACK(proc_dict) {
 
 PROC_CALLBACK(proc_cycle) {
     Sym *sym = sym_get(symname_loop);
-    Scope *scope = (Scope *)sym->val->user_data;
+    Scope *scope = sym->val->scope;
     Scope *prev_scope = scope_set(scope);
     Sym *sym_idx = sym_get(symname_index);
 
@@ -151,7 +151,7 @@ PROC_CALLBACK(proc_loop) {
     s32 depth0 = 0;
 
     /* elternloop */ {
-        Scope *scope = (Scope *)operand->user_data;
+        Scope *scope = operand->scope;
         Scope *prev_scope = scope_set(scope);
 
         Sym *sym_depth  = sym_get(intern_str("depth"));

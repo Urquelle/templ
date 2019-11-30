@@ -1096,7 +1096,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             type->scope = scope;
 
             Val *val = val_proc(loop_type, 1, 0, proc_loop);
-            val->user_data = scope;
+            val->scope = scope;
 
             sym_push_var(symname_loop, type, val);
             Scope *prev_scope = scope_set(scope);
@@ -1273,7 +1273,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Scope *scope = scope_enter(macro_name);
 
             type->scope = scope;
-            val->user_data = scope;
+            val->scope = scope;
 
             Val **param_names = 0;
             for ( int i = 0; i < buf_len(params); ++i ) {
@@ -1313,7 +1313,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Scope *scope = current_scope;
 
             type->scope = scope;
-            val->ptr = scope;
+            val->scope = scope;
 
             Resolved_Templ *t = resolve(stmt->stmt_import.templ);
 
@@ -1608,10 +1608,9 @@ resolve_expr(Expr *expr) {
 
         case EXPR_FIELD: {
             Resolved_Expr *base = resolve_expr(expr->expr_field.expr);
-
             Type *type = base->type;
 
-            if ( type->kind == TYPE_DICT || type->kind == TYPE_PROC ) {
+            if ( type->scope ) {
                 Scope *prev_scope = scope_set(type->scope);
                 Sym *sym = resolve_name(expr->expr_field.field);
                 scope_set(prev_scope);
@@ -1636,7 +1635,7 @@ resolve_expr(Expr *expr) {
                 assert(right->type->kind == TYPE_STR);
                 assert(left->val && left->val->len == 1);
 
-                result = resolved_expr_range((int)*val_str(left->val), (int)*val_str(right->val));
+                result = resolved_expr_range((s32)*val_str(left->val), (s32)*val_str(right->val));
             }
         } break;
 
