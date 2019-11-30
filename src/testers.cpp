@@ -1,5 +1,5 @@
 internal_proc PROC_CALLBACK(test_callable) {
-    b32 result = operand->kind == TYPE_PROC;
+    b32 result = operand->kind == VAL_PROC;
 
     return val_bool(result);
 }

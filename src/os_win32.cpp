@@ -1,13 +1,23 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <windows.h>
 #include <shlwapi.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-internal_proc char *
+#ifndef MAX_PATH
+#define MAX_PATH _MAX_PATH
+#endif
+
+namespace templ {
+
+static char *
 os_env(char *name) {
     char *result = getenv(name);
 
     return result;
 }
 
-internal_proc b32
+static bool
 os_file_read(char *filename, char **result) {
     HANDLE file = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
@@ -21,7 +31,7 @@ os_file_read(char *filename, char **result) {
     return true;
 }
 
-internal_proc b32
+static bool
 os_file_write(char *filename, char *data, size_t len) {
     HANDLE file = CreateFileA(filename, GENERIC_WRITE, FILE_SHARE_WRITE, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 
@@ -37,17 +47,29 @@ os_file_write(char *filename, char *data, size_t len) {
     return SUCCEEDED(h);
 }
 
-internal_proc b32
+static bool
 os_file_exists(char *filename) {
-    b32 result = PathFileExistsA(filename);
+    bool result = PathFileExistsA(filename);
 
     return result;
 }
 
-internal_proc void *
+static int
+os_sprintf(char *str, size_t size, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int result = vsnprintf(str, size, format, args);
+    va_end(args);
+
+    return result;
+}
+
+static void *
 os_mem_alloc(size_t size) {
     void *result = VirtualAlloc(NULL, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
     return result;
+}
+
 }
 

@@ -410,15 +410,15 @@ parse_expr_is(Parser *p) {
     Expr *left = parse_expr_range(p);
 
     if ( match_keyword(p, keyword_is) ) {
-        b32 not = false;
+        b32 is_not = false;
         if ( match_keyword(p, keyword_not) ) {
-            not = true;
+            is_not = true;
         }
 
         Expr *tester = parse_tester(p);
         left = expr_is(p->lex.pos, left, tester);
 
-        if ( not ) {
+        if ( is_not ) {
             left = expr_not(p->lex.pos, left);
         }
     }

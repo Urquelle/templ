@@ -229,7 +229,7 @@ utf8_str_toupper(char *str) {
         char *c = utf8_char_toupper(str + offset);
         size_t len = utf8_char_size(c);
 
-        sprintf_s(result, size+1, "%s%.*s", result, (int)len, c);
+        os_sprintf(result, size+1, "%s%.*s", result, (int)len, c);
         offset += old_len;
     }
     result[size] = 0;
@@ -326,7 +326,7 @@ utf8_str_tolower(char *str) {
         char *c = utf8_char_tolower(str + offset);
         size_t len = utf8_char_size(c);
 
-        sprintf_s(result, size+1, "%s%.*s", result, (int)len, c);
+        os_sprintf(result, size+1, "%s%.*s", result, (int)len, c);
         offset += old_len;
     }
     result[size] = 0;

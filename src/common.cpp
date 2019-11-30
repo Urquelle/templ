@@ -204,7 +204,7 @@ status_warning_get(size_t idx) {
 
 internal_proc char *
 strf(char *fmt, ...) {
-    va_list args = NULL;
+    va_list args;
     va_start(args, fmt);
     int size = 1 + vsnprintf(NULL, 0, fmt, args);
     va_end(args);
@@ -265,7 +265,7 @@ buf__printf(char *buf, const char *fmt, ...) {
 
 internal_proc void
 fatal(char *file, s64 line, char *msg, ...) {
-    va_list args = NULL;
+    va_list args;
     va_start(args, msg);
 
     char buf[255];
@@ -283,7 +283,7 @@ fatal(char *file, s64 line, char *msg, ...) {
 
 internal_proc void
 warn(char *file, s64 line, char *msg, ...) {
-    va_list args = NULL;
+    va_list args;
     va_start(args, msg);
 
     char buf[255];

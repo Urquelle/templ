@@ -1,15 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <windows.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <locale>
+#include "os.cpp"
 
 #define ALLOC_SIZE(arena, size) arena_alloc(arena, size)
 #define ALLOC_STRUCT(arena, s)  (s *)arena_alloc(arena, sizeof(s))
@@ -190,7 +179,6 @@ global_var b32                  global_for_continue;
 global_var Resolved_Stmt      * global_super_block;
 global_var Resolved_Templ     * current_templ;
 
-#include "os.cpp"
 #include "utf8.cpp"
 #include "common.cpp"
 #include "json.cpp"

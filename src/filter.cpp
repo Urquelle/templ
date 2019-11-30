@@ -160,13 +160,11 @@ internal_proc PROC_CALLBACK(filter_escape) {
 
 internal_proc PROC_CALLBACK(filter_filesizeformat) {
     char *suff_bin[] = {
-        { "Bytes" }, { "kiB" }, { "MiB" }, { "GiB" }, { "TiB" }, { "PiB" },
-        { "EiB" }, { "ZiB" }, { "YiB" }
+        "Bytes", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"
     };
 
     char *suff_dec[] = {
-        { "Bytes" }, { "kB" }, { "MB" }, { "GB" }, { "TB" }, { "PB" },
-        { "EB" }, { "ZB" }, { "YB" }
+        "Bytes", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
     };
 
     b32 binary = val_bool(narg("binary")->val);

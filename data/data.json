@@ -1,0 +1,15 @@
+[{
+    "name": "noob",
+    "age" : 25,
+    "address": {
+        "city": "frankfurt",
+        "street": "siegerstr. 2"
+    }
+}, {
+    "name": "reinhold",
+    "age" : 23,
+    "address": {
+        "city": "leipzig",
+        "street": "mozartstr. 20"
+    }
+}]
