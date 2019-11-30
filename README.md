@@ -201,8 +201,8 @@ there's a simple, and built-in support for json which is implemented in the
 `json_parse` method, will parse a given json string, and return a `Json`
 structure.
 
-`Json` contains a list of `Json_Node *` elements, from which a `Templ_Var` can be created, and pushed into
-template context.
+`Json` structure can be fed to `templ_var` method and get a `Templ_Var *` instance in return, which can
+be used in `templ_render` context.
 
 ```cpp
     Json json = json_parse(R"foo([
@@ -226,7 +226,7 @@ template context.
 
     Templ *templ = templ_compile_string("{{ users[0].name }}: {{ users[0].address.city }} -- {{ users[1].name }}: {{ users[1].address.city }}");
 
-    Templ_Var *users = templ_var("users", json.nodes[0]);
+    Templ_Var *users = templ_var("users", json);
     Templ_Vars vars = templ_vars();
 
     templ_vars_add(&vars, users);
