@@ -275,6 +275,20 @@ PROC_CALLBACK(proc_list_append) {
 }
 
 PROC_CALLBACK(proc_string_format) {
-    return val_str("");
+    Resolved_Expr *base = expr->expr_field.base;
+    Val *result = 0;
+
+    char *format = 0;
+    if ( base->kind == EXPR_STR ) {
+        format = val_str(base->val);
+    } else {
+        Val *val = exec_expr(base);
+        format = val_str(val);
+    }
+
+    char *out = algo_format(format, varargs, num_varargs);
+    result = val_str(out);
+
+    return result;
 }
 

@@ -148,6 +148,8 @@ internal_proc PROC_CALLBACK(test_undefined);
 
 internal_proc void              exec_stmt(Resolved_Stmt *stmt);
 internal_proc void              exec(Resolved_Templ *templ);
+internal_proc Val             * exec_expr(Resolved_Expr *expr);
+internal_proc void              exec_stmt_set(Val *dest, Val *source);
 internal_proc Expr            * parse_expr(Parser *p, b32 do_parse_filter = true);
 internal_proc Parsed_Templ    * parse_file(char *filename);
 internal_proc char            * parse_name(Parser *p);

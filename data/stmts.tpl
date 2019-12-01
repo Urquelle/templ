@@ -169,3 +169,12 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
     {{ "wie geht's" }}
 {% endset %}
 {{ test_result }}
+
+{% set test_format = "my name is %s" %}
+{{ test_format.format("heinz") }}
+
+{% set test_ausgabe = "my name is %s".format("hannes") %}
+{{ test_ausgabe }}
+
+{% set test_lst = ["eins %d", "zwei"] %}
+{{ test_lst[0].format(1) }}
