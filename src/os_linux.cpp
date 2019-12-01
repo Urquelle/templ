@@ -51,14 +51,15 @@ os_file_write(char *filename, char *data, size_t len) {
         return false;
     }
 
-    size_t sz = write(fd, data, len);
-    if ( sz != len ) {
+    if ( write(fd, data, len) == -1 ) {
         return false;
     }
 
-    close(fd);
+    if ( close(fd) == -1 ) {
+        return false;
+    }
 
-    return false;
+    return true;
 }
 
 static int
