@@ -1644,6 +1644,11 @@ resolve_expr(Expr *expr) {
         case EXPR_FIELD: {
             Resolved_Expr *base = resolve_expr(expr->expr_field.expr);
             Type *type = base->type;
+            Type *base_type = type_base(base->type);
+
+            if ( base_type != type ) {
+                type->scope->parent = base_type->scope;
+            }
 
             if ( type->scope ) {
                 Scope *prev_scope = scope_set(type->scope);
