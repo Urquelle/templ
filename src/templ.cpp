@@ -90,6 +90,7 @@ internal_proc PROC_CALLBACK(proc_lipsum);
 internal_proc PROC_CALLBACK(proc_namespace);
 internal_proc PROC_CALLBACK(proc_list_append);
 internal_proc PROC_CALLBACK(proc_string_format);
+internal_proc PROC_CALLBACK(proc_string_capitalize);
 
 internal_proc PROC_CALLBACK(filter_abs);
 internal_proc PROC_CALLBACK(filter_attr);

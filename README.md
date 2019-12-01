@@ -111,15 +111,18 @@ table of contents
    * [expressions](#expressions)
       * [literals](#literals)
    * [statements](#statements)
-      * [if](#if)
-      * [for](#for)
       * [block](#block)
-      * [include](#include)
-      * [import](#import)
+      * [do](#do)
       * [extends](#extends)
       * [filter](#filter)
+      * [for](#for)
+      * [if](#if)
+      * [import](#import)
+      * [include](#include)
       * [macro](#macro)
       * [raw](#raw)
+      * [set](#set)
+      * [set block](#set_block)
    * [filter](#filter-1)
    * [tests](#tests)
 
@@ -374,27 +377,33 @@ below is a list of supported math operations
 
 list of supported statements
 
-### if
+### block
 
-flow control statement `if` is supported with `elif` and `else` branches.
+blocks are supported with an optional `name` in the `endblock` statement. as the inheritance of templates is also supported, parent block's content can be overwritten entirely, or be included alongside your own content with the `super()` method.
 
 ```jinja
-{% if <condition> %}
-    <statements>
-{% elif <condition> %}
-    <statements>
-{% else %}
-    <statements>
-{% endif %}
+{% block <name> %}
+{% endblock <name> %}
+```
+### do
+
+```jinja
+{% do <expression> %}
 ```
 
-you can use any valid jinja and supported expressions as *condition* that have a boolean value as result.
+### extends
 
-    true
-    false
-    1 < 2
-    a is eq "foo"
-    firstname == "arminius" and lastname == "der cherusker"
+```jinja2
+{% extends "<template>" <if expr> %}
+```
+
+### filter
+
+```jinja2
+{% filter <name1> | <name2> %}
+    <anweisungen>
+{% endfilter %}
+```
 
 ### for
 
@@ -421,22 +430,28 @@ the following loop variables can be used inside a `for` loop:
 * loop.depth
 * loop()
 
-### block
 
-blocks are supported with an optional `name` in the `endblock` statement. as the inheritance of templates is also supported, parent block's content can be overwritten entirely, or be included alongside your own content with the `super()` method.
+### if
+
+flow control statement `if` is supported with `elif` and `else` branches.
 
 ```jinja
-{% block <name> %}
-{% endblock <name> %}
+{% if <condition> %}
+    <statements>
+{% elif <condition> %}
+    <statements>
+{% else %}
+    <statements>
+{% endif %}
 ```
 
-### include
+you can use any valid jinja and supported expressions as *condition* that have a boolean value as result.
 
-additional templates can be included into a template. `include` statement supports `if` expression, and the additional annotations `with context`, `without context`, `ignore missing`.
-
-```jinja2
-{% include "<template>" <if ausdruck> %}
-```
+    true
+    false
+    1 < 2
+    a is eq "foo"
+    firstname == "arminius" and lastname == "der cherusker"
 
 ### import
 
@@ -445,18 +460,12 @@ additional templates can be included into a template. `include` statement suppor
 {% from "<template>" import <sym1> as <alias1> %}
 ```
 
-### extends
+### include
+
+additional templates can be included into a template. `include` statement supports `if` expression, and the additional annotations `with context`, `without context`, `ignore missing`.
 
 ```jinja2
-{% extends "<template>" <if expr> %}
-```
-
-### filter
-
-```jinja2
-{% filter <name1> | <name2> %}
-    <anweisungen>
-{% endfilter %}
+{% include "<template>" <if ausdruck> %}
 ```
 
 ### macro
@@ -471,6 +480,20 @@ additional templates can be included into a template. `include` statement suppor
 ```jinja2
 {% raw %}
 {% endraw %}
+```
+
+### set
+
+```jinja
+{% set <lvalue expression> = <rvalue expression> %}
+```
+
+### set block
+
+```jinja
+{% set <lvalue expression> %}
+    <statements>
+{% endset %}
 ```
 
 ## filter

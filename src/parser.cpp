@@ -560,6 +560,10 @@ parse_expr(Parser *p, b32 do_parse_filter) {
 
     expr->if_expr = if_expr;
 
+    /* @AUFGABE: da filter methoden aufrufen, die im scope des jeweiligen typen
+     * vorhanden sind, können filter in eine expr_call umgewandelt werden, mit
+     * expr_field als expr
+     */
     Expr **filters = 0;
     if ( do_parse_filter ) {
         if ( match_token(p, T_BAR) ) {

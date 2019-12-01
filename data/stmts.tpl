@@ -178,3 +178,5 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
 
 {% set test_lst = ["eins %d", "zwei"] %}
 {{ test_lst[0].format(1) }}
+
+{{ "stadt".capitalize() }}

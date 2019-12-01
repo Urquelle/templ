@@ -1946,8 +1946,6 @@ resolve_init_builtin_procs() {
     Type_Field *range_args[]  = { type_field("start", type_int, val_int(0)), type_field("stop", type_int), type_field("step", type_int, val_int(1)) };
     Type_Field *lipsum_args[] = { type_field("n",     type_int, val_int(5)), type_field("html", type_bool, val_bool(true)), type_field("min", type_int, val_int(20)), type_field("max", type_int, val_int(100)) };
     Type_Field *joiner_args[] = { type_field("sep",   type_str, val_str(",")) };
-    Type_Field *append_type[] = { type_field("elem", type_any) };
-    Type_Field *format_type[] = { type_field("fmt", type_str) };
 
     Scope *cycler_scope = scope_new(0, "cycler");
     Scope *prev_scope = scope_set(cycler_scope);
@@ -1968,16 +1966,27 @@ resolve_init_builtin_procs() {
 
     Scope *ns_scope = scope_new(0, "namespace");
     sym_push_sysproc("namespace", type_proc(0, 0, type_dict(ns_scope)), val_proc(0, 0, type_dict(ns_scope), proc_namespace));
+}
 
-    /* @INFO: list funktionen */
-    prev_scope = scope_set(&list_scope);
+internal_proc void
+resolve_init_builtin_type_procs() {
+    /* @INFO: list funktionen {{{ */
+    Scope *prev_scope = scope_set(&list_scope);
+
+    Type_Field *append_type[] = { type_field("elem", type_any) };
     sym_push_proc("append", type_proc(append_type, 1, type_list(type_any)), val_proc(append_type, 1, type_list(type_any), proc_list_append));
-    scope_set(prev_scope);
 
-    /* @INFO: string funktionen */
-    prev_scope = scope_set(&string_scope);
-    sym_push_proc("format", type_proc(format_type, 1, type_str), val_proc(format_type, 1, type_str, proc_string_format));
     scope_set(prev_scope);
+    /* }}} */
+    /* @INFO: string funktionen {{{ */
+    prev_scope = scope_set(&string_scope);
+
+    Type_Field *format_type[] = { type_field("fmt", type_str) };
+    sym_push_proc("capitalize", type_proc(0,           0, type_str), val_proc(0,           0, type_str, proc_string_capitalize));
+    sym_push_proc("format",     type_proc(format_type, 1, type_str), val_proc(format_type, 1, type_str, proc_string_format));
+
+    scope_set(prev_scope);
+    /* }}} */
 }
 
 internal_proc void
@@ -2033,6 +2042,7 @@ resolve_init(size_t arena_size) {
     resolve_init_scope();
     resolve_init_arenas(arena_size);
     resolve_init_builtin_types();
+    resolve_init_builtin_type_procs();
     resolve_init_builtin_procs();
     resolve_init_builtin_filter();
     resolve_init_builtin_testers();

@@ -18,7 +18,7 @@ internal_proc PROC_CALLBACK(filter_attr) {
 }
 
 internal_proc PROC_CALLBACK(filter_batch) {
-    return val_str("/* @IMPLEMENT: filter batch */");
+    return val_str("/* @AUFGABE: filter batch */");
 }
 
 internal_proc PROC_CALLBACK(filter_capitalize) {

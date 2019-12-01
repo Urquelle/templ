@@ -274,6 +274,26 @@ PROC_CALLBACK(proc_list_append) {
     return val_none();
 }
 
+PROC_CALLBACK(proc_string_capitalize) {
+    Resolved_Expr *base = expr->expr_field.base;
+    char *val = 0;
+
+    char *format = 0;
+    if ( base->kind == EXPR_STR ) {
+        val = val_str(base->val);
+    } else {
+        val = val_str(exec_expr(base));
+    }
+
+    char *cap = utf8_char_toupper(val);
+    size_t cap_size = utf8_char_size(cap);
+    char *remainder = val + cap_size;
+
+    char *result = strf("%.*s%s", cap_size, cap, remainder);
+
+    return val_str(result);
+}
+
 PROC_CALLBACK(proc_string_format) {
     Resolved_Expr *base = expr->expr_field.base;
     Val *result = 0;
