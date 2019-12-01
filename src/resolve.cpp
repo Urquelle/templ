@@ -1237,7 +1237,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                 Expr *name = stmt->stmt_set.names[i];
                 Resolved_Expr *resolved_name = resolve_expr(name);
                 resolved_name->type = expr->type;
-                Sym *sym = sym_push_var(name->expr_name.value, expr->type, val_undefined());
+                sym_push_var(name->expr_name.value, expr->type, val_undefined());
                 buf_push(names, resolved_name);
             }
 
@@ -1247,7 +1247,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         case STMT_SET_BLOCK: {
             Expr *name = stmt->stmt_set_block.name;
             Resolved_Expr *resolved_name = resolve_expr(name);
-            Sym *sym = sym_push_var(name->expr_name.value, &type_undefined, val_undefined());
+            sym_push_var(name->expr_name.value, &type_undefined, val_undefined());
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_set_block.num_stmts; ++i ) {
