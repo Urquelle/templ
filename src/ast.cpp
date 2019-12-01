@@ -471,8 +471,7 @@ struct Stmt {
         } stmt_set;
 
         struct {
-            Expr **names;
-            size_t num_names;
+            Expr *name;
             Stmt **stmts;
             size_t num_stmts;
         } stmt_set_block;
@@ -650,11 +649,10 @@ stmt_set(Expr **names, size_t num_names, Expr *expr) {
 }
 
 internal_proc Stmt *
-stmt_set_block(Expr **names, size_t num_names, Stmt **stmts, size_t num_stmts) {
+stmt_set_block(Expr *name, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_SET_BLOCK);
 
-    result->stmt_set_block.names = (Expr **)AST_DUP(names);
-    result->stmt_set_block.num_names = num_names;
+    result->stmt_set_block.name = name;
     result->stmt_set_block.stmts = (Stmt **)AST_DUP(stmts);
     result->stmt_set_block.num_stmts = num_stmts;
 

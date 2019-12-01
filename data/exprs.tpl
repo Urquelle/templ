@@ -11,5 +11,5 @@
 "aシbcd"[1] = {{ "aシbcd"[1] }}
 {{ "🤩✨🥰" * 10 }}
 {{ 10 * "🤩✨🥰" }}
-{{ "abc" ~ user.name ~ "def" }}
+{{ "abc" ~ users[0].name ~ "def" }}
 {#{ a in ["blub", "blab", "blob"] }#}

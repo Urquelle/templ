@@ -274,3 +274,7 @@ PROC_CALLBACK(proc_list_append) {
     return val_none();
 }
 
+PROC_CALLBACK(proc_string_format) {
+    return val_str("");
+}
+

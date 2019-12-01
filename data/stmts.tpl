@@ -166,5 +166,6 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
 
 {% set test_result %}
     {{ "hallo" }}
+    {{ "wie geht's" }}
 {% endset %}
 {{ test_result }}

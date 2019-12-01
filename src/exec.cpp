@@ -260,6 +260,7 @@ exec_expr(Resolved_Expr *expr) {
 
     for ( int i = 0; i < expr->num_filters; ++i ) {
         Resolved_Expr *filter = expr->filters[i];
+
         Val_Proc *proc = (Val_Proc *)filter->expr_call.expr->val->ptr;
         result = proc->callback( result, filter,
                 filter->expr_call.args, filter->expr_call.num_args,
@@ -395,8 +396,7 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_SET_BLOCK: {
-            assert(stmt->stmt_set_block.num_names == 1);
-            Val *dest = exec_expr(stmt->stmt_set_block.names[0]);
+            Val *dest = exec_expr(stmt->stmt_set_block.name);
 
             char *old_gen_result = gen_result;
             char *temp = "";

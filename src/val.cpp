@@ -13,6 +13,7 @@ global_var Scope system_scope;
 global_var Scope tester_scope;
 
 global_var Scope list_scope;
+global_var Scope string_scope;
 
 global_var Scope *current_scope = &global_scope;
 
@@ -238,6 +239,7 @@ val_str(char *val, size_t len = 0) {
 
     result->len = (len) ? len : utf8_strlen(val);
     result->ptr = intern_str(val);
+    result->scope = &string_scope;
 
     return result;
 }

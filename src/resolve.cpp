@@ -765,8 +765,7 @@ struct Resolved_Stmt {
         } stmt_set;
 
         struct {
-            Resolved_Expr **names;
-            size_t num_names;
+            Resolved_Expr *name;
             Resolved_Stmt **stmts;
             size_t num_stmts;
         } stmt_set_block;
@@ -927,13 +926,12 @@ resolved_stmt_set(Resolved_Expr **names, size_t num_names, Resolved_Expr *expr) 
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_set_block(Resolved_Expr **names, size_t num_names,
-        Resolved_Stmt **stmts, size_t num_stmts)
+resolved_stmt_set_block(Resolved_Expr *name, Resolved_Stmt **stmts,
+        size_t num_stmts)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_SET_BLOCK);
 
-    result->stmt_set_block.names = names;
-    result->stmt_set_block.num_names = num_names;
+    result->stmt_set_block.name = name;
     result->stmt_set_block.stmts = stmts;
     result->stmt_set_block.num_stmts = num_stmts;
 
@@ -1247,13 +1245,9 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         } break;
 
         case STMT_SET_BLOCK: {
-            Resolved_Expr **names = 0;
-            for ( int i = 0; i < stmt->stmt_set_block.num_names; ++i ) {
-                Expr *name = stmt->stmt_set_block.names[i];
-                Resolved_Expr *resolved_name = resolve_expr(name);
-                Sym *sym = sym_push_var(name->expr_name.value, &type_undefined, val_undefined());
-                buf_push(names, resolved_name);
-            }
+            Expr *name = stmt->stmt_set_block.name;
+            Resolved_Expr *resolved_name = resolve_expr(name);
+            Sym *sym = sym_push_var(name->expr_name.value, &type_undefined, val_undefined());
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_set_block.num_stmts; ++i ) {
@@ -1262,7 +1256,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                 buf_push(stmts, resolved_stmt);
             }
 
-            result = resolved_stmt_set_block(names, buf_len(names), stmts, buf_len(stmts));
+            result = resolved_stmt_set_block(resolved_name, stmts, buf_len(stmts));
         } break;
 
         case STMT_FILTER: {
@@ -1948,6 +1942,7 @@ resolve_init_builtin_procs() {
     Type_Field *lipsum_args[] = { type_field("n",     type_int, val_int(5)), type_field("html", type_bool, val_bool(true)), type_field("min", type_int, val_int(20)), type_field("max", type_int, val_int(100)) };
     Type_Field *joiner_args[] = { type_field("sep",   type_str, val_str(",")) };
     Type_Field *append_type[] = { type_field("elem", type_any) };
+    Type_Field *format_type[] = { type_field("fmt", type_str) };
 
     Scope *cycler_scope = scope_new(0, "cycler");
     Scope *prev_scope = scope_set(cycler_scope);
@@ -1969,9 +1964,14 @@ resolve_init_builtin_procs() {
     Scope *ns_scope = scope_new(0, "namespace");
     sym_push_sysproc("namespace", type_proc(0, 0, type_dict(ns_scope)), val_proc(0, 0, type_dict(ns_scope), proc_namespace));
 
-    /* @INFO: list funktionen bereitstellen */
+    /* @INFO: list funktionen */
     prev_scope = scope_set(&list_scope);
     sym_push_proc("append", type_proc(append_type, 1, type_list(type_any)), val_proc(append_type, 1, type_list(type_any), proc_list_append));
+    scope_set(prev_scope);
+
+    /* @INFO: string funktionen */
+    prev_scope = scope_set(&string_scope);
+    sym_push_proc("format", type_proc(format_type, 1, type_str), val_proc(format_type, 1, type_str, proc_string_format));
     scope_set(prev_scope);
 }
 
@@ -2015,6 +2015,7 @@ resolve_init_scope() {
     global_scope.parent = &system_scope;
 
     list_scope.name = "list scope";
+    string_scope.name = "string scope";
 }
 
 internal_proc void

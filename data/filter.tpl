@@ -44,7 +44,9 @@
 {{ false | default("true") }}
 {{ false | default("true", true, foo = "bar") }}
 {{ '<div>"&escape"</div>' | e }}
+
 {{ "name %s alter %d und %.2f" | format(users[0].name, users[0].age, 7.53) | upper }}
+
 {{ lipsum() | truncate(length = 9, end = " ???", killwords=true) }}
 
 {% for key, val in {'b': 'zzz', 'z': 'ccc', 'c': 'fff', 'f': 'aaa', 'a': 'bbb'} | dictsort(reverse = false, by = "key") %}

@@ -842,7 +842,7 @@ parse_stmt_set(Parser *p) {
         stmt = parse_stmt(p);
     }
 
-    return stmt_set_block(names, buf_len(names), stmts, buf_len(stmts));
+    return stmt_set_block(names[0], stmts, buf_len(stmts));
 }
 
 internal_proc Stmt *

@@ -89,6 +89,7 @@ internal_proc PROC_CALLBACK(proc_range);
 internal_proc PROC_CALLBACK(proc_lipsum);
 internal_proc PROC_CALLBACK(proc_namespace);
 internal_proc PROC_CALLBACK(proc_list_append);
+internal_proc PROC_CALLBACK(proc_string_format);
 
 internal_proc PROC_CALLBACK(filter_abs);
 internal_proc PROC_CALLBACK(filter_attr);
@@ -198,6 +199,7 @@ global_var char *symname_index = intern_str("index");
 #include "parser.cpp"
 #include "val.cpp"
 #include "resolve.cpp"
+#include "algo.cpp"
 #include "filter.cpp"
 #include "testers.cpp"
 #include "sysprocs.cpp"
