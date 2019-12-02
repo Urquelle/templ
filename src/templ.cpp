@@ -122,6 +122,7 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat);
 internal_proc PROC_CALLBACK(proc_list_append);
 internal_proc PROC_CALLBACK(proc_list_batch);
 internal_proc PROC_CALLBACK(proc_list_slice);
+internal_proc PROC_CALLBACK(proc_list_sum);
 
 internal_proc PROC_CALLBACK(proc_string_capitalize);
 internal_proc PROC_CALLBACK(proc_string_center);

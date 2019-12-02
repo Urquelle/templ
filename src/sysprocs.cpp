@@ -1,5 +1,5 @@
 #define BASE(EXPR) exec_expr(EXPR->expr_field.base)
-
+/* @INFO: globale methoden {{{ */
 internal_proc PROC_CALLBACK(proc_super) {
     assert(global_super_block);
     assert(global_super_block->kind == STMT_BLOCK);
@@ -256,12 +256,13 @@ internal_proc PROC_CALLBACK(proc_namespace) {
 
     return val_dict(scope);
 }
+/* }}} */
 /* @INFO: any methoden {{{ */
 internal_proc PROC_CALLBACK(proc_any_default) {
     char *default_value = val_str(narg("s")->val);
     b32 boolean = val_bool(narg("boolean")->val);
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     if ( val_is_undefined(val) || boolean && !val_is_true(val) ) {
         return val_str(default_value);
     }
@@ -270,7 +271,7 @@ internal_proc PROC_CALLBACK(proc_any_default) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_first) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Val *result = val_elem(val, 0);
 
     return result;
@@ -282,7 +283,7 @@ internal_proc PROC_CALLBACK(proc_any_groupby) {
     Scope *prev_scope = current_scope;
     Map list = {};
     char **keys = 0;
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
 
     for ( int i = 0; i < val->len; ++i ) {
         Val *v = val_elem(val, i);
@@ -320,54 +321,46 @@ internal_proc PROC_CALLBACK(proc_any_join) {
     Val *attr = narg("attribute")->val;
     char *result = "";
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     if (val->len < 2) {
         return val;
     }
 
-    if ( attr->kind == VAL_NONE ) {
-        result = strf("%s", val_print(val_elem(val, 0)));
-        for ( int i = 1; i < val->len; ++i ) {
-            result = strf("%s%s%s", result, sep, val_print(val_elem(val, i)));
+    Val *v = val_elem(val, 0);
+    if ( attr->kind != VAL_NONE ) {
+        Sym *sym = scope_attr(v->scope, val_str(attr));
+        v = sym->val;
+    }
+    result = strf("%s", val_print(v));
+
+    for ( int i = 1; i < val->len; ++i ) {
+        v = val_elem(val, i);
+        if ( attr->kind != VAL_NONE ) {
+            Sym *sym = scope_attr(v->scope, val_str(attr));
+            v = sym->val;
         }
-    } else {
-        Val *v = val_elem(val, 0);
-        Scope *scope = v->scope;
-        Scope *prev_scope = scope_set(scope);
-
-        Sym *sym = sym_get(val_str(attr));
-        result = strf("%s", val_print(sym->val));
-
-        for ( int i = 1; i < val->len; ++i ) {
-            v = val_elem(val, i);
-            scope_set(v->scope);
-            sym = sym_get(val_str(attr));
-
-            result = strf("%s%s%s", result, sep, val_print(sym->val));
-        }
-
-        scope_set(prev_scope);
+        result = strf("%s%s%s", result, sep, val_print(v));
     }
 
     return val_str(result);
 }
 
 internal_proc PROC_CALLBACK(proc_any_last) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Val *result = val_elem(val, (int)val->len-1);
 
     return result;
 }
 
 internal_proc PROC_CALLBACK(proc_any_length) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Val *result = val_int((int)val->len);
 
     return result;
 }
 
 internal_proc PROC_CALLBACK(proc_any_list) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     if ( val->kind == VAL_LIST ) {
         return operand;
     }
@@ -390,7 +383,7 @@ internal_proc PROC_CALLBACK(proc_any_map) {
         }
     }
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Scope *prev_scope = current_scope;
     Val **vals = 0;
     if ( attribute ) {
@@ -410,7 +403,7 @@ internal_proc PROC_CALLBACK(proc_any_map) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_max) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     if ( val->len == 1 ) {
         return val;
     }
@@ -447,7 +440,7 @@ internal_proc PROC_CALLBACK(proc_any_max) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_min) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     if ( val->len == 1 ) {
         return val;
     }
@@ -484,7 +477,7 @@ internal_proc PROC_CALLBACK(proc_any_min) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_pprint) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     b32 verbose = val_bool(narg("verbose")->val);
     char *result = val_pprint(val, verbose);
 
@@ -492,7 +485,7 @@ internal_proc PROC_CALLBACK(proc_any_pprint) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_random) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     s32 idx = rand() % val->len;
     Val *result = val_elem(val, idx);
 
@@ -500,7 +493,7 @@ internal_proc PROC_CALLBACK(proc_any_random) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_replace) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
 
     char *str = val_str(val);
     char  *old_str = val_str(narg("old")->val);
@@ -575,7 +568,7 @@ internal_proc PROC_CALLBACK(proc_any_reject) {
         }
     }
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Val **result = 0;
     for ( int i = 0; i < val->len; ++i ) {
         Val *elem = val_elem(val, i);
@@ -594,7 +587,7 @@ internal_proc PROC_CALLBACK(proc_any_reject) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_rejectattr) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
 
     if ( num_varargs == 1 ) {
         char *attr = val_str(varargs[0]->val);
@@ -666,7 +659,7 @@ internal_proc PROC_CALLBACK(proc_any_rejectattr) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_reverse) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     if ( val->len == 1 ) {
         return val;
     }
@@ -734,7 +727,7 @@ internal_proc PROC_CALLBACK(proc_any_select) {
         }
     }
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Val **result = 0;
     for ( int i = 0; i < val->len; ++i ) {
         Val *elem = val_elem(val, i);
@@ -753,7 +746,7 @@ internal_proc PROC_CALLBACK(proc_any_select) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_selectattr) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
 
     if ( num_varargs == 1 ) {
         char *attr = val_str(varargs[0]->val);
@@ -890,11 +883,10 @@ internal_proc PROC_CALLBACK(proc_dict_dictsort) {
     char *by = val_str(narg("by")->val);
     b32 reverse = val_bool(narg("reverse")->val);
 
-    /* @TEST: umgeschrieben, aber noch nicht getestet */
     /* @AUFGABE: eventuell umbauen um ein pair zurückzugeben. dabei kann auch
      *           einfacher auf case_sensitive eingegangen werden
      */
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Sym **syms = 0;
     {
         Scope *scope = val->scope;
@@ -920,7 +912,7 @@ internal_proc PROC_CALLBACK(proc_dict_dictsort) {
 internal_proc PROC_CALLBACK(proc_float_round) {
     s32 precision = val_int(narg("precision")->val);
     char *method  = val_str(narg("method")->val);
-    f32 value = val_float(exec_expr(expr->expr_field.base));
+    f32 value = val_float(BASE(expr));
 
     f32 result = 0;
     if ( method == intern_str("common") ) {
@@ -936,10 +928,8 @@ internal_proc PROC_CALLBACK(proc_float_round) {
 /* }}} */
 /* @INFO: int methoden {{{ */
 internal_proc PROC_CALLBACK(proc_int_abs) {
-    Resolved_Expr *base = expr->expr_field.base;
-
-    s32 val = val_int(exec_expr(base));
-    s32 i = abs(val);
+    Val *val = BASE(expr);
+    s32 i = abs(val_int(val));
 
     return val_int(i);
 }
@@ -957,7 +947,7 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
     int c = (binary) ? 1024 : 1000;
     char **suff = (binary) ? suff_bin : suff_dec;
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     s64 size = val_int(val);
     s32 mag = (s32)(log(size)/log(c));
     f32 calc_size = ( mag ) ? ((f32)size/(mag*c)) : (f32)size;
@@ -969,10 +959,7 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
 /* }}} */
 /* @INFO: list methoden {{{ */
 internal_proc PROC_CALLBACK(proc_list_append) {
-    assert(expr->kind == EXPR_FIELD);
-    assert(expr->expr_field.base->kind == EXPR_NAME);
-
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     Val *elem = narg("elem")->val;
 
     Val **vals = 0;
@@ -1037,12 +1024,33 @@ internal_proc PROC_CALLBACK(proc_list_slice) {
 
     return val_list(result, buf_len(result));
 }
+
+internal_proc PROC_CALLBACK(proc_list_sum) {
+    Val *val = BASE(expr);
+    Val *attr = narg("attribute")->val;
+    s32 start = val_int(narg("start")->val);
+
+    s32 result = 0;
+
+    for ( int i = start; i < val->len; ++i ) {
+        Val *elem = val_elem(val, i);
+
+        if ( attr->kind != VAL_NONE ) {
+            Sym *sym = scope_attr(elem->scope, val_str(attr));
+            elem = sym->val;
+        }
+
+        result += val_int(elem);
+    }
+
+    return val_int(result);
+}
 /* }}} */
 /* @INFO: string methoden {{{ */
 internal_proc PROC_CALLBACK(proc_string_capitalize) {
-    Resolved_Expr *base = expr->expr_field.base;
+    Val *v = BASE(expr);
 
-    char *val = val_str(exec_expr(base));
+    char *val = val_str(v);
     char *cap = utf8_char_toupper(val);
     size_t cap_size = utf8_char_size(cap);
     char *remainder = val + cap_size;
@@ -1056,7 +1064,7 @@ internal_proc PROC_CALLBACK(proc_string_center) {
     int   width    = val_int(narg("width")->val);
     char *fillchar = val_str(narg("fillchar")->val);
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     if ( val->len >= width ) {
         return val;
     }
@@ -1077,7 +1085,7 @@ internal_proc PROC_CALLBACK(proc_string_center) {
 
 internal_proc PROC_CALLBACK(proc_string_escape) {
     char *result = "";
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     char *ptr = (char *)val->ptr;
 
     for ( int i = 0; i < val->len; ++i ) {
@@ -1104,7 +1112,7 @@ internal_proc PROC_CALLBACK(proc_string_escape) {
 
 internal_proc PROC_CALLBACK(proc_string_float) {
     char *end = 0;
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     f32 f = strtof(val_str(val), &end);
     Val *result = (end == val->ptr) ? narg("default")->val : val_float(f);
 
@@ -1112,9 +1120,8 @@ internal_proc PROC_CALLBACK(proc_string_float) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_format) {
-    Resolved_Expr *base = expr->expr_field.base;
-
-    char *format = val_str(exec_expr(base));
+    Val *val = BASE(expr);
+    char *format = val_str(val);
     int num_arg = 0;
     char *result = "";
 
@@ -1213,7 +1220,7 @@ internal_proc PROC_CALLBACK(proc_string_indent) {
     b32 first = val_bool(narg("first")->val);
     b32 blank = val_bool(narg("blank")->val);
 
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     char *result = "";
     char *ptr = (char *)val->ptr;
 
@@ -1248,7 +1255,7 @@ internal_proc PROC_CALLBACK(proc_string_indent) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_int) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     char *end = 0;
     s32 i = strtol(val_str(val), &end, val_int(narg("base")->val));
     Val *result = (end == val->ptr) ? narg("default")->val : val_int(i);
@@ -1257,7 +1264,7 @@ internal_proc PROC_CALLBACK(proc_string_int) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_lower) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
     char *str = val_str(val);
     char *result = utf8_str_tolower(str);
 
@@ -1265,7 +1272,7 @@ internal_proc PROC_CALLBACK(proc_string_lower) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_truncate) {
-    Val *val = exec_expr(expr->expr_field.base);
+    Val *val = BASE(expr);
 
     size_t len = MIN(val->len, val_int(narg("length")->val));
     s32 leeway = val_int(narg("leeway")->val);
@@ -1316,10 +1323,8 @@ internal_proc PROC_CALLBACK(proc_string_truncate) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_upper) {
-    Resolved_Expr *base = expr->expr_field.base;
-
-    char *val = val_str(exec_expr(base));
-    char *result = utf8_str_toupper(val);
+    Val *val = BASE(expr);
+    char *result = utf8_str_toupper(val_str(val));
 
     return val_str(result);
 }

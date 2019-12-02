@@ -202,3 +202,7 @@ first line
     {{ b[0] }} * {{ b[1] }} * {{ b[2] }}
 {% endfor %}
 
+-- sum --
+{{ [1, 2, 3, 4, 5] | sum(start=3) }}
+{{ users | sum(attribute="age") }}
+

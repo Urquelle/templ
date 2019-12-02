@@ -1965,12 +1965,20 @@ resolve_init_builtin_type_procs() {
 
     Type_Field *append_type[] = { type_field("elem", type_any) };
     size_t app_size = ARRAY_SIZE(append_type);
+
     Type_Field *batch_type[]  = { type_field("line_count", type_int), type_field("fill_with", type_str, val_none()) };
     size_t bt_size = ARRAY_SIZE(batch_type);
+
+    Type_Field *sum_type[] = {
+        type_field("attribute", type_str, val_none()),
+        type_field("start", type_int, val_int(0))
+    };
+    size_t sm_size = ARRAY_SIZE(sum_type);
 
     sym_push_proc("append", type_proc(append_type, app_size, type_list(type_any)), val_proc(append_type, app_size, type_list(type_any), proc_list_append));
     sym_push_proc("batch", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_list_batch));
     sym_push_proc("slice", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_list_slice));
+    sym_push_proc("sum", type_proc(sum_type, sm_size, type_int), val_proc(sum_type, sm_size, type_int, proc_list_sum));
     /* }}} */
     /* @INFO: string methoden {{{ */
     scope_set(&type_string_scope);
