@@ -1011,6 +1011,32 @@ internal_proc PROC_CALLBACK(proc_list_batch) {
 
     return val_list(result, buf_len(result));
 }
+
+internal_proc PROC_CALLBACK(proc_list_slice) {
+    s32 line_count = val_int(narg("line_count")->val);
+    Val *fill_with = narg("fill_with")->val;
+
+    Val *val = BASE(expr);
+    s32 it_count = (s32)ceil((f32)val->len / line_count);
+
+    Val **result = 0;
+    for ( int i = 0; i < line_count; ++i ) {
+        Val **vals = 0;
+
+        for ( int j = 0; j < it_count; ++j ) {
+            s32 idx = i + line_count*j;
+            if ( idx >= val->len ) {
+                buf_push(vals, fill_with);
+            } else {
+                buf_push(vals, val_elem(val, i + line_count*j));
+            }
+        }
+
+        buf_push(result, val_list(vals, buf_len(vals)));
+    }
+
+    return val_list(result, buf_len(result));
+}
 /* }}} */
 /* @INFO: string methoden {{{ */
 internal_proc PROC_CALLBACK(proc_string_capitalize) {

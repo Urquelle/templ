@@ -196,4 +196,9 @@ first line
     --{{ loop.index }}--
     {{ b[0] }} * {{ b[1] }}
 {% endfor %}
+-- slice --
+{% for b in [1, 2, 3, 4, 5] | slice(2) %}
+    --{{ loop.index }}--
+    {{ b[0] }} * {{ b[1] }} * {{ b[2] }}
+{% endfor %}
 

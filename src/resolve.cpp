@@ -1970,6 +1970,7 @@ resolve_init_builtin_type_procs() {
 
     sym_push_proc("append", type_proc(append_type, app_size, type_list(type_any)), val_proc(append_type, app_size, type_list(type_any), proc_list_append));
     sym_push_proc("batch", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_list_batch));
+    sym_push_proc("slice", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_list_slice));
     /* }}} */
     /* @INFO: string methoden {{{ */
     scope_set(&type_string_scope);
