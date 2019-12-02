@@ -10,11 +10,13 @@
 
 namespace templ {
 
+enum { MAX_ENV_VAR_LENGTH = 32767 };
+static char global_env_var_buf[MAX_ENV_VAR_LENGTH];
 static char *
 os_env(char *name) {
-    char *result = getenv(name);
+    GetEnvironmentVariable(name, global_env_var_buf, MAX_ENV_VAR_LENGTH);
 
-    return result;
+    return global_env_var_buf;
 }
 
 static bool

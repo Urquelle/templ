@@ -164,11 +164,11 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
     --{{ it }}--
 {% endfor %}
 
-{% set test_result %}
+{% set yyy | upper %}
     {{ "hallo" }}
     {{ "wie geht's" }}
 {% endset %}
-{{ test_result }}
+{{ yyy }}
 
 {% set test_format = "my name is %s" %}
 {{ test_format.format("heinz") }}

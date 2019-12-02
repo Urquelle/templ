@@ -261,6 +261,29 @@ exec_expr(Resolved_Expr *expr) {
     return result;
 }
 
+internal_proc Val *
+exec_expr_base(Resolved_Expr *expr) {
+    Val *result = 0;
+
+    switch ( expr->kind ) {
+        case EXPR_FIELD: {
+            result = exec_expr_base(expr->expr_field.base);
+        } break;
+
+        case EXPR_NAME: {
+            Sym *sym = sym_get(expr->expr_name.name);
+
+            result = sym->val;
+        } break;
+
+        default: {
+            result = expr->val;
+        } break;
+    }
+
+    return result;
+}
+
 internal_proc b32
 if_expr_cond(Resolved_Expr *if_expr) {
     if ( !if_expr ) {
@@ -384,8 +407,12 @@ exec_stmt(Resolved_Stmt *stmt) {
         } break;
 
         case STMT_SET_BLOCK: {
-            Val *dest = exec_expr(stmt->stmt_set_block.name);
+            Resolved_Expr *expr = stmt->stmt_set_block.name;
+            while ( expr->kind == EXPR_CALL ) {
+                expr = expr->expr_call.expr;
+            }
 
+            Val *dest = exec_expr_base(expr);
             char *old_gen_result = gen_result;
             char *temp = "";
             gen_result = temp;
@@ -396,6 +423,8 @@ exec_stmt(Resolved_Stmt *stmt) {
 
             exec_stmt_set(dest, val_str(gen_result));
             gen_result = old_gen_result;
+
+            exec_stmt_set(dest, exec_expr(stmt->stmt_set_block.name));
         } break;
 
         case STMT_FOR: {

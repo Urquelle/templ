@@ -228,7 +228,7 @@ type_is_iterable(Type *type) {
 /* }}} */
 /* sym {{{ */
 enum Sym_Kind {
-    SYM_NONE,
+    SYM_UNDEFINED,
     SYM_VAR,
     SYM_PROC,
     SYM_MODULE,
@@ -241,18 +241,16 @@ struct Sym {
     Val  *val;
 };
 
-global_var Sym sym_undefined = { SYM_NONE, intern_str("undefined"), &type_undefined, val_undefined() };
-
 internal_proc b32
 sym_valid(Sym *sym) {
-    b32 result = sym != &sym_undefined;
+    b32 result = sym && sym->kind != SYM_UNDEFINED;
 
     return result;
 }
 
 internal_proc b32
 sym_invalid(Sym *sym) {
-    b32 result = sym == &sym_undefined;
+    b32 result = !sym || sym->kind == SYM_UNDEFINED;
 
     return result;
 }
@@ -270,6 +268,13 @@ sym_new(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
 }
 
 internal_proc Sym *
+sym_undefined() {
+    Sym *result = sym_new(SYM_UNDEFINED, "", &type_undefined);
+
+    return result;
+}
+
+internal_proc Sym *
 sym_get(char *name) {
     /* @INFO: symbole werden in einer map ohne external chaining gespeichert! */
     name = intern_str(name);
@@ -280,7 +285,7 @@ sym_get(char *name) {
         }
     }
 
-    return &sym_undefined;
+    return sym_undefined();
 }
 
 internal_proc void
@@ -1054,6 +1059,30 @@ resolved_templ(char *name) {
     return result;
 }
 /* }}} */
+internal_proc Expr *
+resolve_extract_expr_name(Expr *expr) {
+    Expr *result = 0;
+
+    switch ( expr->kind ) {
+        case EXPR_NAME: {
+            result = expr;
+        } break;
+
+        case EXPR_CALL: {
+            result = resolve_extract_expr_name(expr->expr_call.expr);
+        } break;
+
+        case EXPR_FIELD: {
+            result = resolve_extract_expr_name(expr->expr_field.expr);
+        } break;
+
+        default: {
+            illegal_path();
+        } break;
+    }
+
+    return result;
+}
 
 internal_proc Sym *
 resolve_name(char *name) {
@@ -1230,8 +1259,10 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         } break;
 
         case STMT_SET_BLOCK: {
-            Expr *name = stmt->stmt_set_block.name;
-            Resolved_Expr *resolved_name = resolve_expr(name);
+            Expr *expr = stmt->stmt_set_block.name;
+            Resolved_Expr *resolved_expr = resolve_expr(expr);
+
+            Expr *name = resolve_extract_expr_name(expr);
             sym_push_var(name->expr_name.value, &type_undefined, val_undefined());
 
             Resolved_Stmt **stmts = 0;
@@ -1241,7 +1272,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                 buf_push(stmts, resolved_stmt);
             }
 
-            result = resolved_stmt_set_block(resolved_name, stmts, buf_len(stmts));
+            result = resolved_stmt_set_block(resolved_expr, stmts, buf_len(stmts));
         } break;
 
         case STMT_FILTER: {

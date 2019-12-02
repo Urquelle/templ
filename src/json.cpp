@@ -142,120 +142,104 @@ json_null() {
 
 internal_proc Json_Node *
 json_parse_node(char **str) {
-#define SKIP_WHITESPACE() do { while ( **str && (**str == ' ' || **str == '\t' || **str == '\n') ) { (*str)++; } } while(false)
+#define NEXT() ((*str)++)
+#define VAL() (**str)
+#define SKIP_WHITESPACE() do { while ( VAL() && (VAL() == ' ' || VAL() == '\t' || VAL() == '\n') ) { NEXT(); } } while(false)
+#define EXPECT(C) do { if ( VAL() != C ) { fatal(0, 0, "expected '%c', got %1s\n", C, VAL()); } else { NEXT(); } } while(false)
 
     Json_Node *result = 0;
     SKIP_WHITESPACE();
 
-    erstes_if ( **str == '{' ) {
-        (*str)++;
-
+    erstes_if ( VAL() == '{' ) {
+        NEXT();
         Json_Pair **pairs = 0;
-        if ( **str != '}' ) {
+        if ( VAL() != '}' ) {
             do {
                 Json_Node *name = json_parse_node(str);
                 assert(name->kind == JSON_STR);
                 SKIP_WHITESPACE();
-
-                if ( **str != ':' ) {
-                    fatal(0, 0, "':' expected, got '%1s'", **str);
-                } else {
-                    (*str)++;
-                }
+                EXPECT(':');
 
                 Json_Node *value = json_parse_node(str);
-
                 buf_push(pairs, json_pair(name->json_str.value, value));
-
                 SKIP_WHITESPACE();
-            } while ( (**str == ',') ? (*str)++, true : false );
+            } while ( (VAL() == ',') ? NEXT(), true : false );
         }
 
-        if ( **str != '}' ) {
-            fatal(0, 0, "expected '}', got %1s", **str);
-        } else {
-            (*str)++;
-        }
-
+        EXPECT('}');
         result = json_object(pairs, buf_len(pairs));
-    } else if ( **str == '[' ) {
-        (*str)++;
+    } else if ( VAL() == '[' ) {
+        NEXT();
         Json_Node **nodes = 0;
 
-        if ( **str != ']' ) {
+        if ( VAL() != ']' ) {
             do {
                 Json_Node *node = json_parse_node(str);
                 buf_push(nodes, node);
                 SKIP_WHITESPACE();
-            } while ( (**str == ',') ? (*str)++, true : false );
+            } while ( (VAL() == ',') ? NEXT(), true : false );
         }
 
-        if ( **str != ']' ) {
-            fatal(0, 0, "expected ']', got %1s", **str);
-        } else {
-            (*str)++;
-        }
-
+        EXPECT(']');
         result = json_array(nodes, buf_len(nodes));
-    } else if ( **str == '"' ) {
-        (*str)++;
+    } else if ( VAL() == '"' ) {
+        NEXT();
         char *start = *str;
 
-        while ( **str != '"' ) {
-            if ( **str == '\\' ) {
-                (*str)++;
+        while ( VAL() != '"' ) {
+            if ( VAL() == '\\' ) {
+                NEXT();
             }
-            (*str)++;
+            NEXT();
         }
 
         result = json_str(start, *str);
-        (*str)++;
-    } else if ( **str == '-' || **str >= '0' && **str <= '9' ) {
+        NEXT();
+    } else if ( VAL() == '-' || VAL() >= '0' && VAL() <= '9' ) {
         b32 is_float = false;
         s32 mult = 1;
 
-        if ( **str == '-' ) {
+        if ( VAL() == '-' ) {
             mult = -1;
-            (*str)++;
+            NEXT();
         }
 
         char *base = *str;
 
         s32 int_value = 0;
-        while ( **str >= '0' && **str <= '9' ) {
+        while ( VAL() >= '0' && VAL() <= '9' ) {
             int_value *= 10;
-            int_value += **str - '0';
-            (*str)++;
+            int_value += VAL() - '0';
+            NEXT();
         }
 
         f32 float_value = 0;
-        if ( **str == '.' ) {
-            (*str)++;
+        if ( VAL() == '.' ) {
+            NEXT();
             is_float = true;
 
-            while ( **str >= '0' && **str <= '9' ) {
-                (*str)++;
+            while ( VAL() >= '0' && VAL() <= '9' ) {
+                NEXT();
             }
 
             float_value = strtof(base, NULL);
         }
 
         s32 exp = 1;
-        if ( **str == 'e' || **str == 'E' ) {
+        if ( VAL() == 'e' || VAL() == 'E' ) {
             exp = 0;
 
-            (*str)++;
-            if ( **str == '+' ) {
-                (*str)++;
-            } else if ( **str == '-' ) {
-                (*str)++;
+            NEXT();
+            if ( VAL() == '+' ) {
+                NEXT();
+            } else if ( VAL() == '-' ) {
+                NEXT();
             }
 
-            while ( **str >= '0' && **str <= '9' ) {
+            while ( VAL() >= '0' && VAL() <= '9' ) {
                 exp *= 10;
-                exp += **str - '0';
-
-                (*str)++;
+                exp += VAL() - '0';
+                NEXT();
             }
         }
 
@@ -264,10 +248,10 @@ json_parse_node(char **str) {
         } else {
             result = json_int(int_value*mult, exp);
         }
-    } else if ( **str != 0 ) {
+    } else if ( VAL() != 0 ) {
         char *start = *str;
-        while ( **str >= 'a' && **str <= 'z' ) {
-            (*str)++;
+        while ( VAL() >= 'a' && VAL() <= 'z' ) {
+            NEXT();
         }
 
         char *name = intern_str(start, (*str)-1);
@@ -284,6 +268,9 @@ json_parse_node(char **str) {
 
     return result;
 
+#undef VAL
+#undef NEXT
+#undef EXPECT
 #undef SKIP_WHITESPACE
 }
 
