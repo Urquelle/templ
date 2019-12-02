@@ -94,7 +94,7 @@
                 </tr>
                 <tr>
                     <td>platform:</td>
-                    <td align="right"><img src="https://img.shields.io/badge/platform-win-blue" /></td>
+                    <td align="right"><img src="https://img.shields.io/badge/platform-win%20%7C%20linux-blue" /></td>
                 </tr>
             </table>
         </td>
@@ -502,6 +502,7 @@ ongoing process of implementing the vast amount of filters. the following filter
 
 * abs
 * attr
+* batch
 * capitalize
 * center
 * default
@@ -512,6 +513,15 @@ ongoing process of implementing the vast amount of filters. the following filter
 * float
 * format
 * lower
+* max
+* min
+* reject
+* rejectattr
+* reverse
+* select
+* selectattr
+* slice
+* sum
 * truncate
 * upper
 

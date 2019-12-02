@@ -74,8 +74,6 @@ struct Val;
 typedef Parsed_Templ Templ;
 typedef PROC_CALLBACK(Proc_Callback);
 
-enum { True = 1, False = 0, None = -1 };
-
 /* @INFO: global procs */
 internal_proc PROC_CALLBACK(proc_super);
 internal_proc PROC_CALLBACK(proc_loop);
@@ -93,23 +91,25 @@ internal_proc PROC_CALLBACK(proc_namespace);
 
 /* @INFO: type procs */
 internal_proc PROC_CALLBACK(proc_any_default);
-internal_proc PROC_CALLBACK(proc_any_first);
-internal_proc PROC_CALLBACK(proc_any_groupby);
-internal_proc PROC_CALLBACK(proc_any_join);
-internal_proc PROC_CALLBACK(proc_any_last);
-internal_proc PROC_CALLBACK(proc_any_length);
 internal_proc PROC_CALLBACK(proc_any_list);
-internal_proc PROC_CALLBACK(proc_any_map);
 internal_proc PROC_CALLBACK(proc_any_max);
 internal_proc PROC_CALLBACK(proc_any_min);
 internal_proc PROC_CALLBACK(proc_any_pprint);
-internal_proc PROC_CALLBACK(proc_any_random);
-internal_proc PROC_CALLBACK(proc_any_reject);
-internal_proc PROC_CALLBACK(proc_any_rejectattr);
-internal_proc PROC_CALLBACK(proc_any_replace);
-internal_proc PROC_CALLBACK(proc_any_reverse);
-internal_proc PROC_CALLBACK(proc_any_select);
-internal_proc PROC_CALLBACK(proc_any_selectattr);
+
+internal_proc PROC_CALLBACK(proc_seq_batch);
+internal_proc PROC_CALLBACK(proc_seq_first);
+internal_proc PROC_CALLBACK(proc_seq_groupby);
+internal_proc PROC_CALLBACK(proc_seq_join);
+internal_proc PROC_CALLBACK(proc_seq_last);
+internal_proc PROC_CALLBACK(proc_seq_length);
+internal_proc PROC_CALLBACK(proc_seq_map);
+internal_proc PROC_CALLBACK(proc_seq_random);
+internal_proc PROC_CALLBACK(proc_seq_reject);
+internal_proc PROC_CALLBACK(proc_seq_rejectattr);
+internal_proc PROC_CALLBACK(proc_seq_replace);
+internal_proc PROC_CALLBACK(proc_seq_reverse);
+internal_proc PROC_CALLBACK(proc_seq_select);
+internal_proc PROC_CALLBACK(proc_seq_selectattr);
 
 internal_proc PROC_CALLBACK(proc_dict_attr);
 internal_proc PROC_CALLBACK(proc_dict_dictsort);
@@ -120,7 +120,6 @@ internal_proc PROC_CALLBACK(proc_int_abs);
 internal_proc PROC_CALLBACK(proc_int_filesizeformat);
 
 internal_proc PROC_CALLBACK(proc_list_append);
-internal_proc PROC_CALLBACK(proc_list_batch);
 internal_proc PROC_CALLBACK(proc_list_slice);
 internal_proc PROC_CALLBACK(proc_list_sum);
 

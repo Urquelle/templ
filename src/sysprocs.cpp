@@ -270,95 +270,6 @@ internal_proc PROC_CALLBACK(proc_any_default) {
     return val;
 }
 
-internal_proc PROC_CALLBACK(proc_any_first) {
-    Val *val = BASE(expr);
-    Val *result = val_elem(val, 0);
-
-    return result;
-}
-
-internal_proc PROC_CALLBACK(proc_any_groupby) {
-    char *attribute = val_str(narg("attribute")->val);
-
-    Scope *prev_scope = current_scope;
-    Map list = {};
-    char **keys = 0;
-    Val *val = BASE(expr);
-
-    for ( int i = 0; i < val->len; ++i ) {
-        Val *v = val_elem(val, i);
-        assert(v->kind == VAL_DICT);
-
-        scope_set(v->scope);
-        Sym *sym = sym_get(attribute);
-
-        char *key = intern_str(val_print(sym->val));
-
-        Val **vals = (Val **)map_get(&list, key);
-        buf_push(keys, key);
-        buf_push(vals, v);
-        map_put(&list, key, vals);
-    }
-
-    Val **vals = 0;
-    for ( int i = 0; i < buf_len(keys); ++i ) {
-        Scope *scope = scope_new(0, keys[i]);
-        scope_set(scope);
-        sym_push_var(intern_str("grouper"), type_str, val_str(keys[i]));
-
-        Val **v = (Val **)map_get(&list, keys[i]);
-        sym_push_var(intern_str("list"), type_list(type_any), val_list(v, buf_len(v)));
-        buf_push(vals, val_dict(scope));
-    }
-
-    scope_set(prev_scope);
-
-    return val_list(vals, buf_len(vals));
-}
-
-internal_proc PROC_CALLBACK(proc_any_join) {
-    char *sep = val_str(narg("d")->val);
-    Val *attr = narg("attribute")->val;
-    char *result = "";
-
-    Val *val = BASE(expr);
-    if (val->len < 2) {
-        return val;
-    }
-
-    Val *v = val_elem(val, 0);
-    if ( attr->kind != VAL_NONE ) {
-        Sym *sym = scope_attr(v->scope, val_str(attr));
-        v = sym->val;
-    }
-    result = strf("%s", val_print(v));
-
-    for ( int i = 1; i < val->len; ++i ) {
-        v = val_elem(val, i);
-        if ( attr->kind != VAL_NONE ) {
-            Sym *sym = scope_attr(v->scope, val_str(attr));
-            v = sym->val;
-        }
-        result = strf("%s%s%s", result, sep, val_print(v));
-    }
-
-    return val_str(result);
-}
-
-internal_proc PROC_CALLBACK(proc_any_last) {
-    Val *val = BASE(expr);
-    Val *result = val_elem(val, (int)val->len-1);
-
-    return result;
-}
-
-internal_proc PROC_CALLBACK(proc_any_length) {
-    Val *val = BASE(expr);
-    Val *result = val_int((int)val->len);
-
-    return result;
-}
-
 internal_proc PROC_CALLBACK(proc_any_list) {
     Val *val = BASE(expr);
     if ( val->kind == VAL_LIST ) {
@@ -371,34 +282,6 @@ internal_proc PROC_CALLBACK(proc_any_list) {
         buf_push(vals, v);
     }
 
-    return val_list(vals, buf_len(vals));
-}
-
-internal_proc PROC_CALLBACK(proc_any_map) {
-    char *attribute = 0;
-    for ( int i = 0; i < num_kwargs; ++i ) {
-        Resolved_Arg *kwarg = kwargs[i];
-        if ( kwarg->name == intern_str("attribute") ) {
-            attribute = val_str(kwarg->val);
-        }
-    }
-
-    Val *val = BASE(expr);
-    Scope *prev_scope = current_scope;
-    Val **vals = 0;
-    if ( attribute ) {
-        for ( int i = 0; i < val->len; ++i ) {
-            Val *elem = val_elem(val, i);
-            scope_set(elem->scope);
-            Sym *sym = sym_get(attribute);
-
-            if ( sym ) {
-                buf_push(vals, sym->val);
-            }
-        }
-    }
-
-    scope_set(prev_scope);
     return val_list(vals, buf_len(vals));
 }
 
@@ -483,8 +366,152 @@ internal_proc PROC_CALLBACK(proc_any_pprint) {
 
     return val_str(result);
 }
+/* }}} */
+/* @INFO: sequence methoden {{{ */
+internal_proc PROC_CALLBACK(proc_seq_batch) {
+    s32 line_count = val_int(narg("line_count")->val);
+    Val *fill_with = narg("fill_with")->val;
 
-internal_proc PROC_CALLBACK(proc_any_random) {
+    Val *val = BASE(expr);
+    s32 it_count = (s32)ceil((f32)val->len / line_count);
+
+    Val **result = 0;
+    for ( int i = 0; i < it_count; ++i ) {
+        Val **vals = 0;
+
+        for ( int j = 0; j < line_count; ++j ) {
+            s32 idx = i*line_count + j;
+            if ( idx >= val->len ) {
+                buf_push(vals, fill_with);
+            } else {
+                buf_push(vals, val_elem(val, i*line_count + j));
+            }
+        }
+
+        buf_push(result, val_list(vals, buf_len(vals)));
+    }
+
+    return val_list(result, buf_len(result));
+}
+
+internal_proc PROC_CALLBACK(proc_seq_groupby) {
+    char *attribute = val_str(narg("attribute")->val);
+
+    Scope *prev_scope = current_scope;
+    Map list = {};
+    char **keys = 0;
+    Val *val = BASE(expr);
+
+    for ( int i = 0; i < val->len; ++i ) {
+        Val *v = val_elem(val, i);
+        assert(v->kind == VAL_DICT);
+
+        scope_set(v->scope);
+        Sym *sym = sym_get(attribute);
+
+        char *key = intern_str(val_print(sym->val));
+
+        Val **vals = (Val **)map_get(&list, key);
+        buf_push(keys, key);
+        buf_push(vals, v);
+        map_put(&list, key, vals);
+    }
+
+    Val **vals = 0;
+    for ( int i = 0; i < buf_len(keys); ++i ) {
+        Scope *scope = scope_new(0, keys[i]);
+        scope_set(scope);
+        sym_push_var(intern_str("grouper"), type_str, val_str(keys[i]));
+
+        Val **v = (Val **)map_get(&list, keys[i]);
+        sym_push_var(intern_str("list"), type_list(type_any), val_list(v, buf_len(v)));
+        buf_push(vals, val_dict(scope));
+    }
+
+    scope_set(prev_scope);
+
+    return val_list(vals, buf_len(vals));
+}
+
+internal_proc PROC_CALLBACK(proc_seq_first) {
+    Val *val = BASE(expr);
+    Val *result = val_elem(val, 0);
+
+    return result;
+}
+
+internal_proc PROC_CALLBACK(proc_seq_join) {
+    char *sep = val_str(narg("d")->val);
+    Val *attr = narg("attribute")->val;
+    char *result = "";
+
+    Val *val = BASE(expr);
+    if (val->len < 2) {
+        return val;
+    }
+
+    Val *v = val_elem(val, 0);
+    if ( attr->kind != VAL_NONE ) {
+        Sym *sym = scope_attr(v->scope, val_str(attr));
+        v = sym->val;
+    }
+    result = strf("%s", val_print(v));
+
+    for ( int i = 1; i < val->len; ++i ) {
+        v = val_elem(val, i);
+        if ( attr->kind != VAL_NONE ) {
+            Sym *sym = scope_attr(v->scope, val_str(attr));
+            v = sym->val;
+        }
+        result = strf("%s%s%s", result, sep, val_print(v));
+    }
+
+    return val_str(result);
+}
+
+internal_proc PROC_CALLBACK(proc_seq_last) {
+    Val *val = BASE(expr);
+    Val *result = val_elem(val, (int)val->len-1);
+
+    return result;
+}
+
+internal_proc PROC_CALLBACK(proc_seq_length) {
+    Val *val = BASE(expr);
+    Val *result = val_int((int)val->len);
+
+    return result;
+}
+
+internal_proc PROC_CALLBACK(proc_seq_map) {
+    char *attribute = 0;
+    for ( int i = 0; i < num_kwargs; ++i ) {
+        Resolved_Arg *kwarg = kwargs[i];
+        if ( kwarg->name == intern_str("attribute") ) {
+            attribute = val_str(kwarg->val);
+        }
+    }
+
+    Val *val = BASE(expr);
+    Scope *prev_scope = current_scope;
+    Val **vals = 0;
+    if ( attribute ) {
+        for ( int i = 0; i < val->len; ++i ) {
+            Val *elem = val_elem(val, i);
+            scope_set(elem->scope);
+            Sym *sym = sym_get(attribute);
+
+            if ( sym ) {
+                buf_push(vals, sym->val);
+            }
+        }
+    }
+
+    scope_set(prev_scope);
+    return val_list(vals, buf_len(vals));
+}
+
+internal_proc PROC_CALLBACK(proc_seq_random) {
     Val *val = BASE(expr);
     s32 idx = rand() % val->len;
     Val *result = val_elem(val, idx);
@@ -492,7 +519,7 @@ internal_proc PROC_CALLBACK(proc_any_random) {
     return result;
 }
 
-internal_proc PROC_CALLBACK(proc_any_replace) {
+internal_proc PROC_CALLBACK(proc_seq_replace) {
     Val *val = BASE(expr);
 
     char *str = val_str(val);
@@ -533,7 +560,7 @@ internal_proc PROC_CALLBACK(proc_any_replace) {
     return val_str(result);
 }
 
-internal_proc PROC_CALLBACK(proc_any_reject) {
+internal_proc PROC_CALLBACK(proc_seq_reject) {
     assert(num_varargs > 0);
     Sym *sym = scope_attr(&tester_scope, val_str(varargs[0]->val));
     assert(sym->val->kind == VAL_PROC);
@@ -586,7 +613,7 @@ internal_proc PROC_CALLBACK(proc_any_reject) {
     return val_list(result, buf_len(result));
 }
 
-internal_proc PROC_CALLBACK(proc_any_rejectattr) {
+internal_proc PROC_CALLBACK(proc_seq_rejectattr) {
     Val *val = BASE(expr);
 
     if ( num_varargs == 1 ) {
@@ -658,7 +685,7 @@ internal_proc PROC_CALLBACK(proc_any_rejectattr) {
     return val_str("");
 }
 
-internal_proc PROC_CALLBACK(proc_any_reverse) {
+internal_proc PROC_CALLBACK(proc_seq_reverse) {
     Val *val = BASE(expr);
     if ( val->len == 1 ) {
         return val;
@@ -692,7 +719,7 @@ internal_proc PROC_CALLBACK(proc_any_reverse) {
     return result;
 }
 
-internal_proc PROC_CALLBACK(proc_any_select) {
+internal_proc PROC_CALLBACK(proc_seq_select) {
     assert(num_varargs > 0);
     Sym *sym = scope_attr(&tester_scope, val_str(varargs[0]->val));
     assert(sym->val->kind == VAL_PROC);
@@ -745,7 +772,7 @@ internal_proc PROC_CALLBACK(proc_any_select) {
     return val_list(result, buf_len(result));
 }
 
-internal_proc PROC_CALLBACK(proc_any_selectattr) {
+internal_proc PROC_CALLBACK(proc_seq_selectattr) {
     Val *val = BASE(expr);
 
     if ( num_varargs == 1 ) {
@@ -971,32 +998,6 @@ internal_proc PROC_CALLBACK(proc_list_append) {
     exec_stmt_set(val, val_list(vals, buf_len(vals)));
 
     return 0;
-}
-
-internal_proc PROC_CALLBACK(proc_list_batch) {
-    s32 line_count = val_int(narg("line_count")->val);
-    Val *fill_with = narg("fill_with")->val;
-
-    Val *val = BASE(expr);
-    s32 it_count = (s32)ceil((f32)val->len / line_count);
-
-    Val **result = 0;
-    for ( int i = 0; i < it_count; ++i ) {
-        Val **vals = 0;
-
-        for ( int j = 0; j < line_count; ++j ) {
-            s32 idx = i*line_count + j;
-            if ( idx >= val->len ) {
-                buf_push(vals, fill_with);
-            } else {
-                buf_push(vals, val_elem(val, i*line_count + j));
-            }
-        }
-
-        buf_push(result, val_list(vals, buf_len(vals)));
-    }
-
-    return val_list(result, buf_len(result));
 }
 
 internal_proc PROC_CALLBACK(proc_list_slice) {

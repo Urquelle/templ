@@ -92,7 +92,7 @@ first line
 
 {% set lastlist = [1, 2, 3] %}
 {{ lastlist | last }}
-{{ {'a': 'aaa', 'b': 'bbb' } | last }}
+{{ {'a': 'aaa', 'b': 'bbb'} | last }}
 
 {{ lastlist | length }}
 

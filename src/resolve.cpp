@@ -34,7 +34,6 @@ type_field_value(Type_Field *field) {
 enum Type_Kind {
     TYPE_NONE,
     TYPE_ANY,
-    TYPE_VOID,
     TYPE_BOOL,
     TYPE_INT,
     TYPE_FLOAT,
@@ -73,16 +72,6 @@ struct Type {
             Type_Field **params;
             size_t num_params;
             Type *ret;
-
-            /* @AUFGABE: in val auslagern und mit type proc zusammenlegen? */
-            Resolved_Stmt **stmts;
-            size_t num_stmts;
-        } type_macro;
-
-        struct {
-            Type_Field **params;
-            size_t num_params;
-            Type *ret;
         } type_proc;
 
         struct {
@@ -96,7 +85,6 @@ enum { PTR_SIZE = 8 };
 
 global_var Type type_none = { TYPE_NONE };
 global_var Type type_undefined;
-global_var Type *type_void;
 global_var Type *type_bool;
 global_var Type *type_int;
 global_var Type *type_float;
@@ -326,15 +314,6 @@ sym_push(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
 
     buf_push(current_scope->sym_list, result);
     current_scope->num_syms = buf_len(current_scope->sym_list);
-
-    return result;
-}
-
-internal_proc Sym *
-sym_push_filter(char *name, Type *type, Val *val) {
-    Scope *prev_scope = scope_set(&filter_scope);
-    Sym *result = sym_push(SYM_PROC, name, type, val);
-    scope_set(prev_scope);
 
     return result;
 }
@@ -1658,16 +1637,10 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *base = resolve_expr(expr->expr_field.expr);
             Type *type = base->type;
             Type *base_type = type_base(base->type);
+            Scope *scope = type->scope;
 
-            if ( base_type != type ) {
-                type->scope->parent = base_type->scope;
-            }
-
-            if ( type->scope ) {
-                Scope *prev_scope = scope_set(type->scope);
-                Sym *sym = resolve_name(expr->expr_field.field);
-                scope_set(prev_scope);
-
+            if ( scope ) {
+                Sym *sym = scope_attr(scope, expr->expr_field.field);
                 result = resolved_expr_field(base, sym->val, sym->type, expr->expr_field.field);
             } else {
                 result = resolved_expr_field(base, val_undefined(), type_any, expr->expr_field.field);
@@ -1866,19 +1839,8 @@ resolve_init_builtin_type_procs() {
     Scope *prev_scope = current_scope;
 
     /* @INFO: any methoden {{{ */
-    scope_set(&type_any_scope);
-
     Type_Field *default_type[] = { type_field("s", type_str), type_field("boolean",  type_bool, val_bool(false)) };
     size_t dt_size = ARRAY_SIZE(default_type);
-
-    Type_Field *groupby_type[] = { type_field("attribute", type_str) };
-    size_t gb_size = ARRAY_SIZE(groupby_type);
-
-    Type_Field *join_type[] = {
-        type_field("d",          type_str,  val_str("")),
-        type_field("attribute", &type_none, val_none())
-    };
-    size_t j_size = ARRAY_SIZE(join_type);
 
     Type_Field *max_type[]     = {
         type_field("case_sensitive", type_bool, val_bool(false)),
@@ -1888,6 +1850,27 @@ resolve_init_builtin_type_procs() {
 
     Type_Field *pprint_type[] = { type_field("verbose", type_bool, val_bool(false)) };
     size_t pp_size = ARRAY_SIZE(pprint_type);
+
+    scope_set(&type_any_scope);
+    sym_push_proc("default",    type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
+    sym_push_proc("d",          type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
+    sym_push_proc("list",       type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_list));
+    sym_push_proc("max",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_max));
+    sym_push_proc("min",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_min));
+    sym_push_proc("pprint",     type_proc(pprint_type,  pp_size, type_str), val_proc(pprint_type, pp_size, type_str, proc_any_pprint));
+    /* }}} */
+    /* @INFO: sequence methoden {{{ */
+    Type_Field *batch_type[]  = { type_field("line_count", type_int), type_field("fill_with", type_str, val_none()) };
+    size_t bt_size = ARRAY_SIZE(batch_type);
+
+    Type_Field *groupby_type[] = { type_field("attribute", type_str) };
+    size_t gb_size = ARRAY_SIZE(groupby_type);
+
+    Type_Field *join_type[] = {
+        type_field("d",          type_str,  val_str("")),
+        type_field("attribute", &type_none, val_none())
+    };
+    size_t j_size = ARRAY_SIZE(join_type);
 
     Type_Field *replace_type[] = {
         type_field("old", type_str),
@@ -1900,33 +1883,29 @@ resolve_init_builtin_type_procs() {
     scope_set(groupby_scope);
     sym_push_var("grouper", type_str);
     sym_push_var("list", type_dict(0));
-    scope_set(&type_any_scope);
     Type *groupby_ret = type_list(type_dict(groupby_scope));
 
-    sym_push_proc("count",      type_proc(0,            0, type_int), val_proc(0,            0, type_int,            proc_any_length));
-    sym_push_proc("default",    type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
-    sym_push_proc("d",          type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
-    sym_push_proc("first",      type_proc(0,            0, type_str), val_proc(0,            0, type_str,            proc_any_first));
-    sym_push_proc("groupby",    type_proc(groupby_type, gb_size, groupby_ret), val_proc(groupby_type, gb_size, groupby_ret, proc_any_groupby));
-    sym_push_proc("join",       type_proc(join_type,    j_size, type_str), val_proc(join_type, j_size, type_str, proc_any_join));
-    sym_push_proc("last",       type_proc(0,            0, type_str), val_proc(0,            0, type_str,            proc_any_last));
-    sym_push_proc("length",     type_proc(0,            0, type_int), val_proc(0,            0, type_int,            proc_any_length));
-    sym_push_proc("list",       type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_list));
-    sym_push_proc("map",        type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_map));
-    sym_push_proc("max",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_max));
-    sym_push_proc("min",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_min));
-    sym_push_proc("pprint",     type_proc(pprint_type,  pp_size, type_str), val_proc(pprint_type, pp_size, type_str, proc_any_pprint));
-    sym_push_proc("random",     type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_random));
-    sym_push_proc("reject",     type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_reject));
-    sym_push_proc("rejectattr", type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_rejectattr));
-    sym_push_proc("replace",    type_proc(replace_type, re_size, type_any), val_proc(replace_type, re_size, type_any, proc_any_replace));
-    sym_push_proc("reverse",    type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_reverse));
-    sym_push_proc("select",     type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_select));
-    sym_push_proc("selectattr", type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_selectattr));
+    scope_set(&type_sequence_scope);
+    sym_push_proc("batch", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_seq_batch));
+    sym_push_proc("count", type_proc(0, 0, type_int), val_proc(0, 0, type_int, proc_seq_length));
+    sym_push_proc("first", type_proc(0, 0, type_str), val_proc(0, 0, type_str, proc_seq_first));
+    sym_push_proc("groupby", type_proc(groupby_type, gb_size, groupby_ret), val_proc(groupby_type, gb_size, groupby_ret, proc_seq_groupby));
+    sym_push_proc("join", type_proc(join_type, j_size, type_str), val_proc(join_type, j_size, type_str, proc_seq_join));
+    sym_push_proc("last", type_proc(0, 0, type_str), val_proc(0, 0, type_str, proc_seq_last));
+    sym_push_proc("length", type_proc(0, 0, type_int), val_proc(0, 0, type_int, proc_seq_length));
+    sym_push_proc("map", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_map));
+    sym_push_proc("random", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_random));
+    sym_push_proc("reject", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_reject));
+    sym_push_proc("rejectattr", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_rejectattr));
+    sym_push_proc("replace", type_proc(replace_type, re_size, type_any), val_proc(replace_type, re_size, type_any, proc_seq_replace));
+    sym_push_proc("reverse", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_reverse));
+    sym_push_proc("select", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_select));
+    sym_push_proc("selectattr", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_selectattr));
+    /* }}} */
+    /* @INFO: numeric methoden {{{ */
+    scope_set(&type_numeric_scope);
     /* }}} */
     /* @INFO: dict methoden {{{ */
-    scope_set(&type_dict_scope);
-
     Type_Field *attr_type[]     = {  type_field("name", type_str) };
     size_t at_size = ARRAY_SIZE(attr_type);
 
@@ -1937,37 +1916,31 @@ resolve_init_builtin_type_procs() {
     };
     size_t ds_size = ARRAY_SIZE(dictsort_type);
 
+    scope_set(&type_dict_scope);
     sym_push_proc("attr",     type_proc(attr_type, at_size, type_any), val_proc(attr_type, at_size, type_any, proc_dict_attr));
     sym_push_proc("dictsort", type_proc(dictsort_type, ds_size, type_any), val_proc(dictsort_type, ds_size, type_any, proc_dict_dictsort));
     /* }}} */
     /* @INFO: float methoden {{{ */
-    scope_set(&type_float_scope);
-
     Type_Field *round_type[] = {
         type_field("precision", type_int, val_int(0)),
         type_field("method", type_str, val_str(intern_str("common")))
     };
     size_t rd_size = ARRAY_SIZE(round_type);
 
+    scope_set(&type_float_scope);
     sym_push_proc("round", type_proc(round_type, rd_size, type_float), val_proc(round_type, rd_size, type_float, proc_float_round));
     /* }}} */
     /* @INFO: int methoden {{{ */
-    scope_set(&type_int_scope);
-
     Type_Field *fs_type[] = { type_field("binary", type_bool, val_bool(false)) };
     size_t fs_size = ARRAY_SIZE(fs_type);
 
+    scope_set(&type_int_scope);
     sym_push_proc("abs", type_proc(0, 0, type_int), val_proc(0, 0, type_int, proc_int_abs));
     sym_push_proc("filesizeformat", type_proc(fs_type, fs_size, type_str), val_proc(fs_type, fs_size, type_str, proc_int_filesizeformat));
     /* }}} */
     /* @INFO: list methoden {{{ */
-    scope_set(&type_list_scope);
-
     Type_Field *append_type[] = { type_field("elem", type_any) };
     size_t app_size = ARRAY_SIZE(append_type);
-
-    Type_Field *batch_type[]  = { type_field("line_count", type_int), type_field("fill_with", type_str, val_none()) };
-    size_t bt_size = ARRAY_SIZE(batch_type);
 
     Type_Field *sum_type[] = {
         type_field("attribute", type_str, val_none()),
@@ -1975,14 +1948,12 @@ resolve_init_builtin_type_procs() {
     };
     size_t sm_size = ARRAY_SIZE(sum_type);
 
+    scope_set(&type_list_scope);
     sym_push_proc("append", type_proc(append_type, app_size, type_list(type_any)), val_proc(append_type, app_size, type_list(type_any), proc_list_append));
-    sym_push_proc("batch", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_list_batch));
     sym_push_proc("slice", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_list_slice));
     sym_push_proc("sum", type_proc(sum_type, sm_size, type_int), val_proc(sum_type, sm_size, type_int, proc_list_sum));
     /* }}} */
     /* @INFO: string methoden {{{ */
-    scope_set(&type_string_scope);
-
     Type_Field *format_type[]  = { type_field("fmt",     type_str) };
     Type_Field *float_type[]   = { type_field("default", type_float, val_float(0.0f)) };
     Type_Field *center_type[]  = {
@@ -2001,11 +1972,12 @@ resolve_init_builtin_type_procs() {
 
     Type_Field *trunc_type[]   = {
         type_field("length", type_int, val_int(255)),
-        type_field("killwords", type_bool, val_bool(False)),
+        type_field("killwords", type_bool, val_bool(false)),
         type_field("end", type_str, val_str("...")),
         type_field("leeway", type_int, val_int(0)),
     };
 
+    scope_set(&type_string_scope);
     sym_push_proc("capitalize",     type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_capitalize));
     sym_push_proc("center",         type_proc(center_type,  2, type_str), val_proc(center_type,  2, type_str, proc_string_center));
     sym_push_proc("escape",         type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_escape));
@@ -2029,9 +2001,6 @@ resolve_init_arenas(size_t size) {
 
 internal_proc void
 resolve_init_builtin_types() {
-    type_void  = type_new(TYPE_VOID);
-    type_void->size = 0;
-
     type_bool  = type_new(TYPE_BOOL);
     type_bool->size = 1;
     type_bool->scope = &type_bool_scope;
@@ -2068,26 +2037,32 @@ resolve_init_scope() {
 
     type_any_scope.name    = "any scope";
 
+    type_sequence_scope.name = "sequence scope";
+    type_sequence_scope.parent = &type_any_scope;
+
+    type_numeric_scope.name = "numeric scope";
+    type_numeric_scope.parent = &type_any_scope;
+
     type_bool_scope.name   = "bool scope";
     type_bool_scope.parent = &type_any_scope;
 
     type_dict_scope.name   = "dict scope";
-    type_dict_scope.parent = &type_any_scope;
+    type_dict_scope.parent = &type_sequence_scope;
 
     type_int_scope.name    = "int scope";
-    type_int_scope.parent  = &type_any_scope;
+    type_int_scope.parent  = &type_numeric_scope;
 
     type_float_scope.name  = "float scope";
-    type_float_scope.parent = &type_any_scope;
+    type_float_scope.parent = &type_numeric_scope;
 
     type_list_scope.name   = "list scope";
-    type_list_scope.parent = &type_any_scope;
+    type_list_scope.parent = &type_sequence_scope;
 
     type_range_scope.name  = "range scope";
-    type_range_scope.parent = &type_any_scope;
+    type_range_scope.parent = &type_sequence_scope;
 
     type_string_scope.name = "string scope";
-    type_string_scope.parent = &type_any_scope;
+    type_string_scope.parent = &type_sequence_scope;
 }
 
 internal_proc void

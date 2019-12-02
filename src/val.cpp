@@ -13,6 +13,8 @@ global_var Scope system_scope;
 global_var Scope tester_scope;
 
 global_var Scope type_any_scope;
+global_var Scope type_sequence_scope;
+global_var Scope type_numeric_scope;
 global_var Scope type_bool_scope;
 global_var Scope type_dict_scope;
 global_var Scope type_float_scope;
