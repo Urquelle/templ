@@ -1,5 +1,6 @@
 #include "os.cpp"
 
+#define ARRAY_SIZE(ARRAY) (sizeof(ARRAY) / sizeof((ARRAY)[0]))
 #define ALLOC_SIZE(arena, size) arena_alloc(arena, size)
 #define ALLOC_STRUCT(arena, s)  (s *)arena_alloc(arena, sizeof(s))
 #define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
@@ -462,6 +463,7 @@ namespace api {
 
 } /* namespace templ */
 
+#undef ARRAY_SIZE
 #undef ALLOC_SIZE
 #undef ALLOC_STRUCT
 #undef ALIGN_DOWN

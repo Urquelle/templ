@@ -169,3 +169,9 @@ first line
 
 {{ "abcdef" | reverse }}
 
+-- batch --
+{% for b in [1, 2, 3, 4, 5] | batch(2) %}
+    --{{ loop.index }}--
+    {{ b[0] }} * {{ b[1] }}
+{% endfor %}
+

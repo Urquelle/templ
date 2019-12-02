@@ -1869,25 +1869,32 @@ resolve_init_builtin_type_procs() {
     scope_set(&type_any_scope);
 
     Type_Field *default_type[] = { type_field("s", type_str), type_field("boolean",  type_bool, val_bool(false)) };
-    Type_Field *groupby_type[] = {
-        type_field("attribute", type_str)
-    };
+    size_t dt_size = ARRAY_SIZE(default_type);
+
+    Type_Field *groupby_type[] = { type_field("attribute", type_str) };
+    size_t gb_size = ARRAY_SIZE(groupby_type);
+
     Type_Field *join_type[] = {
         type_field("d",          type_str,  val_str("")),
         type_field("attribute", &type_none, val_none())
     };
+    size_t j_size = ARRAY_SIZE(join_type);
+
     Type_Field *max_type[]     = {
         type_field("case_sensitive", type_bool, val_bool(false)),
         type_field("attribute",      type_str, val_none())
     };
-    Type_Field *pprint_type[] = {
-        type_field("verbose", type_bool, val_bool(false))
-    };
+    size_t mx_size = ARRAY_SIZE(max_type);
+
+    Type_Field *pprint_type[] = { type_field("verbose", type_bool, val_bool(false)) };
+    size_t pp_size = ARRAY_SIZE(pprint_type);
+
     Type_Field *replace_type[] = {
         type_field("old", type_str),
         type_field("new", type_str),
         type_field("count", type_int, val_none())
     };
+    size_t re_size = ARRAY_SIZE(replace_type);
 
     Scope *groupby_scope = scope_new(0, "groupby");
     scope_set(groupby_scope);
@@ -1897,36 +1904,39 @@ resolve_init_builtin_type_procs() {
     Type *groupby_ret = type_list(type_dict(groupby_scope));
 
     sym_push_proc("count",      type_proc(0,            0, type_int), val_proc(0,            0, type_int,            proc_any_length));
-    sym_push_proc("default",    type_proc(default_type, 2, type_str), val_proc(default_type, 2, type_str,            proc_any_default));
-    sym_push_proc("d",          type_proc(default_type, 2, type_str), val_proc(default_type, 2, type_str,            proc_any_default));
+    sym_push_proc("default",    type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
+    sym_push_proc("d",          type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
     sym_push_proc("first",      type_proc(0,            0, type_str), val_proc(0,            0, type_str,            proc_any_first));
-    sym_push_proc("groupby",    type_proc(groupby_type, 1, groupby_ret), val_proc(groupby_type,  1, groupby_ret,     proc_any_groupby));
-    sym_push_proc("join",       type_proc(join_type,    2, type_str), val_proc(join_type,    2, type_str,            proc_any_join));
+    sym_push_proc("groupby",    type_proc(groupby_type, gb_size, groupby_ret), val_proc(groupby_type, gb_size, groupby_ret, proc_any_groupby));
+    sym_push_proc("join",       type_proc(join_type,    j_size, type_str), val_proc(join_type, j_size, type_str, proc_any_join));
     sym_push_proc("last",       type_proc(0,            0, type_str), val_proc(0,            0, type_str,            proc_any_last));
     sym_push_proc("length",     type_proc(0,            0, type_int), val_proc(0,            0, type_int,            proc_any_length));
     sym_push_proc("list",       type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_list));
     sym_push_proc("map",        type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_map));
-    sym_push_proc("max",        type_proc(max_type,     2, type_any), val_proc(max_type,     2, type_any,            proc_any_max));
-    sym_push_proc("min",        type_proc(max_type,     2, type_any), val_proc(max_type,     2, type_any,            proc_any_min));
-    sym_push_proc("pprint",     type_proc(pprint_type,  1, type_str), val_proc(pprint_type,  1, type_str,            proc_any_pprint));
+    sym_push_proc("max",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_max));
+    sym_push_proc("min",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_min));
+    sym_push_proc("pprint",     type_proc(pprint_type,  pp_size, type_str), val_proc(pprint_type, pp_size, type_str, proc_any_pprint));
     sym_push_proc("random",     type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_random));
     sym_push_proc("reject",     type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_reject));
     sym_push_proc("rejectattr", type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_rejectattr));
-    sym_push_proc("replace",    type_proc(replace_type, 3, type_any), val_proc(replace_type, 3, type_any,            proc_any_replace));
+    sym_push_proc("replace",    type_proc(replace_type, re_size, type_any), val_proc(replace_type, re_size, type_any, proc_any_replace));
     sym_push_proc("reverse",    type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_reverse));
     /* }}} */
     /* @INFO: dict methoden {{{ */
     scope_set(&type_dict_scope);
 
     Type_Field *attr_type[]     = {  type_field("name", type_str) };
+    size_t at_size = ARRAY_SIZE(attr_type);
+
     Type_Field *dictsort_type[] = {
         type_field("case_sensitive", type_bool, val_bool(false)),
         type_field("by",             type_str, val_str("key")),
         type_field("reverse",        type_bool, val_bool(false))
     };
+    size_t ds_size = ARRAY_SIZE(dictsort_type);
 
-    sym_push_proc("attr",     type_proc(attr_type,     1, type_any),    val_proc(attr_type,     1, type_any,    proc_dict_attr));
-    sym_push_proc("dictsort", type_proc(dictsort_type, 3, type_any),    val_proc(dictsort_type, 3, type_any,    proc_dict_dictsort));
+    sym_push_proc("attr",     type_proc(attr_type, at_size, type_any), val_proc(attr_type, at_size, type_any, proc_dict_attr));
+    sym_push_proc("dictsort", type_proc(dictsort_type, ds_size, type_any), val_proc(dictsort_type, ds_size, type_any, proc_dict_dictsort));
     /* }}} */
     /* @INFO: float methoden {{{ */
     scope_set(&type_float_scope);
@@ -1935,25 +1945,29 @@ resolve_init_builtin_type_procs() {
         type_field("precision", type_int, val_int(0)),
         type_field("method", type_str, val_str(intern_str("common")))
     };
+    size_t rd_size = ARRAY_SIZE(round_type);
 
-    sym_push_proc("round", type_proc(round_type, 2, type_float), val_proc(round_type, 2, type_float, proc_float_round));
+    sym_push_proc("round", type_proc(round_type, rd_size, type_float), val_proc(round_type, rd_size, type_float, proc_float_round));
     /* }}} */
     /* @INFO: int methoden {{{ */
     scope_set(&type_int_scope);
 
     Type_Field *fs_type[] = { type_field("binary", type_bool, val_bool(false)) };
+    size_t fs_size = ARRAY_SIZE(fs_type);
 
-    sym_push_proc("abs",            type_proc(0,       0, type_int), val_proc(0,       0, type_int, proc_int_abs));
-    sym_push_proc("filesizeformat", type_proc(fs_type, 1, type_str), val_proc(fs_type, 1, type_str, proc_int_filesizeformat));
+    sym_push_proc("abs", type_proc(0, 0, type_int), val_proc(0, 0, type_int, proc_int_abs));
+    sym_push_proc("filesizeformat", type_proc(fs_type, fs_size, type_str), val_proc(fs_type, fs_size, type_str, proc_int_filesizeformat));
     /* }}} */
     /* @INFO: list methoden {{{ */
     scope_set(&type_list_scope);
 
     Type_Field *append_type[] = { type_field("elem", type_any) };
-    Type_Field *batch_type[]  = { type_field("line_count", type_int), type_field("fill_with", type_str) };
+    size_t app_size = ARRAY_SIZE(append_type);
+    Type_Field *batch_type[]  = { type_field("line_count", type_int), type_field("fill_with", type_str, val_none()) };
+    size_t bt_size = ARRAY_SIZE(batch_type);
 
-    sym_push_proc("append", type_proc(append_type, 1, type_list(type_any)), val_proc(append_type, 1, type_list(type_any), proc_list_append));
-    sym_push_proc("batch",  type_proc(batch_type,  1, type_str),            val_proc(batch_type,  1, type_str,            proc_list_batch));
+    sym_push_proc("append", type_proc(append_type, app_size, type_list(type_any)), val_proc(append_type, app_size, type_list(type_any), proc_list_append));
+    sym_push_proc("batch", type_proc(batch_type, bt_size, type_str), val_proc(batch_type, bt_size, type_str, proc_list_batch));
     /* }}} */
     /* @INFO: string methoden {{{ */
     scope_set(&type_string_scope);

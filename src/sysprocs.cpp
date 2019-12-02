@@ -1,4 +1,6 @@
-PROC_CALLBACK(proc_super) {
+#define BASE(EXPR) exec_expr(EXPR->expr_field.base)
+
+internal_proc PROC_CALLBACK(proc_super) {
     assert(global_super_block);
     assert(global_super_block->kind == STMT_BLOCK);
 
@@ -16,7 +18,7 @@ PROC_CALLBACK(proc_super) {
     return result;
 }
 
-PROC_CALLBACK(proc_exec_macro) {
+internal_proc PROC_CALLBACK(proc_exec_macro) {
     Scope *scope = operand->scope;
     Scope *prev_scope = scope_set(scope);
 
@@ -45,7 +47,7 @@ PROC_CALLBACK(proc_exec_macro) {
     return result;
 }
 
-PROC_CALLBACK(proc_dict) {
+internal_proc PROC_CALLBACK(proc_dict) {
     Scope *scope = scope_new(0, "dict");
     Scope *prev_scope = scope_set(scope);
 
@@ -59,7 +61,7 @@ PROC_CALLBACK(proc_dict) {
     return val_dict(scope);
 }
 
-PROC_CALLBACK(proc_cycle) {
+internal_proc PROC_CALLBACK(proc_cycle) {
     Sym *sym = sym_get(symname_loop);
     Scope *scope = sym->val->scope;
     Scope *prev_scope = scope_set(scope);
@@ -79,7 +81,7 @@ struct Cycler {
     Resolved_Arg **args;
     s32 idx;
 };
-PROC_CALLBACK(proc_cycler) {
+internal_proc PROC_CALLBACK(proc_cycler) {
     Cycler *cycler = ALLOC_STRUCT(&templ_arena, Cycler);
     cycler->num_args = num_varargs;
     cycler->args = varargs;
@@ -102,7 +104,7 @@ PROC_CALLBACK(proc_cycler) {
     return val_dict(cycler_scope);
 }
 
-PROC_CALLBACK(proc_cycler_next) {
+internal_proc PROC_CALLBACK(proc_cycler_next) {
     Cycler *cycler = (Cycler *)operand->user_data;
 
     cycler->idx = (cycler->idx + 1) % cycler->num_args;
@@ -110,7 +112,7 @@ PROC_CALLBACK(proc_cycler_next) {
     return cycler->args[cycler->idx]->val;
 }
 
-PROC_CALLBACK(proc_cycler_reset) {
+internal_proc PROC_CALLBACK(proc_cycler_reset) {
     Cycler *cycler = (Cycler *)operand->user_data;
     cycler->idx = 0;
 
@@ -121,7 +123,7 @@ struct Joiner {
     int counter;
     Val *val;
 };
-PROC_CALLBACK(proc_joiner) {
+internal_proc PROC_CALLBACK(proc_joiner) {
     Joiner *j = ALLOC_STRUCT(&templ_arena, Joiner);
     j->val = narg("sep")->val;
     j->counter = 0;
@@ -132,7 +134,7 @@ PROC_CALLBACK(proc_joiner) {
     return result;
 }
 
-PROC_CALLBACK(proc_joiner_call) {
+internal_proc PROC_CALLBACK(proc_joiner_call) {
     Joiner *j = (Joiner *)operand->user_data;
     Val *result = 0;
 
@@ -146,7 +148,7 @@ PROC_CALLBACK(proc_joiner_call) {
     return result;
 }
 
-PROC_CALLBACK(proc_loop) {
+internal_proc PROC_CALLBACK(proc_loop) {
     s32 depth  = 1;
     s32 depth0 = 0;
 
@@ -218,7 +220,7 @@ PROC_CALLBACK(proc_loop) {
     return result;
 }
 
-PROC_CALLBACK(proc_range) {
+internal_proc PROC_CALLBACK(proc_range) {
     int start = val_int(narg("start")->val);
     int stop  = val_int(narg("stop")->val);
     int step  = val_int(narg("step")->val);
@@ -227,7 +229,7 @@ PROC_CALLBACK(proc_range) {
 }
 
 global_var char *global_lorem_ipsum = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
-PROC_CALLBACK(proc_lipsum) {
+internal_proc PROC_CALLBACK(proc_lipsum) {
     s32 n    = val_int(narg("n")->val);
     b32 html = val_bool(narg("html")->val);
     s32 min  = val_int(narg("min")->val);
@@ -860,7 +862,29 @@ internal_proc PROC_CALLBACK(proc_list_append) {
 }
 
 internal_proc PROC_CALLBACK(proc_list_batch) {
-    return val_str("/* @AUFGABE: filter batch */");
+    s32 line_count = val_int(narg("line_count")->val);
+    Val *fill_with = narg("fill_with")->val;
+
+    Val *val = BASE(expr);
+    s32 it_count = (s32)ceil((f32)val->len / line_count);
+
+    Val **result = 0;
+    for ( int i = 0; i < it_count; ++i ) {
+        Val **vals = 0;
+
+        for ( int j = 0; j < line_count; ++j ) {
+            s32 idx = i*line_count + j;
+            if ( idx >= val->len ) {
+                buf_push(vals, fill_with);
+            } else {
+                buf_push(vals, val_elem(val, i*line_count + j));
+            }
+        }
+
+        buf_push(result, val_list(vals, buf_len(vals)));
+    }
+
+    return val_list(result, buf_len(result));
 }
 /* }}} */
 /* @INFO: string methoden {{{ */
