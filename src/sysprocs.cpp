@@ -585,7 +585,7 @@ internal_proc PROC_CALLBACK(proc_any_reject) {
                 tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                 tester_varargs, num_varargs-1);
 
-        if ( val_bool(ret) ) {
+        if ( !val_bool(ret) ) {
             buf_push(result, elem);
         }
     }
@@ -603,7 +603,7 @@ internal_proc PROC_CALLBACK(proc_any_rejectattr) {
             Val *v = val_elem(val, i);
             Sym *sym = scope_attr(v->scope, attr);
 
-            if ( val_bool(sym->val) ) {
+            if ( !val_bool(sym->val) ) {
                 buf_push(vals, v);
             }
         }
@@ -654,7 +654,7 @@ internal_proc PROC_CALLBACK(proc_any_rejectattr) {
                     tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                     tester_varargs, num_varargs-1);
 
-            if ( val_bool(ret) ) {
+            if ( !val_bool(ret) ) {
                 buf_push(result, elem);
             }
         }
