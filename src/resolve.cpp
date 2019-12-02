@@ -1921,6 +1921,8 @@ resolve_init_builtin_type_procs() {
     sym_push_proc("rejectattr", type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_rejectattr));
     sym_push_proc("replace",    type_proc(replace_type, re_size, type_any), val_proc(replace_type, re_size, type_any, proc_any_replace));
     sym_push_proc("reverse",    type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_reverse));
+    sym_push_proc("select",     type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_select));
+    sym_push_proc("selectattr", type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_selectattr));
     /* }}} */
     /* @INFO: dict methoden {{{ */
     scope_set(&type_dict_scope);

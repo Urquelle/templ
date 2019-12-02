@@ -140,6 +140,7 @@ first line
 --{{ [1, 2, 3, 4, 5] | random }}--
 --{{ "abcdef" | random }}--
 
+-- reject --
 {% for it in [1, 2, 3] | reject("divisibleby", 3) %}
     --{{ it }}--
 {% endfor %}
@@ -157,6 +158,27 @@ first line
 {% endfor %}
 
 {% for user in users | rejectattr("age", "gt", 20) %}
+    --{{ user.name }}: {{ user.age }}--
+{% endfor %}
+
+-- select --
+{% for it in [1, 2, 3] | select("divisibleby", 3) %}
+    --{{ it }}--
+{% endfor %}
+
+{% for it in [1, 2, 3, 4, 5] | select("odd") %}
+    --{{ it }}--
+{% endfor %}
+
+{% for it in [1, 2, 3, 4, 5] | select("even") %}
+    --{{ it }}--
+{% endfor %}
+
+{% for user in users | selectattr("name", "eq", "noob") %}
+    --{{ user.name }}--
+{% endfor %}
+
+{% for user in users | selectattr("age", "gt", 20) %}
     --{{ user.name }}: {{ user.age }}--
 {% endfor %}
 

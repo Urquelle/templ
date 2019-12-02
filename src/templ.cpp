@@ -108,6 +108,8 @@ internal_proc PROC_CALLBACK(proc_any_reject);
 internal_proc PROC_CALLBACK(proc_any_rejectattr);
 internal_proc PROC_CALLBACK(proc_any_replace);
 internal_proc PROC_CALLBACK(proc_any_reverse);
+internal_proc PROC_CALLBACK(proc_any_select);
+internal_proc PROC_CALLBACK(proc_any_selectattr);
 
 internal_proc PROC_CALLBACK(proc_dict_attr);
 internal_proc PROC_CALLBACK(proc_dict_dictsort);
