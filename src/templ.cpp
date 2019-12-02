@@ -75,6 +75,7 @@ typedef PROC_CALLBACK(Proc_Callback);
 
 enum { True = 1, False = 0, None = -1 };
 
+/* @INFO: global procs */
 internal_proc PROC_CALLBACK(proc_super);
 internal_proc PROC_CALLBACK(proc_loop);
 internal_proc PROC_CALLBACK(proc_cycle);
@@ -88,43 +89,48 @@ internal_proc PROC_CALLBACK(proc_joiner_call);
 internal_proc PROC_CALLBACK(proc_range);
 internal_proc PROC_CALLBACK(proc_lipsum);
 internal_proc PROC_CALLBACK(proc_namespace);
+
+/* @INFO: type procs */
+internal_proc PROC_CALLBACK(proc_any_default);
+internal_proc PROC_CALLBACK(proc_any_first);
+internal_proc PROC_CALLBACK(proc_any_groupby);
+internal_proc PROC_CALLBACK(proc_any_join);
+internal_proc PROC_CALLBACK(proc_any_last);
+internal_proc PROC_CALLBACK(proc_any_length);
+internal_proc PROC_CALLBACK(proc_any_list);
+internal_proc PROC_CALLBACK(proc_any_map);
+internal_proc PROC_CALLBACK(proc_any_max);
+internal_proc PROC_CALLBACK(proc_any_min);
+internal_proc PROC_CALLBACK(proc_any_pprint);
+internal_proc PROC_CALLBACK(proc_any_random);
+internal_proc PROC_CALLBACK(proc_any_reject);
+internal_proc PROC_CALLBACK(proc_any_rejectattr);
+internal_proc PROC_CALLBACK(proc_any_replace);
+internal_proc PROC_CALLBACK(proc_any_reverse);
+
+internal_proc PROC_CALLBACK(proc_dict_attr);
+internal_proc PROC_CALLBACK(proc_dict_dictsort);
+
+internal_proc PROC_CALLBACK(proc_float_round);
+
+internal_proc PROC_CALLBACK(proc_int_abs);
+internal_proc PROC_CALLBACK(proc_int_filesizeformat);
+
 internal_proc PROC_CALLBACK(proc_list_append);
-internal_proc PROC_CALLBACK(proc_string_format);
+internal_proc PROC_CALLBACK(proc_list_batch);
+
 internal_proc PROC_CALLBACK(proc_string_capitalize);
+internal_proc PROC_CALLBACK(proc_string_center);
+internal_proc PROC_CALLBACK(proc_string_escape);
+internal_proc PROC_CALLBACK(proc_string_float);
+internal_proc PROC_CALLBACK(proc_string_format);
+internal_proc PROC_CALLBACK(proc_string_indent);
+internal_proc PROC_CALLBACK(proc_string_int);
+internal_proc PROC_CALLBACK(proc_string_lower);
+internal_proc PROC_CALLBACK(proc_string_truncate);
+internal_proc PROC_CALLBACK(proc_string_upper);
 
-internal_proc PROC_CALLBACK(filter_abs);
-internal_proc PROC_CALLBACK(filter_attr);
-internal_proc PROC_CALLBACK(filter_batch);
-internal_proc PROC_CALLBACK(filter_capitalize);
-internal_proc PROC_CALLBACK(filter_center);
-internal_proc PROC_CALLBACK(filter_default);
-internal_proc PROC_CALLBACK(filter_dictsort);
-internal_proc PROC_CALLBACK(filter_escape);
-internal_proc PROC_CALLBACK(filter_filesizeformat);
-internal_proc PROC_CALLBACK(filter_first);
-internal_proc PROC_CALLBACK(filter_float);
-internal_proc PROC_CALLBACK(filter_format);
-internal_proc PROC_CALLBACK(filter_groupby);
-internal_proc PROC_CALLBACK(filter_indent);
-internal_proc PROC_CALLBACK(filter_int);
-internal_proc PROC_CALLBACK(filter_join);
-internal_proc PROC_CALLBACK(filter_last);
-internal_proc PROC_CALLBACK(filter_length);
-internal_proc PROC_CALLBACK(filter_list);
-internal_proc PROC_CALLBACK(filter_lower);
-internal_proc PROC_CALLBACK(filter_map);
-internal_proc PROC_CALLBACK(filter_max);
-internal_proc PROC_CALLBACK(filter_min);
-internal_proc PROC_CALLBACK(filter_pprint);
-internal_proc PROC_CALLBACK(filter_random);
-internal_proc PROC_CALLBACK(filter_reject);
-internal_proc PROC_CALLBACK(filter_rejectattr);
-internal_proc PROC_CALLBACK(filter_replace);
-internal_proc PROC_CALLBACK(filter_reverse);
-internal_proc PROC_CALLBACK(filter_round);
-internal_proc PROC_CALLBACK(filter_truncate);
-internal_proc PROC_CALLBACK(filter_upper);
-
+/* @INFO: test procs */
 internal_proc PROC_CALLBACK(test_callable);
 internal_proc PROC_CALLBACK(test_defined);
 internal_proc PROC_CALLBACK(test_divisibleby);
@@ -202,8 +208,6 @@ global_var char *symname_index = intern_str("index");
 #include "parser.cpp"
 #include "val.cpp"
 #include "resolve.cpp"
-#include "algo.cpp"
-#include "filter.cpp"
 #include "testers.cpp"
 #include "sysprocs.cpp"
 #include "exec.cpp"

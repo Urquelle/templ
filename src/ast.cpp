@@ -477,8 +477,7 @@ struct Stmt {
         } stmt_set_block;
 
         struct {
-            Expr **filter;
-            size_t num_filter;
+            Expr *filter;
             Stmt **stmts;
             size_t num_stmts;
         } stmt_filter;
@@ -660,12 +659,11 @@ stmt_set_block(Expr *name, Stmt **stmts, size_t num_stmts) {
 }
 
 internal_proc Stmt *
-stmt_filter(Expr **filter, size_t num_filter, Stmt **stmts, size_t num_stmts) {
+stmt_filter(Expr *filter, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_FILTER);
 
-    result->stmt_filter.filter = (Expr **)AST_DUP(filter);
-    result->stmt_filter.num_filter = num_filter;
-    result->stmt_filter.stmts = (Stmt **)AST_DUP(stmts);
+    result->stmt_filter.filter = filter;
+    result->stmt_filter.stmts  = (Stmt **)AST_DUP(stmts);
     result->stmt_filter.num_stmts = num_stmts;
 
     return result;

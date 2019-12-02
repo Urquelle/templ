@@ -14,7 +14,7 @@
 {{ a }}
 
 {# center #}
-{{ "center me" | center }}
+{{ "center me" | center(25) }}
 
 {% set text_lde = "abcdefghijklmnopqrstuvwxyzäüöß" %}
 {% set text_lru = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя" %}

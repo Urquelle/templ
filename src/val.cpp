@@ -12,8 +12,14 @@ global_var Scope global_scope;
 global_var Scope system_scope;
 global_var Scope tester_scope;
 
-global_var Scope list_scope;
-global_var Scope string_scope;
+global_var Scope type_any_scope;
+global_var Scope type_bool_scope;
+global_var Scope type_dict_scope;
+global_var Scope type_float_scope;
+global_var Scope type_int_scope;
+global_var Scope type_range_scope;
+global_var Scope type_list_scope;
+global_var Scope type_string_scope;
 
 global_var Scope *current_scope = &global_scope;
 
@@ -180,6 +186,7 @@ val_bool(b32 val) {
     Val *result = val_new(VAL_BOOL, sizeof(b32));
 
     *((b32 *)result->ptr) = val;
+    result->scope = &type_bool_scope;
 
     return result;
 }
@@ -210,6 +217,7 @@ val_int(int val) {
     Val *result = val_new(VAL_INT, sizeof(int));
 
     *((int *)result->ptr) = val;
+    result->scope = &type_int_scope;
 
     return result;
 }
@@ -224,6 +232,7 @@ val_float(float val) {
     Val *result = val_new(VAL_FLOAT, sizeof(float));
 
     *((float *)result->ptr) = val;
+    result->scope = &type_float_scope;
 
     return result;
 }
@@ -239,7 +248,7 @@ val_str(char *val, size_t len = 0) {
 
     result->len = (len) ? len : utf8_strlen(val);
     result->ptr = intern_str(val);
-    result->scope = &string_scope;
+    result->scope = &type_string_scope;
 
     return result;
 }
@@ -292,6 +301,7 @@ val_range(int min, int max, int step = 1) {
     *((int *)result->ptr)   = min;
     *((int *)result->ptr+1) = max;
     *((int *)result->ptr+2) = step;
+    result->scope = &type_range_scope;
 
     return result;
 }
@@ -337,7 +347,7 @@ val_list(Val **vals, size_t num_vals) {
 
     result->ptr = (Val **)AST_DUP(vals);
     result->len = num_vals;
-    result->scope = &list_scope;
+    result->scope = &type_list_scope;
 
     return result;
 }
@@ -348,6 +358,10 @@ val_dict(Scope *scope) {
 
     result->len   = (scope) ? scope->num_syms : 0;
     result->scope = scope;
+
+    if ( scope ) {
+        result->scope->parent = &type_dict_scope;
+    }
 
     return result;
 }
@@ -366,6 +380,7 @@ val_proc(Type_Field **params, size_t num_params, Type *ret,
     ptr->callback = callback;
 
     result->ptr = ptr;
+    result->scope = &type_any_scope;
 
     return result;
 }

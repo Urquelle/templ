@@ -151,6 +151,7 @@ type_proc(Type_Field **params, size_t num_params, Type *ret) {
     result->type_proc.params = (Type_Field **)AST_DUP(params);
     result->type_proc.num_params = num_params;
     result->type_proc.ret = ret;
+    result->scope = &type_any_scope;
 
     return result;
 }
@@ -172,7 +173,7 @@ type_list(Type *type) {
     Type *result = type_new(TYPE_LIST);
 
     result->type_list.base = type;
-    result->scope = &list_scope;
+    result->scope = &type_list_scope;
 
     return result;
 }
@@ -182,6 +183,10 @@ type_dict(Scope *scope) {
     Type *result = type_new(TYPE_DICT);
 
     result->scope = scope;
+
+    if ( scope ) {
+        result->scope->parent = &type_dict_scope;
+    }
 
     return result;
 }
@@ -388,29 +393,9 @@ struct Resolved_Expr {
     Pos pos;
     Val *val;
     Type *type;
-    Scope *scope;
-
     Resolved_Expr *if_expr;
 
-    /* @AUFGABE: wird das noch genutzt? */
-    Resolved_Stmt *stmt;
-
-    Resolved_Expr **filters;
-    size_t num_filters;
-
     union {
-        struct {
-        } expr_bool;
-
-        struct {
-        } expr_int;
-
-        struct {
-        } expr_float;
-
-        struct {
-        } expr_str;
-
         struct {
             char *name;
         } expr_name;
@@ -771,8 +756,7 @@ struct Resolved_Stmt {
         } stmt_set_block;
 
         struct {
-            Resolved_Expr **filter;
-            size_t num_filter;
+            Resolved_Expr *filter;
             Resolved_Stmt **stmts;
             size_t num_stmts;
         } stmt_filter;
@@ -958,14 +942,13 @@ resolved_stmt_block(char *name, Resolved_Stmt **stmts, size_t num_stmts,
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_filter(Resolved_Expr **filter, size_t num_filter,
+resolved_stmt_filter(Resolved_Expr *filter,
         Resolved_Stmt **stmts, size_t num_stmts)
 {
     Resolved_Stmt *result = resolved_stmt_new(STMT_FILTER);
 
-    result->stmt_filter.filter = filter;
-    result->stmt_filter.num_filter = num_filter;
-    result->stmt_filter.stmts = stmts;
+    result->stmt_filter.filter    = filter;
+    result->stmt_filter.stmts     = stmts;
     result->stmt_filter.num_stmts = num_stmts;
 
     return result;
@@ -1114,9 +1097,11 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             Type *type = type_proc(loop_type, 1, 0);
             type->scope = scope;
+            type->scope->parent = &type_any_scope;
 
             Val *val = val_proc(loop_type, 1, 0, proc_loop);
             val->scope = scope;
+            val->scope->parent = &type_any_scope;
 
             sym_push_var(symname_loop, type, val);
             Scope *prev_scope = scope_set(scope);
@@ -1260,18 +1245,14 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         } break;
 
         case STMT_FILTER: {
-            Resolved_Expr **filter = 0;
-            for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
-                Resolved_Expr *f = resolve_filter(stmt->stmt_filter.filter[i]);
-                buf_push(filter, f);
-            }
+            Resolved_Expr *filter = resolve_filter(stmt->stmt_filter.filter);
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_filter.num_stmts; ++i ) {
                 buf_push(stmts, resolve_stmt(stmt->stmt_filter.stmts[i], templ));
             }
 
-            result = resolved_stmt_filter(filter, buf_len(filter), stmts, buf_len(stmts));
+            result = resolved_stmt_filter(filter, stmts, buf_len(stmts));
         } break;
 
         case STMT_INCLUDE: {
@@ -1347,6 +1328,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Scope *prev_scope = scope_set(scope_new(&system_scope, stmt->stmt_import.name));
             Scope *scope = current_scope;
 
+            scope->parent = &type_dict_scope;
             type->scope = scope;
             val->scope = scope;
 
@@ -1769,16 +1751,8 @@ resolve_expr(Expr *expr) {
     if ( expr->if_expr ) {
         if_expr = resolve_expr(expr->if_expr);
     }
+
     result->if_expr = if_expr;
-
-    Resolved_Expr **filters = 0;
-    for ( int i = 0; i < expr->num_filters; ++i ) {
-        Resolved_Expr *filter = resolve_filter(expr->filters[i]);
-        buf_push(filters, filter);
-    }
-
-    result->filters = filters;
-    result->num_filters = buf_len(filters);
     result->pos = expr->pos;
 
     return result;
@@ -1798,118 +1772,6 @@ resolve_filter(Expr *expr) {
     Resolved_Expr *result = resolve_expr_call(expr, &filter_scope);
 
     return result;
-}
-
-internal_proc void
-resolve_init_builtin_filter() {
-    Type_Field *attr_type[]     = { type_field("name", type_str) };
-    Type_Field *batch_type[]    = { type_field("line_count", type_int), type_field("fill_with", type_str) };
-    Type_Field *center_type[]   = { type_field("width", type_int, val_int(80)) };
-    Type_Field *default_type[]  = { type_field("s", type_str), type_field("boolean", type_bool, val_bool(False)) };
-
-    Type_Field *dictsort_type[] = {
-        type_field("case_sensitive", type_bool, val_bool(false)),
-        type_field("by", type_str, val_str("key")),
-        type_field("reverse", type_bool, val_bool(false))
-    };
-
-    Type_Field *fs_type[] = {
-        type_field("binary", type_bool, val_bool(false))
-    };
-
-    Type_Field *float_type[] = {
-        type_field("default", type_float, val_float(0.0f))
-    };
-
-    Type_Field *groupby_type[] = {
-        type_field("attribute", type_str)
-    };
-
-    Type_Field *indent_type[] = {
-        type_field("width", type_int, val_int(4)),
-        type_field("first", type_bool, val_bool(false)),
-        type_field("blank", type_bool, val_bool(false))
-    };
-
-    Type_Field *int_type[] = {
-        type_field("default", type_int, val_int(0)),
-        type_field("base", type_int, val_int(10))
-    };
-
-    Type_Field *join_type[] = {
-        type_field("d", type_str, val_str("")),
-        type_field("attribute", &type_none, val_none())
-    };
-
-    Type_Field *max_type[] = {
-        type_field("case_sensitive", type_bool, val_bool(false)),
-        type_field("attribute", type_str, val_none())
-    };
-
-    Type_Field *pprint_type[] = {
-        type_field("verbose", type_bool, val_bool(false))
-    };
-
-    Type_Field *replace_type[] = {
-        type_field("old", type_str),
-        type_field("new", type_str),
-        type_field("count", type_int, val_none())
-    };
-
-    Type_Field *round_type[] = {
-        type_field("precision", type_int, val_int(0)),
-        type_field("method", type_str, val_str(intern_str("common")))
-    };
-
-    Type_Field *trunc_type[]    = {
-        type_field("length", type_int, val_int(255)),
-        type_field("killwords", type_bool, val_bool(False)),
-        type_field("end", type_str, val_str("...")),
-        type_field("leeway", type_int, val_int(0)),
-    };
-
-    Scope *groupby_scope = scope_new(0, "groupby");
-    Scope *prev_scope = scope_set(groupby_scope);
-    sym_push_var("grouper", type_str);
-    sym_push_var("list", type_dict(0));
-    scope_set(prev_scope);
-    Type *groupby_ret = type_list(type_dict(groupby_scope));
-
-    sym_push_filter("abs",            type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_abs));
-    sym_push_filter("attr",           type_proc(attr_type,     1, type_str),   val_proc(attr_type,     1, type_str,   filter_attr));
-    sym_push_filter("batch",          type_proc(batch_type,    1, type_str),   val_proc(batch_type,    1, type_str,   filter_attr));
-    sym_push_filter("capitalize",     type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_capitalize));
-    sym_push_filter("center",         type_proc(center_type,   1, type_str),   val_proc(center_type,   1, type_str,   filter_center));
-    sym_push_filter("count",          type_proc(0,             0, type_int),   val_proc(0,             0, type_int,   filter_length));
-    sym_push_filter("default",        type_proc(default_type,  2, type_str),   val_proc(default_type,  2, type_str,   filter_default));
-    sym_push_filter("d",              type_proc(default_type,  2, type_str),   val_proc(default_type,  2, type_str,   filter_default));
-    sym_push_filter("dictsort",       type_proc(dictsort_type, 3, type_str),   val_proc(dictsort_type, 3, type_str,   filter_dictsort));
-    sym_push_filter("escape",         type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_escape));
-    sym_push_filter("e",              type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_escape));
-    sym_push_filter("filesizeformat", type_proc(fs_type,       1, type_str),   val_proc(fs_type,       1, type_str,   filter_filesizeformat));
-    sym_push_filter("first",          type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_first));
-    sym_push_filter("float",          type_proc(float_type,    1, type_str),   val_proc(float_type,    1, type_str,   filter_float));
-    sym_push_filter("format",         type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_format));
-    sym_push_filter("groupby",        type_proc(groupby_type,  1, groupby_ret), val_proc(groupby_type,  1, groupby_ret, filter_groupby));
-    sym_push_filter("indent",         type_proc(indent_type,   3, type_str),   val_proc(indent_type,   3, type_str,   filter_indent));
-    sym_push_filter("int",            type_proc(int_type,      2, type_str),   val_proc(int_type,      2, type_str,   filter_int));
-    sym_push_filter("join",           type_proc(join_type,     2, type_str),   val_proc(join_type,     2, type_str,   filter_join));
-    sym_push_filter("last",           type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_last));
-    sym_push_filter("length",         type_proc(0,             0, type_int),   val_proc(0,             0, type_int,   filter_length));
-    sym_push_filter("list",           type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_list));
-    sym_push_filter("lower",          type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_lower));
-    sym_push_filter("map",            type_proc(0,             0, type_list(type_any)), val_proc(0,   0, type_list(type_any), filter_map));
-    sym_push_filter("max",            type_proc(max_type,      2, type_any),   val_proc(max_type,      2, type_any,   filter_max));
-    sym_push_filter("min",            type_proc(max_type,      2, type_any),   val_proc(max_type,      2, type_any,   filter_min));
-    sym_push_filter("pprint",         type_proc(pprint_type,   1, type_str),   val_proc(pprint_type,   1, type_str,   filter_pprint));
-    sym_push_filter("random",         type_proc(0,             0, type_any),   val_proc(0,             0, type_any,   filter_random));
-    sym_push_filter("reject",         type_proc(0,             0, type_any),   val_proc(0,             0, type_any,   filter_reject));
-    sym_push_filter("rejectattr",     type_proc(0,             0, type_any),   val_proc(0,             0, type_any,   filter_rejectattr));
-    sym_push_filter("replace",        type_proc(replace_type,  3, type_any),   val_proc(replace_type,  3, type_any,   filter_replace));
-    sym_push_filter("reverse",        type_proc(0,             0, type_any),   val_proc(0,             0, type_any,   filter_reverse));
-    sym_push_filter("round",          type_proc(round_type,    2, type_float), val_proc(round_type,    2, type_float, filter_round));
-    sym_push_filter("truncate",       type_proc(trunc_type,    4, type_str),   val_proc(trunc_type,    4, type_str,   filter_truncate));
-    sym_push_filter("upper",          type_proc(0,             0, type_str),   val_proc(0,             0, type_str,   filter_upper));
 }
 
 internal_proc void
@@ -1957,11 +1819,11 @@ resolve_init_builtin_procs() {
     Type *cycler_type = type_dict(cycler_scope);
     sym_push_sysproc("cycler", type_proc(0, 0, cycler_type), val_proc(0, 0, cycler_type, proc_cycler));
 
-    Scope *dict_scope = scope_new(0, "dict");
+    Scope *local_dict_scope = scope_new(0, "dict");
 
     sym_push_sysproc("range", type_proc(range_args, 3, type_range), val_proc(range_args, 3, type_range, proc_range));
     sym_push_sysproc("lipsum", type_proc(lipsum_args, 4, type_str), val_proc(lipsum_args, 4, type_str, proc_lipsum));
-    sym_push_sysproc("dict", type_proc(0, 0, type_dict(dict_scope)), val_proc(0, 0, type_dict(dict_scope), proc_dict));
+    sym_push_sysproc("dict", type_proc(0, 0, type_dict(local_dict_scope)), val_proc(0, 0, type_dict(local_dict_scope), proc_dict));
     sym_push_sysproc("joiner", type_proc(joiner_args, 1, type_proc(0, 0, type_str)), val_proc(joiner_args, 1, type_proc(0, 0, type_str), proc_joiner));
 
     Scope *ns_scope = scope_new(0, "namespace");
@@ -1970,23 +1832,138 @@ resolve_init_builtin_procs() {
 
 internal_proc void
 resolve_init_builtin_type_procs() {
-    /* @INFO: list funktionen {{{ */
-    Scope *prev_scope = scope_set(&list_scope);
+    Scope *prev_scope = current_scope;
+
+    /* @INFO: any methoden {{{ */
+    scope_set(&type_any_scope);
+
+    Type_Field *default_type[] = { type_field("s", type_str), type_field("boolean",  type_bool, val_bool(false)) };
+    Type_Field *groupby_type[] = {
+        type_field("attribute", type_str)
+    };
+    Type_Field *join_type[] = {
+        type_field("d",          type_str,  val_str("")),
+        type_field("attribute", &type_none, val_none())
+    };
+    Type_Field *max_type[]     = {
+        type_field("case_sensitive", type_bool, val_bool(false)),
+        type_field("attribute",      type_str, val_none())
+    };
+    Type_Field *pprint_type[] = {
+        type_field("verbose", type_bool, val_bool(false))
+    };
+    Type_Field *replace_type[] = {
+        type_field("old", type_str),
+        type_field("new", type_str),
+        type_field("count", type_int, val_none())
+    };
+
+    Scope *groupby_scope = scope_new(0, "groupby");
+    scope_set(groupby_scope);
+    sym_push_var("grouper", type_str);
+    sym_push_var("list", type_dict(0));
+    scope_set(&type_any_scope);
+    Type *groupby_ret = type_list(type_dict(groupby_scope));
+
+    sym_push_proc("count",      type_proc(0,            0, type_int), val_proc(0,            0, type_int,            proc_any_length));
+    sym_push_proc("default",    type_proc(default_type, 2, type_str), val_proc(default_type, 2, type_str,            proc_any_default));
+    sym_push_proc("d",          type_proc(default_type, 2, type_str), val_proc(default_type, 2, type_str,            proc_any_default));
+    sym_push_proc("first",      type_proc(0,            0, type_str), val_proc(0,            0, type_str,            proc_any_first));
+    sym_push_proc("groupby",    type_proc(groupby_type, 1, groupby_ret), val_proc(groupby_type,  1, groupby_ret,     proc_any_groupby));
+    sym_push_proc("join",       type_proc(join_type,    2, type_str), val_proc(join_type,    2, type_str,            proc_any_join));
+    sym_push_proc("last",       type_proc(0,            0, type_str), val_proc(0,            0, type_str,            proc_any_last));
+    sym_push_proc("length",     type_proc(0,            0, type_int), val_proc(0,            0, type_int,            proc_any_length));
+    sym_push_proc("list",       type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_list));
+    sym_push_proc("map",        type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_map));
+    sym_push_proc("max",        type_proc(max_type,     2, type_any), val_proc(max_type,     2, type_any,            proc_any_max));
+    sym_push_proc("min",        type_proc(max_type,     2, type_any), val_proc(max_type,     2, type_any,            proc_any_min));
+    sym_push_proc("pprint",     type_proc(pprint_type,  1, type_str), val_proc(pprint_type,  1, type_str,            proc_any_pprint));
+    sym_push_proc("random",     type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_random));
+    sym_push_proc("reject",     type_proc(0,            0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_any_reject));
+    sym_push_proc("rejectattr", type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_rejectattr));
+    sym_push_proc("replace",    type_proc(replace_type, 3, type_any), val_proc(replace_type, 3, type_any,            proc_any_replace));
+    sym_push_proc("reverse",    type_proc(0,            0, type_any), val_proc(0,            0, type_any,            proc_any_reverse));
+    /* }}} */
+    /* @INFO: dict methoden {{{ */
+    scope_set(&type_dict_scope);
+
+    Type_Field *attr_type[]     = {  type_field("name", type_str) };
+    Type_Field *dictsort_type[] = {
+        type_field("case_sensitive", type_bool, val_bool(false)),
+        type_field("by",             type_str, val_str("key")),
+        type_field("reverse",        type_bool, val_bool(false))
+    };
+
+    sym_push_proc("attr",     type_proc(attr_type,     1, type_any),    val_proc(attr_type,     1, type_any,    proc_dict_attr));
+    sym_push_proc("dictsort", type_proc(dictsort_type, 3, type_any),    val_proc(dictsort_type, 3, type_any,    proc_dict_dictsort));
+    /* }}} */
+    /* @INFO: float methoden {{{ */
+    scope_set(&type_float_scope);
+
+    Type_Field *round_type[] = {
+        type_field("precision", type_int, val_int(0)),
+        type_field("method", type_str, val_str(intern_str("common")))
+    };
+
+    sym_push_proc("round", type_proc(round_type, 2, type_float), val_proc(round_type, 2, type_float, proc_float_round));
+    /* }}} */
+    /* @INFO: int methoden {{{ */
+    scope_set(&type_int_scope);
+
+    Type_Field *fs_type[] = { type_field("binary", type_bool, val_bool(false)) };
+
+    sym_push_proc("abs",            type_proc(0,       0, type_int), val_proc(0,       0, type_int, proc_int_abs));
+    sym_push_proc("filesizeformat", type_proc(fs_type, 1, type_str), val_proc(fs_type, 1, type_str, proc_int_filesizeformat));
+    /* }}} */
+    /* @INFO: list methoden {{{ */
+    scope_set(&type_list_scope);
 
     Type_Field *append_type[] = { type_field("elem", type_any) };
+    Type_Field *batch_type[]  = { type_field("line_count", type_int), type_field("fill_with", type_str) };
+
     sym_push_proc("append", type_proc(append_type, 1, type_list(type_any)), val_proc(append_type, 1, type_list(type_any), proc_list_append));
+    sym_push_proc("batch",  type_proc(batch_type,  1, type_str),            val_proc(batch_type,  1, type_str,            proc_list_batch));
+    /* }}} */
+    /* @INFO: string methoden {{{ */
+    scope_set(&type_string_scope);
+
+    Type_Field *format_type[]  = { type_field("fmt",     type_str) };
+    Type_Field *float_type[]   = { type_field("default", type_float, val_float(0.0f)) };
+    Type_Field *center_type[]  = {
+        type_field("width",   type_int,   val_int(80)),
+        type_field("fillchar", type_str,  val_str(" "))
+    };
+    Type_Field *indent_type[] = {
+        type_field("width", type_int, val_int(4)),
+        type_field("first", type_bool, val_bool(false)),
+        type_field("blank", type_bool, val_bool(false))
+    };
+    Type_Field *int_type[]     = {
+        type_field("default", type_int, val_int(0)),
+        type_field("base", type_int, val_int(10))
+    };
+
+    Type_Field *trunc_type[]   = {
+        type_field("length", type_int, val_int(255)),
+        type_field("killwords", type_bool, val_bool(False)),
+        type_field("end", type_str, val_str("...")),
+        type_field("leeway", type_int, val_int(0)),
+    };
+
+    sym_push_proc("capitalize",     type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_capitalize));
+    sym_push_proc("center",         type_proc(center_type,  2, type_str), val_proc(center_type,  2, type_str, proc_string_center));
+    sym_push_proc("escape",         type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_escape));
+    sym_push_proc("e",              type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_escape));
+    sym_push_proc("float",          type_proc(float_type,   1, type_str), val_proc(float_type,   1, type_str, proc_string_float));
+    sym_push_proc("format",         type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_format));
+    sym_push_proc("indent",         type_proc(indent_type,  3, type_str), val_proc(indent_type,  3, type_str, proc_string_indent));
+    sym_push_proc("int",            type_proc(int_type,     2, type_str), val_proc(int_type,     2, type_str, proc_string_int));
+    sym_push_proc("lower",          type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_lower));
+    sym_push_proc("truncate",       type_proc(trunc_type,   4, type_str), val_proc(trunc_type,   4, type_str, proc_string_truncate));
+    sym_push_proc("upper",          type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_upper));
+    /* }}} */
 
     scope_set(prev_scope);
-    /* }}} */
-    /* @INFO: string funktionen {{{ */
-    prev_scope = scope_set(&string_scope);
-
-    Type_Field *format_type[] = { type_field("fmt", type_str) };
-    sym_push_proc("capitalize", type_proc(0,           0, type_str), val_proc(0,           0, type_str, proc_string_capitalize));
-    sym_push_proc("format",     type_proc(format_type, 1, type_str), val_proc(format_type, 1, type_str, proc_string_format));
-
-    scope_set(prev_scope);
-    /* }}} */
 }
 
 internal_proc void
@@ -2001,9 +1978,11 @@ resolve_init_builtin_types() {
 
     type_bool  = type_new(TYPE_BOOL);
     type_bool->size = 1;
+    type_bool->scope = &type_bool_scope;
 
     type_int   = type_new(TYPE_INT);
     type_int->size = 4;
+    type_int->scope = &type_int_scope;
 
     type_float = type_new(TYPE_FLOAT);
     type_float->size = 4;
@@ -2011,12 +1990,15 @@ resolve_init_builtin_types() {
     type_str   = type_new(TYPE_STR);
     type_str->size = PTR_SIZE;
     type_str->flags = TYPE_FLAGS_ITERABLE;
+    type_str->scope = &type_string_scope;
 
     type_range = type_new(TYPE_RANGE);
     type_range->size = PTR_SIZE;
+    type_range->scope = &type_range_scope;
 
     type_any   = type_new(TYPE_ANY);
     type_any->size = PTR_SIZE;
+    type_any->scope = &type_any_scope;
 }
 
 internal_proc void
@@ -2028,8 +2010,28 @@ resolve_init_scope() {
 
     global_scope.parent = &system_scope;
 
-    list_scope.name = "list scope";
-    string_scope.name = "string scope";
+    type_any_scope.name    = "any scope";
+
+    type_bool_scope.name   = "bool scope";
+    type_bool_scope.parent = &type_any_scope;
+
+    type_dict_scope.name   = "dict scope";
+    type_dict_scope.parent = &type_any_scope;
+
+    type_int_scope.name    = "int scope";
+    type_int_scope.parent  = &type_any_scope;
+
+    type_float_scope.name  = "float scope";
+    type_float_scope.parent = &type_any_scope;
+
+    type_list_scope.name   = "list scope";
+    type_list_scope.parent = &type_any_scope;
+
+    type_range_scope.name  = "range scope";
+    type_range_scope.parent = &type_any_scope;
+
+    type_string_scope.name = "string scope";
+    type_string_scope.parent = &type_any_scope;
 }
 
 internal_proc void
@@ -2044,7 +2046,6 @@ resolve_init(size_t arena_size) {
     resolve_init_builtin_types();
     resolve_init_builtin_type_procs();
     resolve_init_builtin_procs();
-    resolve_init_builtin_filter();
     resolve_init_builtin_testers();
 }
 

@@ -488,17 +488,17 @@ parse_expr_tilde(Parser *p) {
     return left;
 }
 
-internal_proc Expr **
-parse_filter(Parser *p) {
-    Expr **result = 0;
+internal_proc Expr *
+parse_filter(Parser *p, Expr *expr) {
+    Expr *result = expr;
 
     do {
         Expr *call = parse_expr(p, false);
 
         Arg **args = 0;
         while ( !is_token(p, T_BAR) && !is_token(p, T_CODE_END) && !is_token(p, T_VAR_END) && !is_token(p, T_COMMA) ) {
-            Expr *expr = parse_expr(p, false);
-            buf_push(args, arg_new(expr->pos, 0, expr));
+            Expr *arg = parse_expr(p, false);
+            buf_push(args, arg_new(arg->pos, 0, arg));
         }
 
         size_t num_args = buf_len(args);
@@ -507,10 +507,11 @@ parse_filter(Parser *p) {
             call = expr_call(p->lex.pos, call, args, num_args);
         }
 
-        assert(call->kind == EXPR_CALL);
-        assert(call->expr_call.expr->kind == EXPR_NAME);
+        result = expr_call(
+            p->lex.pos,
+            expr_field(p->lex.pos, result, call->expr_call.expr->expr_name.value),
+            call->expr_call.args, call->expr_call.num_args);
 
-        buf_push(result, call);
     } while ( match_token(p, T_BAR) );
 
     return result;
@@ -560,19 +561,11 @@ parse_expr(Parser *p, b32 do_parse_filter) {
 
     expr->if_expr = if_expr;
 
-    /* @AUFGABE: da filter methoden aufrufen, die im scope des jeweiligen typen
-     * vorhanden sind, können filter in eine expr_call umgewandelt werden, mit
-     * expr_field als expr
-     */
-    Expr **filters = 0;
     if ( do_parse_filter ) {
         if ( match_token(p, T_BAR) ) {
-            filters = parse_filter(p);
+            expr = parse_filter(p, expr);
         }
     }
-
-    expr->filters = filters;
-    expr->num_filters = buf_len(filters);
 
     return expr;
 }
@@ -798,7 +791,8 @@ parse_stmt_include(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_filter(Parser *p) {
-    Expr **filters = parse_filter(p);
+    Expr *expr = expr_str(p->lex.pos, "");
+    Expr *filter = parse_filter(p, expr);
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
@@ -815,8 +809,7 @@ parse_stmt_filter(Parser *p) {
         }
     }
 
-    Stmt *result = stmt_filter(filters, buf_len(filters), stmts, buf_len(stmts));
-    buf_free(filters);
+    Stmt *result = stmt_filter(filter, stmts, buf_len(stmts));
     buf_free(stmts);
 
     return result;

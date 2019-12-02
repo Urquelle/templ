@@ -258,18 +258,6 @@ exec_expr(Resolved_Expr *expr) {
         } break;
     }
 
-    for ( int i = 0; i < expr->num_filters; ++i ) {
-        Resolved_Expr *filter = expr->filters[i];
-
-        Val_Proc *proc = (Val_Proc *)filter->expr_call.expr->val->ptr;
-        result = proc->callback( result, filter,
-                filter->expr_call.args, filter->expr_call.num_args,
-                filter->expr_call.nargs, filter->expr_call.narg_keys,
-                filter->expr_call.num_narg_keys, filter->expr_call.kwargs,
-                filter->expr_call.num_kwargs, filter->expr_call.varargs,
-                filter->expr_call.num_varargs);
-    }
-
     return result;
 }
 
@@ -529,21 +517,17 @@ exec_stmt(Resolved_Stmt *stmt) {
                 exec_stmt(stmt->stmt_filter.stmts[i]);
             }
 
-            Val *result = val_str(gen_result);
-            for ( int i = 0; i < stmt->stmt_filter.num_filter; ++i ) {
-                Resolved_Expr *filter = stmt->stmt_filter.filter[i];
-
-                Val_Proc *proc = (Val_Proc *)filter->expr_call.expr->val->ptr;
-                result = proc->callback( result, filter,
-                        filter->expr_call.args, filter->expr_call.num_args,
-                        filter->expr_call.nargs, filter->expr_call.narg_keys,
-                        filter->expr_call.num_narg_keys, filter->expr_call.kwargs,
-                        filter->expr_call.num_kwargs, filter->expr_call.varargs,
-                        filter->expr_call.num_varargs);
+            Resolved_Expr *expr = stmt->stmt_filter.filter;
+            while ( expr->kind == EXPR_CALL ) {
+                expr = expr->expr_call.expr;
             }
+            assert(expr->kind == EXPR_FIELD);
+            exec_stmt_set(expr->expr_field.base->val, val_str(gen_result));
 
+            Val *val = exec_expr(stmt->stmt_filter.filter);
             gen_result = old_gen_result;
-            genf("%s", val_print(result));
+
+            genf("%s", val_print(val));
         } break;
 
         case STMT_RAW: {
