@@ -74,93 +74,24 @@ struct Val;
 typedef Parsed_Templ Templ;
 typedef PROC_CALLBACK(Proc_Callback);
 
-/* @INFO: global procs */
-internal_proc PROC_CALLBACK(proc_super);
-internal_proc PROC_CALLBACK(proc_loop);
-internal_proc PROC_CALLBACK(proc_cycle);
-internal_proc PROC_CALLBACK(proc_dict);
-internal_proc PROC_CALLBACK(proc_cycler);
-internal_proc PROC_CALLBACK(proc_cycler_next);
-internal_proc PROC_CALLBACK(proc_cycler_reset);
-internal_proc PROC_CALLBACK(proc_exec_macro);
-internal_proc PROC_CALLBACK(proc_joiner);
-internal_proc PROC_CALLBACK(proc_joiner_call);
-internal_proc PROC_CALLBACK(proc_range);
-internal_proc PROC_CALLBACK(proc_lipsum);
-internal_proc PROC_CALLBACK(proc_namespace);
+struct Pos {
+    char *name;
+    s64 line;
+    char *start;
+};
 
-/* @INFO: type procs */
-internal_proc PROC_CALLBACK(proc_any_default);
-internal_proc PROC_CALLBACK(proc_any_list);
-internal_proc PROC_CALLBACK(proc_any_max);
-internal_proc PROC_CALLBACK(proc_any_min);
-internal_proc PROC_CALLBACK(proc_any_pprint);
-
-internal_proc PROC_CALLBACK(proc_seq_batch);
-internal_proc PROC_CALLBACK(proc_seq_first);
-internal_proc PROC_CALLBACK(proc_seq_groupby);
-internal_proc PROC_CALLBACK(proc_seq_join);
-internal_proc PROC_CALLBACK(proc_seq_last);
-internal_proc PROC_CALLBACK(proc_seq_length);
-internal_proc PROC_CALLBACK(proc_seq_map);
-internal_proc PROC_CALLBACK(proc_seq_random);
-internal_proc PROC_CALLBACK(proc_seq_reject);
-internal_proc PROC_CALLBACK(proc_seq_rejectattr);
-internal_proc PROC_CALLBACK(proc_seq_replace);
-internal_proc PROC_CALLBACK(proc_seq_reverse);
-internal_proc PROC_CALLBACK(proc_seq_select);
-internal_proc PROC_CALLBACK(proc_seq_selectattr);
-
-internal_proc PROC_CALLBACK(proc_dict_attr);
-internal_proc PROC_CALLBACK(proc_dict_dictsort);
-
-internal_proc PROC_CALLBACK(proc_float_round);
-
-internal_proc PROC_CALLBACK(proc_int_abs);
-internal_proc PROC_CALLBACK(proc_int_filesizeformat);
-
-internal_proc PROC_CALLBACK(proc_list_append);
-internal_proc PROC_CALLBACK(proc_list_slice);
-internal_proc PROC_CALLBACK(proc_list_sum);
-
-internal_proc PROC_CALLBACK(proc_string_capitalize);
-internal_proc PROC_CALLBACK(proc_string_center);
-internal_proc PROC_CALLBACK(proc_string_escape);
-internal_proc PROC_CALLBACK(proc_string_float);
-internal_proc PROC_CALLBACK(proc_string_format);
-internal_proc PROC_CALLBACK(proc_string_indent);
-internal_proc PROC_CALLBACK(proc_string_int);
-internal_proc PROC_CALLBACK(proc_string_lower);
-internal_proc PROC_CALLBACK(proc_string_truncate);
-internal_proc PROC_CALLBACK(proc_string_upper);
-
-/* @INFO: test procs */
-internal_proc PROC_CALLBACK(test_callable);
-internal_proc PROC_CALLBACK(test_defined);
-internal_proc PROC_CALLBACK(test_divisibleby);
-internal_proc PROC_CALLBACK(test_eq);
-internal_proc PROC_CALLBACK(test_escaped);
-internal_proc PROC_CALLBACK(test_even);
-internal_proc PROC_CALLBACK(test_ge);
-internal_proc PROC_CALLBACK(test_gt);
-internal_proc PROC_CALLBACK(test_in);
-internal_proc PROC_CALLBACK(test_iterable);
-internal_proc PROC_CALLBACK(test_le);
-internal_proc PROC_CALLBACK(test_lt);
-internal_proc PROC_CALLBACK(test_mapping);
-internal_proc PROC_CALLBACK(test_ne);
-internal_proc PROC_CALLBACK(test_none);
-internal_proc PROC_CALLBACK(test_number);
-internal_proc PROC_CALLBACK(test_odd);
-internal_proc PROC_CALLBACK(test_sameas);
-internal_proc PROC_CALLBACK(test_sequence);
-internal_proc PROC_CALLBACK(test_string);
-internal_proc PROC_CALLBACK(test_undefined);
-
+internal_proc char            * arg_name(Resolved_Arg *arg);
+internal_proc Pos               arg_pos(Resolved_Arg *arg);
+internal_proc Type            * arg_type(Resolved_Arg *arg);
+internal_proc Val             * arg_val(Resolved_Arg *arg);
 internal_proc void              exec_stmt(Resolved_Stmt *stmt);
 internal_proc void              exec(Resolved_Templ *templ);
 internal_proc Val             * exec_expr(Resolved_Expr *expr);
 internal_proc void              exec_stmt_set(Val *dest, Val *source);
+internal_proc Resolved_Expr   * expr_field_base(Resolved_Expr *expr);
+internal_proc Pos               expr_pos(Resolved_Expr *expr);
+internal_proc Type            * expr_type(Resolved_Expr *expr);
+internal_proc Val             * expr_val(Resolved_Expr *expr);
 internal_proc Expr            * parse_expr(Parser *p, b32 do_parse_filter = true);
 internal_proc Parsed_Templ    * parse_file(char *filename);
 internal_proc char            * parse_name(Parser *p);
@@ -174,11 +105,25 @@ internal_proc Resolved_Expr   * resolve_expr(Expr *expr);
 internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt, Resolved_Templ *templ);
+internal_proc Resolved_Arg    * resolved_arg(Pos pos, char *name, Type *type, Val *val);
+internal_proc Resolved_Stmt   * resolved_stmt_for(Scope *scope, Sym **vars, size_t num_vars, Resolved_Expr *set, Resolved_Stmt **stmts, size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts, Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0, Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle, Sym *loop_depth, Sym *loop_depth0);
 internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
+internal_proc size_t            stmt_block_num_stmts(Resolved_Stmt *stmt);
+internal_proc Resolved_Stmt  ** stmt_block_stmts(Resolved_Stmt *stmt);
+internal_proc size_t            stmt_for_num_else_stmts(Resolved_Stmt *stmt);
+internal_proc Resolved_Stmt  ** stmt_for_else_stmts(Resolved_Stmt *stmt);
+internal_proc size_t            stmt_for_num_stmts(Resolved_Stmt *stmt);
+internal_proc Resolved_Stmt  ** stmt_for_stmts(Resolved_Stmt *stmt);
+internal_proc size_t            stmt_for_num_vars(Resolved_Stmt *stmt);
+internal_proc Sym            ** stmt_for_vars(Resolved_Stmt *stmt);
+internal_proc s32               stmt_kind(Resolved_Stmt *stmt);
 internal_proc Sym             * sym_get(char *name);
 internal_proc char            * sym_name(Sym *sym);
+internal_proc Sym             * sym_push_proc(char *name, Type *type, Val *val = 0);
 internal_proc Sym             * sym_push_var(char *name, Type *type, Val *val = 0);
 internal_proc Val             * sym_val(Sym *sym);
+internal_proc void              sym_val(Sym *sym, Val *val);
+internal_proc Type            * sym_type(Sym *sym);
 user_api void                   templ_var_set(Templ_Var *var, Templ_Var *value);
 internal_proc char            * type_field_name(Type_Field *field);
 internal_proc Val             * type_field_value(Type_Field *field);
@@ -211,9 +156,9 @@ global_var char *symname_index = intern_str("index");
 #include "ast.cpp"
 #include "parser.cpp"
 #include "val.cpp"
-#include "resolve.cpp"
-#include "testers.cpp"
 #include "sysprocs.cpp"
+#include "testers.cpp"
+#include "resolve.cpp"
 #include "exec.cpp"
 
 struct Templ_Var {

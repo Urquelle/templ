@@ -11,14 +11,14 @@ internal_proc PROC_CALLBACK(test_defined) {
 }
 
 internal_proc PROC_CALLBACK(test_divisibleby) {
-    s32 s = val_int(narg("num")->val);
+    s32 s = val_int(arg_val(narg("num")));
     b32 result = (val_int(operand) % s) == 0;
 
     return val_bool(result);
 }
 
 internal_proc PROC_CALLBACK(test_eq) {
-    Val *result = val_bool(*operand == *narg("s")->val);
+    Val *result = val_bool(*operand == *arg_val(narg("s")));
 
     return result;
 }
@@ -36,7 +36,7 @@ internal_proc PROC_CALLBACK(test_even) {
 }
 
 internal_proc PROC_CALLBACK(test_ge) {
-    s32 s = val_int(narg("s")->val);
+    s32 s = val_int(arg_val(narg("s")));
 
     b32 result = val_int(operand) >= s;
 
@@ -44,7 +44,7 @@ internal_proc PROC_CALLBACK(test_ge) {
 }
 
 internal_proc PROC_CALLBACK(test_gt) {
-    s32 s = val_int(narg("s")->val);
+    s32 s = val_int(arg_val(narg("s")));
 
     b32 result = val_int(operand) > s;
 
@@ -52,7 +52,7 @@ internal_proc PROC_CALLBACK(test_gt) {
 }
 
 internal_proc PROC_CALLBACK(test_in) {
-    Val *set = narg("s")->val;
+    Val *set = arg_val(narg("s"));
 
     if ( !set || set->kind != VAL_LIST ) {
         return val_bool(false);
@@ -78,7 +78,7 @@ internal_proc PROC_CALLBACK(test_iterable) {
 }
 
 internal_proc PROC_CALLBACK(test_le) {
-    s32 s = val_int(narg("s")->val);
+    s32 s = val_int(arg_val(narg("s")));
 
     b32 result = val_int(operand) <= s;
 
@@ -86,7 +86,7 @@ internal_proc PROC_CALLBACK(test_le) {
 }
 
 internal_proc PROC_CALLBACK(test_lt) {
-    s32 s = val_int(narg("s")->val);
+    s32 s = val_int(arg_val(narg("s")));
 
     b32 result = val_int(operand) < s;
 
@@ -100,7 +100,7 @@ internal_proc PROC_CALLBACK(test_mapping) {
 }
 
 internal_proc PROC_CALLBACK(test_ne) {
-    s32 s = val_int(narg("s")->val);
+    s32 s = val_int(arg_val(narg("s")));
 
     b32 result = val_int(operand) != s;
 
@@ -126,7 +126,7 @@ internal_proc PROC_CALLBACK(test_odd) {
 }
 
 internal_proc PROC_CALLBACK(test_sameas) {
-    b32 result = ( operand->ptr == narg("s")->val->ptr );
+    b32 result = ( operand->ptr == arg_val(narg("s"))->ptr );
 
     return val_bool(result);
 }

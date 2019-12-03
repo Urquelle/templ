@@ -1,9 +1,3 @@
-struct Pos {
-    char *name;
-    s64 line;
-    char *start;
-};
-
 enum Token_Kind {
     T_EOF,
     T_INT = 129,

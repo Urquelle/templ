@@ -206,3 +206,9 @@ first line
 {{ [1, 2, 3, 4, 5] | sum(start=3) }}
 {{ users | sum(attribute="age") }}
 
+-- sort --
+{% set sss = [1, 3, 7, 5, 2] %}
+{% for it in sss | sort %}
+    --{{ it }}--
+{% endfor %}
+

@@ -194,12 +194,26 @@ exec_expr(Resolved_Expr *expr) {
             Val *val = exec_expr(expr->expr_call.expr);
             Val_Proc *proc = (Val_Proc *)val->ptr;
 
-            result = proc->callback(val, expr->expr_call.expr,
-                    expr->expr_call.args, expr->expr_call.num_args,
-                    expr->expr_call.nargs, expr->expr_call.narg_keys,
-                    expr->expr_call.num_narg_keys, expr->expr_call.kwargs,
-                    expr->expr_call.num_kwargs, expr->expr_call.varargs,
-                    expr->expr_call.num_varargs);
+            if ( proc ) {
+                result = proc->callback(val, expr->expr_call.expr,
+                        expr->expr_call.args, expr->expr_call.num_args,
+                        expr->expr_call.nargs, expr->expr_call.narg_keys,
+                        expr->expr_call.num_narg_keys, expr->expr_call.kwargs,
+                        expr->expr_call.num_kwargs, expr->expr_call.varargs,
+                        expr->expr_call.num_varargs);
+            } else {
+                char *proc_name = 0;
+
+                erstes_if ( expr->expr_call.expr->kind == EXPR_NAME ) {
+                    proc_name = expr->expr_call.expr->expr_name.name;
+                } else if ( expr->expr_call.expr->kind == EXPR_FIELD ) {
+                    proc_name = expr->expr_call.expr->expr_field.field;
+                }
+
+                fatal(expr->pos.name, expr->pos.line, "proc \"%s\" doesn't exist", proc_name);
+
+                result = val_none();
+            }
         } break;
 
         case EXPR_TUPLE: {

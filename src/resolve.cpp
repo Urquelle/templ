@@ -1,219 +1,3 @@
-/* type {{{ */
-struct Type_Field {
-    char *name;
-    Sym *sym;
-    Type *type;
-    Val  *default_value;
-};
-
-internal_proc Type_Field *
-type_field(char *name, Type *type, Val *default_value = val_undefined()) {
-    Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
-
-    result->name = intern_str(name);
-    result->type = type;
-    result->default_value = default_value;
-
-    return result;
-}
-
-internal_proc char *
-type_field_name(Type_Field *field) {
-    char *result = field->name;
-
-    return result;
-}
-
-internal_proc Val *
-type_field_value(Type_Field *field) {
-    Val *result = field->default_value;
-
-    return result;
-}
-
-enum Type_Kind {
-    TYPE_NONE,
-    TYPE_ANY,
-    TYPE_BOOL,
-    TYPE_INT,
-    TYPE_FLOAT,
-    TYPE_STR,
-    TYPE_RANGE,
-    TYPE_LIST,
-    TYPE_DICT,
-    TYPE_TUPLE,
-    TYPE_PROC,
-    TYPE_MODULE,
-
-    TYPE_COUNT,
-};
-enum Type_Flags {
-    TYPE_FLAGS_NONE     = 0x0,
-    TYPE_FLAGS_CALLABLE = 0x1,
-    TYPE_FLAGS_ITERABLE = 0x2,
-    TYPE_FLAGS_CONST    = 0x4,
-};
-struct Type {
-    Type_Kind kind;
-    s64 size;
-    u32 flags;
-    Scope *scope;
-
-    union {
-        struct {
-            size_t num_elems;
-        } type_tuple;
-
-        struct {
-            Type *base;
-        } type_list;
-
-        struct {
-            Type_Field **params;
-            size_t num_params;
-            Type *ret;
-        } type_proc;
-
-        struct {
-            char *name;
-        } type_module;
-    };
-};
-
-enum { PTR_SIZE = 8 };
-
-
-global_var Type type_none = { TYPE_NONE };
-global_var Type type_undefined;
-global_var Type *type_bool;
-global_var Type *type_int;
-global_var Type *type_float;
-global_var Type *type_str;
-global_var Type *type_range;
-global_var Type *type_any;
-
-internal_proc Type *
-type_base(Type *type) {
-    Type *result = 0;
-
-    switch ( type->kind ) {
-        case TYPE_LIST: {
-            result = type->type_list.base;
-        } break;
-
-        default: {
-            result = type;
-        } break;
-    }
-
-    return result;
-}
-
-internal_proc Type *
-type_new(Type_Kind kind) {
-    Type *result = ALLOC_STRUCT(&resolve_arena, Type);
-
-    result->kind  = kind;
-    result->scope = 0;
-
-    return result;
-}
-
-internal_proc Type *
-type_tuple(size_t num_elems) {
-    Type *result = type_new(TYPE_TUPLE);
-
-    result->flags = TYPE_FLAGS_CONST|TYPE_FLAGS_ITERABLE;
-
-    result->type_tuple.num_elems = num_elems;
-
-    return result;
-}
-
-internal_proc Type *
-type_proc(Type_Field **params, size_t num_params, Type *ret) {
-    Type *result = type_new(TYPE_PROC);
-
-    result->flags = TYPE_FLAGS_CALLABLE;
-
-    result->type_proc.params = (Type_Field **)AST_DUP(params);
-    result->type_proc.num_params = num_params;
-    result->type_proc.ret = ret;
-    result->scope = &type_any_scope;
-
-    return result;
-}
-
-internal_proc Type *
-type_module(char *name, Scope *scope) {
-    Type *result = type_new(TYPE_MODULE);
-
-    result->flags = TYPE_FLAGS_CONST;
-    result->scope = scope;
-
-    result->type_module.name = name;
-
-    return result;
-}
-
-internal_proc Type *
-type_list(Type *type) {
-    Type *result = type_new(TYPE_LIST);
-
-    result->type_list.base = type;
-    result->scope = &type_list_scope;
-
-    return result;
-}
-
-internal_proc Type *
-type_dict(Scope *scope) {
-    Type *result = type_new(TYPE_DICT);
-
-    result->scope = scope;
-
-    if ( scope ) {
-        result->scope->parent = &type_dict_scope;
-    }
-
-    return result;
-}
-
-internal_proc b32
-type_is_int(Type *type) {
-    b32 result = (type->kind == TYPE_INT);
-
-    return result;
-}
-
-internal_proc b32
-type_is_arithmetic(Type *type) {
-    b32 result = TYPE_INT <= type->kind && type->kind <= TYPE_FLOAT;
-
-    return result;
-}
-
-internal_proc b32
-type_is_scalar(Type *type) {
-    b32 result = TYPE_BOOL <= type->kind && type->kind <= TYPE_FLOAT;
-
-    return result;
-}
-
-internal_proc b32
-type_is_callable(Type *type) {
-    b32 result = type->flags & TYPE_FLAGS_CALLABLE;
-
-    return result;
-}
-
-internal_proc b32
-type_is_iterable(Type *type) {
-    b32 result = type->flags & TYPE_FLAGS_ITERABLE;
-
-    return result;
-}
-/* }}} */
 /* sym {{{ */
 enum Sym_Kind {
     SYM_UNDEFINED,
@@ -300,6 +84,18 @@ sym_val(Sym *sym) {
     return result;
 }
 
+internal_proc void
+sym_val(Sym *sym, Val *val) {
+    sym->val = val;
+}
+
+internal_proc Type *
+sym_type(Sym *sym) {
+    Type *result = sym->type;
+
+    return result;
+}
+
 internal_proc Sym *
 sym_push(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
     name = intern_str(name);
@@ -342,7 +138,7 @@ sym_push_var(char *name, Type *type, Val *val) {
 }
 
 internal_proc Sym *
-sym_push_proc(char *name, Type *type, Val *val = 0) {
+sym_push_proc(char *name, Type *type, Val *val) {
     return sym_push(SYM_PROC, name, type, val);
 }
 
@@ -367,6 +163,34 @@ resolved_arg(Pos pos, char *name, Type *type, Val *val) {
     result->name = name;
     result->type = type;
     result->val = val;
+
+    return result;
+}
+
+internal_proc char *
+arg_name(Resolved_Arg *arg) {
+    char *result = arg->name;
+
+    return result;
+}
+
+internal_proc Pos
+arg_pos(Resolved_Arg *arg) {
+    Pos result = arg->pos;
+
+    return result;
+}
+
+internal_proc Type *
+arg_type(Resolved_Arg *arg) {
+    Type *result = arg->type;
+
+    return result;
+}
+
+internal_proc Val *
+arg_val(Resolved_Arg *arg) {
+    Val *result = arg->val;
 
     return result;
 }
@@ -456,6 +280,34 @@ struct Resolved_Expr {
         } expr_list;
     };
 };
+
+internal_proc Pos
+expr_pos(Resolved_Expr *expr) {
+    Pos result = expr->pos;
+
+    return result;
+}
+
+internal_proc Type *
+expr_type(Resolved_Expr *expr) {
+    Type *result = expr->type;
+
+    return result;
+}
+
+internal_proc Val *
+expr_val(Resolved_Expr *expr) {
+    Val *result = expr->val;
+
+    return result;
+}
+
+internal_proc Resolved_Expr *
+expr_field_base(Resolved_Expr *expr) {
+    Resolved_Expr *result = expr->expr_field.base;
+
+    return result;
+}
 
 internal_proc Resolved_Expr *
 resolved_expr_new(Expr_Kind kind, Type *type = 0) {
@@ -776,6 +628,69 @@ struct Resolved_Stmt {
         } stmt_with;
     };
 };
+
+internal_proc s32
+stmt_kind(Resolved_Stmt *stmt) {
+    s32 result = stmt->kind;
+
+    return result;
+}
+
+internal_proc size_t
+stmt_block_num_stmts(Resolved_Stmt *stmt) {
+    size_t result = stmt->stmt_block.num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt **
+stmt_block_stmts(Resolved_Stmt *stmt) {
+    Resolved_Stmt **result = stmt->stmt_block.stmts;
+
+    return result;
+}
+
+internal_proc size_t
+stmt_for_num_else_stmts(Resolved_Stmt *stmt) {
+    size_t result = stmt->stmt_for.num_else_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt **
+stmt_for_else_stmts(Resolved_Stmt *stmt) {
+    Resolved_Stmt **result = stmt->stmt_for.else_stmts;
+
+    return result;
+}
+
+internal_proc size_t
+stmt_for_num_stmts(Resolved_Stmt *stmt) {
+    size_t result = stmt->stmt_for.num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt **
+stmt_for_stmts(Resolved_Stmt *stmt) {
+    Resolved_Stmt **result = stmt->stmt_for.stmts;
+
+    return result;
+}
+
+internal_proc size_t
+stmt_for_num_vars(Resolved_Stmt *stmt) {
+    size_t result = stmt->stmt_for.num_vars;
+
+    return result;
+}
+
+internal_proc Sym **
+stmt_for_vars(Resolved_Stmt *stmt) {
+    Sym **result = stmt->stmt_for.vars;
+
+    return result;
+}
 
 internal_proc Resolved_Stmt *
 resolved_stmt_new(Stmt_Kind kind) {
@@ -1335,8 +1250,8 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Sym *sym = sym_push_module(stmt->stmt_import.name, type, val);
             Resolved_Templ *prev_templ = current_templ;
 
-            Scope *prev_scope = scope_set(scope_new(&system_scope, stmt->stmt_import.name));
-            Scope *scope = current_scope;
+            Scope *scope = scope_new(&system_scope, stmt->stmt_import.name);
+            Scope *prev_scope = scope_set(scope);
 
             scope->parent = &type_dict_scope;
             type->scope = scope;
@@ -1354,19 +1269,20 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Parsed_Templ *t = stmt->stmt_from_import.templ;
             Resolved_Stmt **stmts = 0;
 
+            /* @AUFGABE: with/without context angabe beachten */
             for ( int i = 0; i < t->num_stmts; ++i ) {
                 Stmt *parsed_stmt = t->stmts[i];
 
                 for ( int j = 0; j < stmt->stmt_from_import.num_syms; ++j ) {
                     Imported_Sym *import_sym = stmt->stmt_from_import.syms[j];
 
-                    if ( parsed_stmt->kind == STMT_MACRO ) {
+                    erstes_if ( parsed_stmt->kind == STMT_LIT ) {
+                        continue;
+                    } else if ( parsed_stmt->kind == STMT_MACRO ) {
                         if ( import_sym->name == parsed_stmt->stmt_macro.name ) {
                             parsed_stmt->stmt_macro.alias = import_sym->alias;
                             resolve_stmt(parsed_stmt, templ);
                         }
-                    } else if ( parsed_stmt->kind == STMT_LIT ) {
-                        /* nichts tun */
                     } else {
                         assert(parsed_stmt->kind == STMT_SET);
                         for ( int k = 0; k < parsed_stmt->stmt_set.num_names; ++k ) {
@@ -1879,6 +1795,13 @@ resolve_init_builtin_type_procs() {
     };
     size_t re_size = ARRAY_SIZE(replace_type);
 
+    Type_Field *sort_type[] = {
+        type_field("reverse", type_bool, val_bool(false)),
+        type_field("case_sensitive", type_bool, val_bool(false)),
+        type_field("attribute", type_str, val_none())
+    };
+    size_t so_size = ARRAY_SIZE(sort_type);
+
     Scope *groupby_scope = scope_new(0, "groupby");
     scope_set(groupby_scope);
     sym_push_var("grouper", type_str);
@@ -1901,6 +1824,7 @@ resolve_init_builtin_type_procs() {
     sym_push_proc("reverse", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_reverse));
     sym_push_proc("select", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_select));
     sym_push_proc("selectattr", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_selectattr));
+    sym_push_proc("sort", type_proc(sort_type, so_size, type_any), val_proc(sort_type, so_size, type_any, proc_seq_sort));
     /* }}} */
     /* @INFO: numeric methoden {{{ */
     scope_set(&type_numeric_scope);

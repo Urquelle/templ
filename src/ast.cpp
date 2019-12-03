@@ -507,6 +507,7 @@ struct Stmt {
             Parsed_Templ *templ;
             Imported_Sym **syms;
             size_t num_syms;
+            b32 with_context;
         } stmt_from_import;
 
         struct {
@@ -710,12 +711,15 @@ stmt_import(Parsed_Templ *templ, char *name) {
 }
 
 internal_proc Stmt *
-stmt_from_import(Parsed_Templ *templ, Imported_Sym **syms, size_t num_syms) {
+stmt_from_import(Parsed_Templ *templ, Imported_Sym **syms, size_t num_syms,
+        b32 with_context)
+{
     Stmt *result = stmt_new(STMT_FROM_IMPORT);
 
     result->stmt_from_import.templ = templ;
     result->stmt_from_import.syms = (Imported_Sym **)AST_DUP(syms);
     result->stmt_from_import.num_syms = num_syms;
+    result->stmt_from_import.with_context = with_context;
 
     return result;
 }

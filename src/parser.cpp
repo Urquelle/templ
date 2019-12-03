@@ -912,11 +912,20 @@ parse_stmt_from_import(Parser *p) {
         buf_push(syms, imported_sym(name, alias));
     } while ( match_token(p, T_COMMA) );
 
+    b32 with_context = false;
+    if ( match_str(p, "with") && match_str(p, "context") ) {
+        with_context = true;
+    }
+
+    if ( match_str(p, "without") && match_str(p, "context") ) {
+        /* standardwert */
+    }
+
     expect_token(p, T_CODE_END);
 
     /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
     /* @AUFGABE: im thread verarbeiten */
-    return stmt_from_import(parse_file(filename), syms, buf_len(syms));
+    return stmt_from_import(parse_file(filename), syms, buf_len(syms), with_context);
 }
 
 internal_proc Stmt *

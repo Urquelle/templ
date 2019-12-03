@@ -171,6 +171,8 @@ val_copy(Val *val) {
     Val *result = val_new(val->kind, val->size);
 
     result->len = val->len;
+    result->scope = val->scope;
+    result->user_data = val->user_data;
 
     if ( val->kind == VAL_STR ) {
         result->ptr = val->ptr;
@@ -512,7 +514,7 @@ val_print(Val *val) {
         } break;
 
         case VAL_NONE: {
-            return "none";
+            return "<none>";
         } break;
 
         default: {
@@ -993,6 +995,210 @@ val_elem(Val *val, int idx) {
             warn(0, 0, "nicht unterstützter datentyp übergeben");
         }
     }
+
+    return result;
+}
+/* }}} */
+/* type {{{ */
+struct Type_Field {
+    char *name;
+    Sym *sym;
+    Type *type;
+    Val  *default_value;
+};
+
+internal_proc Type_Field *
+type_field(char *name, Type *type, Val *default_value = val_undefined()) {
+    Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
+
+    result->name = intern_str(name);
+    result->type = type;
+    result->default_value = default_value;
+
+    return result;
+}
+
+internal_proc char *
+type_field_name(Type_Field *field) {
+    char *result = field->name;
+
+    return result;
+}
+
+internal_proc Val *
+type_field_value(Type_Field *field) {
+    Val *result = field->default_value;
+
+    return result;
+}
+
+enum Type_Kind {
+    TYPE_NONE,
+    TYPE_ANY,
+    TYPE_BOOL,
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_STR,
+    TYPE_RANGE,
+    TYPE_LIST,
+    TYPE_DICT,
+    TYPE_TUPLE,
+    TYPE_PROC,
+    TYPE_MODULE,
+
+    TYPE_COUNT,
+};
+enum Type_Flags {
+    TYPE_FLAGS_NONE     = 0x0,
+    TYPE_FLAGS_CALLABLE = 0x1,
+    TYPE_FLAGS_ITERABLE = 0x2,
+    TYPE_FLAGS_CONST    = 0x4,
+};
+struct Type {
+    Type_Kind kind;
+    s64 size;
+    u32 flags;
+    Scope *scope;
+
+    union {
+        struct {
+            size_t num_elems;
+        } type_tuple;
+
+        struct {
+            Type *base;
+        } type_list;
+
+        struct {
+            Type_Field **params;
+            size_t num_params;
+            Type *ret;
+        } type_proc;
+
+        struct {
+            char *name;
+        } type_module;
+    };
+};
+
+enum { PTR_SIZE = 8 };
+
+
+global_var Type type_none = { TYPE_NONE };
+global_var Type type_undefined;
+global_var Type *type_bool;
+global_var Type *type_int;
+global_var Type *type_float;
+global_var Type *type_str;
+global_var Type *type_range;
+global_var Type *type_any;
+
+internal_proc Type *
+type_base(Type *type) {
+    Type *result = 0;
+
+    switch ( type->kind ) {
+        case TYPE_LIST: {
+            result = type->type_list.base;
+        } break;
+
+        default: {
+            result = type;
+        } break;
+    }
+
+    return result;
+}
+
+internal_proc Type *
+type_new(Type_Kind kind) {
+    Type *result = ALLOC_STRUCT(&resolve_arena, Type);
+
+    result->kind  = kind;
+    result->scope = 0;
+
+    return result;
+}
+
+internal_proc Type *
+type_tuple(size_t num_elems) {
+    Type *result = type_new(TYPE_TUPLE);
+
+    result->flags = TYPE_FLAGS_CONST|TYPE_FLAGS_ITERABLE;
+
+    result->type_tuple.num_elems = num_elems;
+
+    return result;
+}
+
+internal_proc Type *
+type_proc(Type_Field **params, size_t num_params, Type *ret) {
+    Type *result = type_new(TYPE_PROC);
+
+    result->flags = TYPE_FLAGS_CALLABLE;
+
+    result->type_proc.params = (Type_Field **)AST_DUP(params);
+    result->type_proc.num_params = num_params;
+    result->type_proc.ret = ret;
+    result->scope = &type_any_scope;
+
+    return result;
+}
+
+internal_proc Type *
+type_list(Type *type) {
+    Type *result = type_new(TYPE_LIST);
+
+    result->type_list.base = type;
+    result->scope = &type_list_scope;
+
+    return result;
+}
+
+internal_proc Type *
+type_dict(Scope *scope) {
+    Type *result = type_new(TYPE_DICT);
+
+    result->scope = scope;
+
+    if ( scope ) {
+        result->scope->parent = &type_dict_scope;
+    }
+
+    return result;
+}
+
+internal_proc b32
+type_is_int(Type *type) {
+    b32 result = (type->kind == TYPE_INT);
+
+    return result;
+}
+
+internal_proc b32
+type_is_arithmetic(Type *type) {
+    b32 result = TYPE_INT <= type->kind && type->kind <= TYPE_FLOAT;
+
+    return result;
+}
+
+internal_proc b32
+type_is_scalar(Type *type) {
+    b32 result = TYPE_BOOL <= type->kind && type->kind <= TYPE_FLOAT;
+
+    return result;
+}
+
+internal_proc b32
+type_is_callable(Type *type) {
+    b32 result = type->flags & TYPE_FLAGS_CALLABLE;
+
+    return result;
+}
+
+internal_proc b32
+type_is_iterable(Type *type) {
+    b32 result = type->flags & TYPE_FLAGS_ITERABLE;
 
     return result;
 }
