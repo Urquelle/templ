@@ -126,6 +126,9 @@ table of contents
    * [filter](#filter-1)
    * [tests](#tests)
    * [introspection](#introspection)
+   * [custom procs](#custom-procs)
+      * [global](#global)
+      * [type](#type)
 
 ## simple c++ example
 
@@ -596,10 +599,75 @@ is described with the following json
 ]
 ```
 
-to use the c++ data in template you first have to create a `Templ_Var*` instance, which can be done as follows
+to use the c++ data in template you first have to create a `Templ_Var *` instance, which can be done as follows:
 
 ```cpp
 User user = { 20, "alex", { "paris" } };
 Templ_Var *user = templ_var("user", &user, json_parse(json_format_string));
 ...
+```
+
+the `kind` field in the meta json file has to be the int value from the `Json_Node_Kind` enum
+
+```cpp
+enum Json_Node_Kind {
+    JSON_STR,
+    JSON_INT,
+    JSON_FLOAT,
+    JSON_BOOL,
+    JSON_ARRAY,
+    JSON_OBJECT,
+    JSON_NULL,
+};
+```
+
+## custom procs
+
+templ supports the registering of custom procedures which then can be executed in a template. you can
+register two types of procedures.
+
+### global
+
+global procs are standalone and not bound to any context. they can be used everywhere you can use builtin procs as well.
+
+```cpp
+PROC_CALLBACK(custom_hello) {
+    using namespace templ::devapi;
+
+    return val_str("hello, world");
+}
+
+int main() {
+    using namespace templ::api;
+    using namespace templ::devapi;
+
+    templ_init(MB(100), MB(100), MB(100));
+    templ_register_proc("hello", custom_hello, 0, 0, type_str);
+    ...
+}
+```
+
+and then later in the template:
+
+```jinja
+{{ hello() }}
+{% set var = hello() }}
+```
+
+### type
+
+you can also register procedures that are bound to a certain type. for that the following api calls can be used, that
+you can import separately by `using namespace templ::devapi`:
+
+```cpp
+templ::templ_register_any_proc;    // register procedure for every datatype
+templ::templ_register_seq_proc;    // register procedure for sequence datatypes only
+templ::templ_register_num_proc;    // register procedure for numeric datatypes only
+templ::templ_register_bool_proc;   // register procedure for bool
+templ::templ_register_dict_proc;   // register procedure for dictionary
+templ::templ_register_float_proc;  // register procedure for float
+templ::templ_register_int_proc;    // register procedure for int
+templ::templ_register_range_proc;  // register procedure for range
+templ::templ_register_list_proc;   // register procedure for list
+templ::templ_register_string_proc; // register procedure for string
 ```

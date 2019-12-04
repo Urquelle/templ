@@ -20,7 +20,7 @@ main(int argc, char **argv) {
 
     templ_init(MB(100), MB(100), MB(100));
 
-    templ_register_proc("hello", custom_hello, 0, 0, 0);
+    templ_register_proc("hello", custom_hello, 0, 0, type_str);
     templ_register_int_proc("times100", custom_int_times100, 0, 0, type_int);
 
     char *data;
