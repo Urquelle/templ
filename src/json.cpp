@@ -13,7 +13,7 @@ internal_proc Json_Pair *
 json_pair(char *name, Json_Node *value) {
     Json_Pair *result = (Json_Pair *)xmalloc(sizeof(Json_Pair));
 
-    result->name = name;
+    result->name = intern_str(name);
     result->value = value;
 
     return result;
@@ -62,6 +62,7 @@ struct Json_Node {
         struct {
             Json_Pair **pairs;
             size_t num_pairs;
+            Map syms;
         } json_object;
     };
 };
@@ -127,8 +128,23 @@ internal_proc Json_Node *
 json_object(Json_Pair **pairs, size_t num_pairs) {
     Json_Node *result = json_new(JSON_OBJECT);
 
+    result->json_object.syms = {};
     result->json_object.pairs = pairs;
     result->json_object.num_pairs = num_pairs;
+
+    for ( int i = 0; i < num_pairs; ++i ) {
+        Json_Pair *pair = pairs[i];
+        map_put(&result->json_object.syms, pair->name, pair->value);
+    }
+
+    return result;
+}
+
+internal_proc void *
+json_sym(Json_Node *node, char *name) {
+    assert(node->kind == JSON_OBJECT);
+
+    void *result = map_get(&node->json_object.syms, name);
 
     return result;
 }

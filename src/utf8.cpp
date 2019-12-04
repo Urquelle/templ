@@ -16,7 +16,7 @@ utf8_char_size(char *str) {
 }
 
 internal_proc size_t
-utf8_strlen(char *str) {
+utf8_str_len(char *str) {
     size_t result = 0;
     char *ptr = str;
 
@@ -43,7 +43,7 @@ utf8_str_size(char *str, size_t len) {
 
 internal_proc size_t
 utf8_str_size(char *str) {
-    size_t len = utf8_strlen(str);
+    size_t len = utf8_str_len(str);
     size_t result = utf8_str_size(str, len);
 
     return result;
@@ -52,7 +52,7 @@ utf8_str_size(char *str) {
 internal_proc size_t
 utf8_str_uppersize(char *str) {
     char *ptr = str;
-    size_t len = utf8_strlen(str);
+    size_t len = utf8_str_len(str);
     size_t result = 0;
 
     for ( int i = 0; i < len; ++i ) {
@@ -69,7 +69,7 @@ utf8_str_uppersize(char *str) {
 internal_proc size_t
 utf8_str_lowersize(char *str) {
     char *ptr = str;
-    size_t len = utf8_strlen(str);
+    size_t len = utf8_str_len(str);
     size_t result = 0;
 
     for ( int i = 0; i < len; ++i ) {
@@ -115,7 +115,7 @@ utf8_char_lastbyte(char *input) {
 
 internal_proc char *
 utf8_char_goto(char *input, size_t count) {
-    size_t len = utf8_strlen(input);
+    size_t len = utf8_str_len(input);
     if ( len < count ) {
         return input;
     }
@@ -224,7 +224,7 @@ utf8_str_toupper(char *str) {
 
     char *result = (char *)calloc(1, size+1);
 
-    for ( int i = 0; i < utf8_strlen(str); ++i ) {
+    for ( int i = 0; i < utf8_str_len(str); ++i ) {
         size_t old_len = utf8_char_size(str + offset);
         char *c = utf8_char_toupper(str + offset);
         size_t len = utf8_char_size(c);
@@ -318,7 +318,7 @@ internal_proc char *
 utf8_str_tolower(char *str) {
     size_t size = utf8_str_lowersize(str);
     char *result = (char *)calloc(1, size+1);
-    size_t str_len = utf8_strlen(str);
+    size_t str_len = utf8_str_len(str);
     size_t offset = 0;
 
     for ( int i = 0; i < str_len; ++i ) {

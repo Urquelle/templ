@@ -1551,18 +1551,28 @@ resolve_expr(Expr *expr) {
         case EXPR_FIELD: {
             Resolved_Expr *base = resolve_expr(expr->expr_field.expr);
             Type *type = base->type;
-            Type *base_type = type_base(base->type);
-            Scope *scope = type->scope;
 
-            if ( scope ) {
-                Sym *sym = scope_attr(scope, expr->expr_field.field);
+            if ( type ) {
+                Type *base_type = type_base(base->type);
+                Scope *scope = type->scope;
 
-                if ( sym_invalid(sym) && base_type ) {
-                    sym = scope_attr(base_type->scope, expr->expr_field.field);
+                if ( scope ) {
+                    Sym *sym = scope_attr(scope, expr->expr_field.field);
+
+                    if ( sym_invalid(sym) && base_type ) {
+                        sym = scope_attr(base_type->scope, expr->expr_field.field);
+                    }
+
+                    if ( sym_invalid(sym) ) {
+                        fatal(expr->pos.name, expr->pos.line, "unknown symbol %s", expr->expr_field.field);
+                    }
+
+                    result = resolved_expr_field(base, sym->val, sym->type, expr->expr_field.field);
+                } else {
+                    result = resolved_expr_field(base, val_undefined(), type_any, expr->expr_field.field);
                 }
-
-                result = resolved_expr_field(base, sym->val, sym->type, expr->expr_field.field);
             } else {
+                fatal(expr->pos.name, expr->pos.line, "unknown datatype");
                 result = resolved_expr_field(base, val_undefined(), type_any, expr->expr_field.field);
             }
         } break;

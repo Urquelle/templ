@@ -327,7 +327,7 @@ internal_proc PROC_CALLBACK(proc_lipsum) {
     s32 n    = val_int(arg_val(narg("n")));
     b32 html = val_bool(arg_val(narg("html")));
     s32 min  = val_int(arg_val(narg("min")));
-    s32 max  = (s32)MIN(val_int(arg_val(narg("max"))), utf8_strlen(global_lorem_ipsum));
+    s32 max  = (s32)MIN(val_int(arg_val(narg("max"))), utf8_str_len(global_lorem_ipsum));
 
     char *result = "";
     for ( int i = 0; i < n; ++i ) {
@@ -1339,7 +1339,7 @@ internal_proc PROC_CALLBACK(proc_string_truncate) {
     }
 
     char *end = val_str(arg_val(narg("end")));
-    size_t end_len = utf8_strlen(end);
+    size_t end_len = utf8_str_len(end);
     for ( int i = 0; i < end_len; ++i ) {
         result = strf("%s%.*s", result, utf8_char_size(end), end);
         end += utf8_char_size(end);

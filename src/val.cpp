@@ -250,7 +250,7 @@ internal_proc Val *
 val_str(char *val, size_t len = 0) {
     Val *result = val_new(VAL_STR, sizeof(char*));
 
-    result->len = (len) ? len : utf8_strlen(val);
+    result->len = (len) ? len : utf8_str_len(val);
     result->ptr = intern_str(val);
     result->scope = &type_string_scope;
 
@@ -643,7 +643,7 @@ operator*(Val left, Val right) {
         char *ptr = "";
         char  *str   = (right.kind == VAL_STR) ? val_str(&right) : val_str(&left);
         int    count = (right.kind == VAL_INT) ? val_int(&right) : val_int(&left);
-        size_t len   = count * utf8_strlen(str);
+        size_t len   = count * utf8_str_len(str);
 
         for ( int i = 0; i < len; ++i ) {
             ptr = strf("%s%s", ptr, str);
@@ -1096,6 +1096,10 @@ global_var Type *type_any;
 internal_proc Type *
 type_base(Type *type) {
     Type *result = 0;
+
+    if ( !type ) {
+        return result;
+    }
 
     switch ( type->kind ) {
         case TYPE_LIST: {

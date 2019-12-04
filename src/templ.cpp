@@ -312,6 +312,66 @@ templ_var_set(Templ_Var *var, Templ_Var *value) {
     scope_set(prev_scope);
 }
 
+internal_proc Templ_Var *
+templ_var_from_raw_ptr(void *ptr, Json_Node *node) {
+    char *field = ((Json_Node *)json_sym(node, intern_str("name")))->json_str.value;
+    s32 offset  = ((Json_Node *)json_sym(node, intern_str("offset")))->json_int.value;
+    s32 kind    = ((Json_Node *)json_sym(node, intern_str("kind")))->json_int.value;
+
+    Templ_Var *result = 0;
+
+    switch ( kind ) {
+        case JSON_INT: {
+            result = templ_var(field, *(s32 *)((u8 *)ptr + offset));
+        } break;
+
+        case JSON_FLOAT: {
+            result = templ_var(field, *(f32 *)((u8 *)ptr + offset));
+        } break;
+
+        case JSON_STR: {
+            result = templ_var(field, *(char **)((u8 *)ptr + offset));
+        } break;
+
+        case JSON_BOOL: {
+            result = templ_var(field, *(b32 *)((u8 *)ptr + offset));
+        } break;
+
+        case JSON_ARRAY: {
+            result = templ_list(field);
+            for ( int i = 0; i < node->json_array.num_nodes; ++i ) {
+                Json_Node *child_node = node->json_array.nodes[i];
+                templ_var_add(result, templ_var_from_raw_ptr((u8 *)ptr + offset, child_node));
+            }
+        } break;
+
+        case JSON_OBJECT: {
+            result = templ_object(field);
+            Json_Node *format = (Json_Node *)json_sym(node, intern_str("format"));
+            for ( int i = 0; i < format->json_array.num_nodes; ++i ) {
+                Json_Node *child_node = format->json_array.nodes[i];
+                templ_var_set(result, templ_var_from_raw_ptr((u8 *)ptr + offset, child_node));
+            }
+        } break;
+    }
+
+    return result;
+}
+
+user_api Templ_Var *
+templ_var(char *name, void *ptr, Json json) {
+    Templ_Var *result = templ_object(name);
+
+    for ( int i = 0; i < json.node->json_array.num_nodes; ++i ) {
+        Json_Node *node = json.node->json_array.nodes[i];
+
+        Templ_Var *var = templ_var_from_raw_ptr(ptr, node);
+        templ_var_set(result, var);
+    }
+
+    return result;
+}
+
 struct Templ_Vars {
     Templ_Var **vars;
     size_t num_vars;
@@ -542,6 +602,15 @@ namespace api {
     using templ::templ_init;
     using templ::templ_list;
     using templ::templ_object;
+    using templ::templ_reset;
+    using templ::templ_var;
+    using templ::templ_vars;
+    using templ::templ_vars_add;
+    using templ::utf8_str_len;
+    using templ::utf8_str_size;
+}
+
+namespace devapi {
     using templ::templ_register_proc;
     using templ::templ_register_any_proc;
     using templ::templ_register_seq_proc;
@@ -553,12 +622,18 @@ namespace api {
     using templ::templ_register_range_proc;
     using templ::templ_register_list_proc;
     using templ::templ_register_string_proc;
-    using templ::templ_reset;
-    using templ::templ_var;
-    using templ::templ_vars;
-    using templ::templ_vars_add;
-    using templ::utf8_strlen;
-    using templ::utf8_str_size;
+    using templ::type_bool;
+    using templ::type_dict;
+    using templ::type_int;
+    using templ::type_float;
+    using templ::type_list;
+    using templ::type_str;
+    using templ::val_bool;
+    using templ::val_dict;
+    using templ::val_float;
+    using templ::val_int;
+    using templ::val_list;
+    using templ::val_str;
 }
 
 } /* namespace templ */

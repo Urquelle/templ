@@ -125,6 +125,7 @@ table of contents
       * [set block](#set_block)
    * [filter](#filter-1)
    * [tests](#tests)
+   * [introspection](#introspection)
 
 ## simple c++ example
 
@@ -549,3 +550,56 @@ most of the tests present in the jinja2 spec are already implemented in [dev](ht
 * sequence
 * string
 * undefined
+
+## introspection
+
+lightweight introspection is built in. for it to work you have to provide a meta json file, which describes the data layout of the given raw pointer.
+
+in the example below the `User` struct
+
+```cpp
+struct Address {
+    char *city;
+};
+
+struct User {
+    int age;
+    char *name;
+    Address address;
+};
+```
+
+is described with the following json
+
+```json
+[
+    {
+        "name"  : "age",
+        "offset": 0,
+        "kind"  : 1
+    },
+    {
+        "name"  : "name",
+        "offset": 8,
+        "kind"  : 0
+    },
+    {
+        "name"  : "address",
+        "offset": 16,
+        "kind"  : 5,
+        "format": [{
+            "name"  : "city",
+            "offset": 0,
+            "kind"  : 0
+        }]
+    }
+]
+```
+
+to use the c++ data in template you first have to create a `Templ_Var*` instance, which can be done as follows
+
+```cpp
+User user = { 20, "alex", { "paris" } };
+Templ_Var *user = templ_var("user", &user, json_parse(json_format_string));
+...
+```

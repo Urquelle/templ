@@ -335,7 +335,7 @@ exec_stmt_set(Val *dest, Val *source) {
             utf8_char_write((char *)orig->ptr + offset, (char *)source->ptr);
             dest->ptr = intern_str((char *)dest->ptr);
         } else {
-            size_t len = utf8_strlen((char *)orig->ptr);
+            size_t len = utf8_str_len((char *)orig->ptr);
             char *new_mem = (char *)xcalloc(1, new_size+1);
 
             for ( int i = 0; i < dest->len; ++i ) {
@@ -633,7 +633,7 @@ exec_stmt(Resolved_Stmt *stmt) {
 
 internal_proc void
 exec_reset() {
-    if ( gen_result && utf8_strlen(gen_result) ) {
+    if ( gen_result && utf8_str_len(gen_result) ) {
         free(gen_result);
         gen_result = "";
     }
