@@ -92,6 +92,10 @@ exec_expr(Resolved_Expr *expr) {
             result = sym->val;
         } break;
 
+        case EXPR_PAREN: {
+            result = exec_expr(expr->expr_paren.expr);
+        } break;
+
         case EXPR_BINARY: {
             switch ( expr->expr_binary.op ) {
                 case T_MUL: {

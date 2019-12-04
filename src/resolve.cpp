@@ -386,7 +386,7 @@ resolved_expr_field(Resolved_Expr *base, Val *val, Type *type, char *field) {
 
 internal_proc Resolved_Expr *
 resolved_expr_paren(Resolved_Expr *expr) {
-    Resolved_Expr *result = resolved_expr_new(EXPR_PAREN);
+    Resolved_Expr *result = resolved_expr_new(EXPR_PAREN, expr->type);
 
     result->expr_paren.expr = expr;
 
