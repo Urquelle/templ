@@ -216,7 +216,7 @@ exec_expr(Resolved_Expr *expr) {
 
                 fatal(expr->pos.name, expr->pos.line, "proc \"%s\" doesn't exist", proc_name);
 
-                result = val_none();
+                result = val_undefined();
             }
         } break;
 

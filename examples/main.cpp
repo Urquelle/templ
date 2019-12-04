@@ -1,10 +1,16 @@
 #include "templ.cpp"
 
+PROC_CALLBACK(user_hello) {
+    return templ::val_str("hello, world");
+}
+
 int
 main(int argc, char **argv) {
     using namespace templ::api;
 
     templ_init(MB(100), MB(100), MB(100));
+
+    templ_register_proc("hello", user_hello, 0, 0, 0);
 
     char *data;
     os_file_read("data.json", &data);

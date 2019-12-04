@@ -1442,8 +1442,8 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
         /* @INFO: wenn unbenamtes argument */
         } else {
             /* @INFO: mehr positionsargumente als im typ angegeben kommen
-                *        in die varargs sammlung
-                */
+             *        in die varargs sammlung
+             */
             if ( i >= num_proc_params ) {
                 buf_push(varargs, resolved_arg(expr->pos, 0, arg_expr->type, arg_expr->val));
 
@@ -1459,8 +1459,8 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
 
                 for ( int j = 0; j < num_proc_params; ++j ) {
                     /* @INFO: ersten parameter ohne standardwert ermitteln und diesen nehmen, falls
-                        *        er nicht bereits in der nargs map eingetragen ist.
-                        */
+                     *        er nicht bereits in der nargs map eingetragen ist.
+                     */
                     size_t num_remaining_args = expr->expr_call.num_args - i;
                     if ( num_remaining_args > num_non_default_params ||
                             val_is_undefined(proc_params[j]->default_value) )
@@ -1485,8 +1485,8 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
     }
 
     /* @INFO: alle typparameter durchgehen und für nicht gesetzte
-        *        parameter standardwerte setzen
-        */
+     *        parameter standardwerte setzen
+     */
     for ( int i = 0; i < num_proc_params; ++i ) {
         Type_Field *param = proc_params[i];
 
@@ -1507,7 +1507,6 @@ resolve_expr(Expr *expr) {
     switch (expr->kind) {
         case EXPR_NAME: {
             Sym *sym = resolve_name(expr->expr_name.value);
-            /* @AUFGABE: hier nicht den scope mitgeben, sondern im exec setzen */
             result = resolved_expr_name(expr->expr_name.value, sym->val, sym->type);
         } break;
 

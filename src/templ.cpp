@@ -14,7 +14,7 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 /* @AUFGABE: werden args überhaupt genutzt? */
-#define PROC_CALLBACK(name)   Val * name(Val *operand, Resolved_Expr *expr, Resolved_Expr **args, size_t num_args, Map *nargs, char **narg_keys, size_t num_narg_keys, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
+#define PROC_CALLBACK(name)   templ::Val * name(templ::Val *operand, templ::Resolved_Expr *expr, templ::Resolved_Expr **args, size_t num_args, templ::Map *nargs, char **narg_keys, size_t num_narg_keys, templ::Resolved_Arg **kwargs, size_t num_kwargs, templ::Resolved_Arg **varargs, size_t num_varargs)
 
 #define erstes_if      if
 #define genf(...)      gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))
@@ -375,6 +375,147 @@ templ_init(size_t parse_arena_size, size_t resolve_arena_size,
     resolve_init(resolve_arena_size);
 }
 
+user_api void
+templ_register_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+}
+
+user_api void
+templ_register_any_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_any_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_seq_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_sequence_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_num_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_numeric_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_bool_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_bool_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_dict_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_dict_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_float_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_float_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_int_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_int_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_range_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_range_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_list_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_list_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
+user_api void
+templ_register_string_proc(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&type_string_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+    scope_set(prev_scope);
+}
+
 namespace api {
     using templ::Json;
     using templ::Status;
@@ -401,6 +542,17 @@ namespace api {
     using templ::templ_init;
     using templ::templ_list;
     using templ::templ_object;
+    using templ::templ_register_proc;
+    using templ::templ_register_any_proc;
+    using templ::templ_register_seq_proc;
+    using templ::templ_register_num_proc;
+    using templ::templ_register_bool_proc;
+    using templ::templ_register_dict_proc;
+    using templ::templ_register_float_proc;
+    using templ::templ_register_int_proc;
+    using templ::templ_register_range_proc;
+    using templ::templ_register_list_proc;
+    using templ::templ_register_string_proc;
     using templ::templ_reset;
     using templ::templ_var;
     using templ::templ_vars;
@@ -427,8 +579,6 @@ namespace api {
 #undef IS_POW2
 #undef MAX
 #undef MIN
-#undef PROC_CALLBACK
-#undef TEST_CALLBACK
 #undef erstes_if
 #undef genf
 #undef genln

@@ -6,6 +6,6 @@ set linker_flags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib Shlwap
 IF NOT exist %BUILD_PATH% ( mkdir %BUILD_PATH% )
 pushd %BUILD_PATH%
 
-cl %compiler_flags% %PROJECT_PATH%\src\%PROJECT_MAIN_FILE% -Fetempl.exe /link %linker_flags%
+cl %compiler_flags% %PROJECT_PATH%\examples\%PROJECT_MAIN_FILE% -Fetempl.exe /link %linker_flags%
 
 popd
