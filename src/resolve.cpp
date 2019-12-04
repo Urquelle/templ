@@ -1556,6 +1556,11 @@ resolve_expr(Expr *expr) {
 
             if ( scope ) {
                 Sym *sym = scope_attr(scope, expr->expr_field.field);
+
+                if ( sym_invalid(sym) && base_type ) {
+                    sym = scope_attr(base_type->scope, expr->expr_field.field);
+                }
+
                 result = resolved_expr_field(base, sym->val, sym->type, expr->expr_field.field);
             } else {
                 result = resolved_expr_field(base, val_undefined(), type_any, expr->expr_field.field);

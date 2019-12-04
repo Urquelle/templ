@@ -1,5 +1,3 @@
-#define BASE(EXPR) exec_expr(expr_field_base(EXPR))
-
 internal_proc void
 quicksort(Val **left, Val **right, b32 reverse, b32 case_sensitive, char *attr = 0) {
 #define compneq(left, right) ((attr) ? 0 : (*left != *right))
@@ -207,7 +205,10 @@ internal_proc PROC_CALLBACK(proc_cycler) {
 
     scope_set(prev_scope);
 
-    return val_dict(cycler_scope);
+    Val *result = val_dict(cycler_scope);
+    result->user_data = cycler;
+
+    return result;
 }
 
 struct Joiner {
@@ -355,23 +356,21 @@ internal_proc PROC_CALLBACK(proc_any_default) {
     char *default_value = val_str(arg_val(narg("s")));
     b32 boolean = val_bool(arg_val(narg("boolean")));
 
-    Val *val = BASE(expr);
-    if ( val_is_undefined(val) || boolean && !val_is_true(val) ) {
+    if ( val_is_undefined(value) || boolean && !val_is_true(value) ) {
         return val_str(default_value);
     }
 
-    return val;
+    return value;
 }
 
 internal_proc PROC_CALLBACK(proc_any_list) {
-    Val *val = BASE(expr);
-    if ( val->kind == VAL_LIST ) {
-        return operand;
+    if ( value->kind == VAL_LIST ) {
+        return value;
     }
 
     Val **vals = 0;
-    for ( int i = 0; i < val->len; ++i ) {
-        Val *v = val_elem(val, i);
+    for ( int i = 0; i < value->len; ++i ) {
+        Val *v = val_elem(value, i);
         buf_push(vals, v);
     }
 
@@ -379,17 +378,16 @@ internal_proc PROC_CALLBACK(proc_any_list) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_max) {
-    Val *val = BASE(expr);
-    if ( val->len == 1 ) {
-        return val;
+    if ( value->len == 1 ) {
+        return value;
     }
 
     b32 case_sensitive = val_bool(arg_val(narg("case_sensitive")));
     Val *attribute = arg_val(narg("attribute"));
 
-    Val *result = val_elem(val, 0);
-    for ( int i = 1; i < val->len; ++i ) {
-        Val *right = val_elem(val, i);
+    Val *result = val_elem(value, 0);
+    for ( int i = 1; i < value->len; ++i ) {
+        Val *right = val_elem(value, i);
 
         Val *left_tmp = result;
         Val *right_tmp = right;
@@ -416,17 +414,16 @@ internal_proc PROC_CALLBACK(proc_any_max) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_min) {
-    Val *val = BASE(expr);
-    if ( val->len == 1 ) {
-        return val;
+    if ( value->len == 1 ) {
+        return value;
     }
 
     b32 case_sensitive = val_bool(arg_val(narg("case_sensitive")));
     Val *attribute = arg_val(narg("attribute"));
 
-    Val *result = val_elem(val, 0);
-    for ( int i = 1; i < val->len; ++i ) {
-        Val *right  = val_elem(val, i);
+    Val *result = val_elem(value, 0);
+    for ( int i = 1; i < value->len; ++i ) {
+        Val *right  = val_elem(value, i);
 
         Val *left_tmp  = result;
         Val *right_tmp = right;
@@ -453,9 +450,8 @@ internal_proc PROC_CALLBACK(proc_any_min) {
 }
 
 internal_proc PROC_CALLBACK(proc_any_pprint) {
-    Val *val = BASE(expr);
     b32 verbose = val_bool(arg_val(narg("verbose")));
-    char *result = val_pprint(val, verbose);
+    char *result = val_pprint(value, verbose);
 
     return val_str(result);
 }
@@ -465,8 +461,7 @@ internal_proc PROC_CALLBACK(proc_seq_batch) {
     s32 line_count = val_int(arg_val(narg("line_count")));
     Val *fill_with = arg_val(narg("fill_with"));
 
-    Val *val = BASE(expr);
-    s32 it_count = (s32)ceil((f32)val->len / line_count);
+    s32 it_count = (s32)ceil((f32)value->len / line_count);
 
     Val **result = 0;
     for ( int i = 0; i < it_count; ++i ) {
@@ -474,10 +469,10 @@ internal_proc PROC_CALLBACK(proc_seq_batch) {
 
         for ( int j = 0; j < line_count; ++j ) {
             s32 idx = i*line_count + j;
-            if ( idx >= val->len ) {
+            if ( idx >= value->len ) {
                 buf_push(vals, fill_with);
             } else {
-                buf_push(vals, val_elem(val, i*line_count + j));
+                buf_push(vals, val_elem(value, i*line_count + j));
             }
         }
 
@@ -493,10 +488,9 @@ internal_proc PROC_CALLBACK(proc_seq_groupby) {
     Scope *prev_scope = current_scope;
     Map list = {};
     char **keys = 0;
-    Val *val = BASE(expr);
 
-    for ( int i = 0; i < val->len; ++i ) {
-        Val *v = val_elem(val, i);
+    for ( int i = 0; i < value->len; ++i ) {
+        Val *v = val_elem(value, i);
         assert(v->kind == VAL_DICT);
 
         scope_set(v->scope);
@@ -527,8 +521,7 @@ internal_proc PROC_CALLBACK(proc_seq_groupby) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_first) {
-    Val *val = BASE(expr);
-    Val *result = val_elem(val, 0);
+    Val *result = val_elem(value, 0);
 
     return result;
 }
@@ -538,20 +531,19 @@ internal_proc PROC_CALLBACK(proc_seq_join) {
     Val *attr = arg_val(narg("attribute"));
     char *result = "";
 
-    Val *val = BASE(expr);
-    if (val->len < 2) {
-        return val;
+    if (value->len < 2) {
+        return value;
     }
 
-    Val *v = val_elem(val, 0);
+    Val *v = val_elem(value, 0);
     if ( attr->kind != VAL_NONE ) {
         Sym *sym = scope_attr(v->scope, val_str(attr));
         v = sym_val(sym);
     }
     result = strf("%s", val_print(v));
 
-    for ( int i = 1; i < val->len; ++i ) {
-        v = val_elem(val, i);
+    for ( int i = 1; i < value->len; ++i ) {
+        v = val_elem(value, i);
         if ( attr->kind != VAL_NONE ) {
             Sym *sym = scope_attr(v->scope, val_str(attr));
             v = sym_val(sym);
@@ -563,15 +555,13 @@ internal_proc PROC_CALLBACK(proc_seq_join) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_last) {
-    Val *val = BASE(expr);
-    Val *result = val_elem(val, (int)val->len-1);
+    Val *result = val_elem(value, (int)value->len-1);
 
     return result;
 }
 
 internal_proc PROC_CALLBACK(proc_seq_length) {
-    Val *val = BASE(expr);
-    Val *result = val_int((int)val->len);
+    Val *result = val_int((int)value->len);
 
     return result;
 }
@@ -585,12 +575,11 @@ internal_proc PROC_CALLBACK(proc_seq_map) {
         }
     }
 
-    Val *val = BASE(expr);
     Scope *prev_scope = current_scope;
     Val **vals = 0;
     if ( attribute ) {
-        for ( int i = 0; i < val->len; ++i ) {
-            Val *elem = val_elem(val, i);
+        for ( int i = 0; i < value->len; ++i ) {
+            Val *elem = val_elem(value, i);
             scope_set(elem->scope);
             Sym *sym = sym_get(attribute);
 
@@ -605,17 +594,14 @@ internal_proc PROC_CALLBACK(proc_seq_map) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_random) {
-    Val *val = BASE(expr);
-    s32 idx = rand() % val->len;
-    Val *result = val_elem(val, idx);
+    s32 idx = rand() % value->len;
+    Val *result = val_elem(value, idx);
 
     return result;
 }
 
 internal_proc PROC_CALLBACK(proc_seq_replace) {
-    Val *val = BASE(expr);
-
-    char *str = val_str(val);
+    char *str = val_str(value);
     char  *old_str = val_str(arg_val(narg("old")));
     size_t old_size = utf8_str_size(old_str);
     char  *new_str = val_str(arg_val(narg("new")));
@@ -688,13 +674,12 @@ internal_proc PROC_CALLBACK(proc_seq_reject) {
         }
     }
 
-    Val *val = BASE(expr);
     Val **result = 0;
-    for ( int i = 0; i < val->len; ++i ) {
-        Val *elem = val_elem(val, i);
+    for ( int i = 0; i < value->len; ++i ) {
+        Val *elem = val_elem(value, i);
 
         Val *ret = proc->callback(
-                elem, expr, args, num_args, &tester_nargs,
+                elem, value, args, num_args, &tester_nargs,
                 tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                 tester_varargs, num_varargs-1);
 
@@ -707,13 +692,11 @@ internal_proc PROC_CALLBACK(proc_seq_reject) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_rejectattr) {
-    Val *val = BASE(expr);
-
     if ( num_varargs == 1 ) {
         char *attr = val_str(arg_val(varargs[0]));
         Val **vals = 0;
-        for ( int i = 0; i < val->len; ++i ) {
-            Val *v = val_elem(val, i);
+        for ( int i = 0; i < value->len; ++i ) {
+            Val *v = val_elem(value, i);
             Sym *sym = scope_attr(v->scope, attr);
 
             if ( !val_bool(sym_val(sym)) ) {
@@ -759,12 +742,12 @@ internal_proc PROC_CALLBACK(proc_seq_rejectattr) {
 
         char *attr = val_str(arg_val(varargs[0]));
         Val **result = 0;
-        for ( int i = 0; i < val->len; ++i ) {
-            Val *elem = val_elem(val, i);
+        for ( int i = 0; i < value->len; ++i ) {
+            Val *elem = val_elem(value, i);
             Sym *elem_sym = scope_attr(elem->scope, attr);
 
             Val *ret = proc->callback(
-                    sym_val(elem_sym), expr, args, num_args, &tester_nargs,
+                    sym_val(elem_sym), value, args, num_args, &tester_nargs,
                     tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                     tester_varargs, num_varargs-1);
 
@@ -780,19 +763,18 @@ internal_proc PROC_CALLBACK(proc_seq_rejectattr) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_reverse) {
-    Val *val = BASE(expr);
-    if ( val->len == 1 ) {
-        return val;
+    if ( value->len == 1 ) {
+        return value;
     }
 
     Val *result = 0;
-    if ( val->kind == VAL_STR ) {
+    if ( value->kind == VAL_STR ) {
         char *str = "";
         int i = 1;
-        size_t size = utf8_str_size((char *)val->ptr);
+        size_t size = utf8_str_size((char *)value->ptr);
         while ( i <= size ) {
             int offset = (int)size - i;
-            char c = ((char *)val->ptr)[offset];
+            char c = ((char *)value->ptr)[offset];
             str = strf("%s%c", str, c);
             i++;
         }
@@ -801,8 +783,8 @@ internal_proc PROC_CALLBACK(proc_seq_reverse) {
     } else {
         Val **vals = 0;
         int i = 1;
-        while ( i <= val->len ) {
-            Val *v = val_elem(val, (int)val->len - i);
+        while ( i <= value->len ) {
+            Val *v = val_elem(value, (int)value->len - i);
             buf_push(vals, v);
             i++;
         }
@@ -849,13 +831,12 @@ internal_proc PROC_CALLBACK(proc_seq_select) {
         }
     }
 
-    Val *val = BASE(expr);
     Val **result = 0;
-    for ( int i = 0; i < val->len; ++i ) {
-        Val *elem = val_elem(val, i);
+    for ( int i = 0; i < value->len; ++i ) {
+        Val *elem = val_elem(value, i);
 
         Val *ret = proc->callback(
-                elem, expr, args, num_args, &tester_nargs,
+                elem, value, args, num_args, &tester_nargs,
                 tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                 tester_varargs, num_varargs-1);
 
@@ -868,13 +849,11 @@ internal_proc PROC_CALLBACK(proc_seq_select) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_selectattr) {
-    Val *val = BASE(expr);
-
     if ( num_varargs == 1 ) {
         char *attr = val_str(arg_val(varargs[0]));
         Val **vals = 0;
-        for ( int i = 0; i < val->len; ++i ) {
-            Val *v = val_elem(val, i);
+        for ( int i = 0; i < value->len; ++i ) {
+            Val *v = val_elem(value, i);
             Sym *sym = scope_attr(v->scope, attr);
 
             if ( val_bool(sym_val(sym)) ) {
@@ -920,12 +899,12 @@ internal_proc PROC_CALLBACK(proc_seq_selectattr) {
 
         char *attr = val_str(arg_val(varargs[0]));
         Val **result = 0;
-        for ( int i = 0; i < val->len; ++i ) {
-            Val *elem = val_elem(val, i);
+        for ( int i = 0; i < value->len; ++i ) {
+            Val *elem = val_elem(value, i);
             Sym *elem_sym = scope_attr(elem->scope, attr);
 
             Val *ret = proc->callback(
-                    sym_val(elem_sym), expr, args, num_args, &tester_nargs,
+                    sym_val(elem_sym), value, args, num_args, &tester_nargs,
                     tester_narg_keys, buf_len(tester_narg_keys), kwargs, num_kwargs,
                     tester_varargs, num_varargs-1);
 
@@ -941,14 +920,13 @@ internal_proc PROC_CALLBACK(proc_seq_selectattr) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_sort) {
-    Val *val = BASE(expr);
-    Val *result = val_copy(val);
+    Val *result = val_copy(value);
 
     b32 reverse = val_bool(arg_val(narg("reverse")));
     b32 case_sensitive = val_bool(arg_val(narg("case_sensitive")));
     Val *attr = arg_val(narg("attribute"));
 
-    if ( val->kind == VAL_STR ) {
+    if ( value->kind == VAL_STR ) {
     } else {
         quicksort((Val **)result->ptr, (Val **)result->ptr + result->len-1, reverse, case_sensitive);
     }
@@ -958,9 +936,7 @@ internal_proc PROC_CALLBACK(proc_seq_sort) {
 /* }}} */
 /* @INFO: dict methoden {{{ */
 internal_proc PROC_CALLBACK(proc_dict_attr) {
-    Resolved_Expr *base = expr_field_base(expr);
-
-    Scope *scope = expr_val(base)->scope;
+    Scope *scope = value->scope;
     Scope *prev_scope = scope_set(scope);
 
     Val *name = arg_val(narg("name"));
@@ -980,10 +956,9 @@ internal_proc PROC_CALLBACK(proc_dict_dictsort) {
     /* @AUFGABE: eventuell umbauen um ein pair zurückzugeben. dabei kann auch
      *           einfacher auf case_sensitive eingegangen werden
      */
-    Val *val = BASE(expr);
     Sym **syms = 0;
     {
-        Scope *scope = val->scope;
+        Scope *scope = value->scope;
         for ( int i = 0; i < scope->num_syms; ++i ) {
             buf_push(syms, scope->sym_list[i]);
         }
@@ -1006,15 +981,15 @@ internal_proc PROC_CALLBACK(proc_dict_dictsort) {
 internal_proc PROC_CALLBACK(proc_float_round) {
     s32 precision = val_int(arg_val(narg("precision")));
     char *method  = val_str(arg_val(narg("method")));
-    f32 value = val_float(BASE(expr));
+    f32 val = val_float(value);
 
     f32 result = 0;
     if ( method == intern_str("common") ) {
-        result = round(value);
+        result = round(val);
     } else if ( method == intern_str("ceil") ) {
-        result = ceil(value);
+        result = ceil(val);
     } else {
-        result = floor(value);
+        result = floor(val);
     }
 
     return val_float(result);
@@ -1022,8 +997,7 @@ internal_proc PROC_CALLBACK(proc_float_round) {
 /* }}} */
 /* @INFO: int methoden {{{ */
 internal_proc PROC_CALLBACK(proc_int_abs) {
-    Val *val = BASE(expr);
-    s32 i = abs(val_int(val));
+    s32 i = abs(val_int(value));
 
     return val_int(i);
 }
@@ -1041,8 +1015,7 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
     int c = (binary) ? 1024 : 1000;
     char **suff = (binary) ? suff_bin : suff_dec;
 
-    Val *val = BASE(expr);
-    s64 size = val_int(val);
+    s64 size = val_int(value);
     s32 mag = (s32)(log(size)/log(c));
     f32 calc_size = ( mag ) ? ((f32)size/(mag*c)) : (f32)size;
 
@@ -1053,16 +1026,15 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
 /* }}} */
 /* @INFO: list methoden {{{ */
 internal_proc PROC_CALLBACK(proc_list_append) {
-    Val *val = BASE(expr);
     Val *elem = arg_val(narg("elem"));
 
     Val **vals = 0;
-    for ( int i = 0; i < val->len; ++i ) {
-        buf_push(vals, ((Val **)val->ptr)[i]);
+    for ( int i = 0; i < value->len; ++i ) {
+        buf_push(vals, ((Val **)value->ptr)[i]);
     }
 
     buf_push(vals, elem);
-    exec_stmt_set(val, val_list(vals, buf_len(vals)));
+    exec_stmt_set(value, val_list(vals, buf_len(vals)));
 
     return 0;
 }
@@ -1071,19 +1043,17 @@ internal_proc PROC_CALLBACK(proc_list_slice) {
     s32 line_count = val_int(arg_val(narg("line_count")));
     Val *fill_with = arg_val(narg("fill_with"));
 
-    Val *val = BASE(expr);
-    s32 it_count = (s32)ceil((f32)val->len / line_count);
-
+    s32 it_count = (s32)ceil((f32)value->len / line_count);
     Val **result = 0;
     for ( int i = 0; i < line_count; ++i ) {
         Val **vals = 0;
 
         for ( int j = 0; j < it_count; ++j ) {
             s32 idx = i + line_count*j;
-            if ( idx >= val->len ) {
+            if ( idx >= value->len ) {
                 buf_push(vals, fill_with);
             } else {
-                buf_push(vals, val_elem(val, i + line_count*j));
+                buf_push(vals, val_elem(value, i + line_count*j));
             }
         }
 
@@ -1094,14 +1064,13 @@ internal_proc PROC_CALLBACK(proc_list_slice) {
 }
 
 internal_proc PROC_CALLBACK(proc_list_sum) {
-    Val *val = BASE(expr);
     Val *attr = arg_val(narg("attribute"));
     s32 start = val_int(arg_val(narg("start")));
 
     s32 result = 0;
 
-    for ( int i = start; i < val->len; ++i ) {
-        Val *elem = val_elem(val, i);
+    for ( int i = start; i < value->len; ++i ) {
+        Val *elem = val_elem(value, i);
 
         if ( attr->kind != VAL_NONE ) {
             Sym *sym = scope_attr(elem->scope, val_str(attr));
@@ -1116,9 +1085,7 @@ internal_proc PROC_CALLBACK(proc_list_sum) {
 /* }}} */
 /* @INFO: string methoden {{{ */
 internal_proc PROC_CALLBACK(proc_string_capitalize) {
-    Val *v = BASE(expr);
-
-    char *val = val_str(v);
+    char *val = val_str(value);
     char *cap = utf8_char_toupper(val);
     size_t cap_size = utf8_char_size(cap);
     char *remainder = val + cap_size;
@@ -1132,18 +1099,17 @@ internal_proc PROC_CALLBACK(proc_string_center) {
     int   width    = val_int(arg_val(narg("width")));
     char *fillchar = val_str(arg_val(narg("fillchar")));
 
-    Val *val = BASE(expr);
-    if ( val->len >= width ) {
-        return val;
+    if ( value->len >= width ) {
+        return value;
     }
 
-    s32 padding = (s32)((width - val->len) / 2);
+    s32 padding = (s32)((width - value->len) / 2);
 
     char *result = "";
     for ( int i = 0; i < padding; ++i ) {
         result = strf("%s%s", result, fillchar);
     }
-    result = strf("%s%s", result, val_print(val));
+    result = strf("%s%s", result, val_print(value));
     for ( int i = 0; i < padding; ++i ) {
         result = strf("%s%s", result, fillchar);
     }
@@ -1153,10 +1119,9 @@ internal_proc PROC_CALLBACK(proc_string_center) {
 
 internal_proc PROC_CALLBACK(proc_string_escape) {
     char *result = "";
-    Val *val = BASE(expr);
-    char *ptr = (char *)val->ptr;
+    char *ptr = (char *)value->ptr;
 
-    for ( int i = 0; i < val->len; ++i ) {
+    for ( int i = 0; i < value->len; ++i ) {
         erstes_if ( *ptr == '<' ) {
             result = strf("%s&lt;", result);
         } else if ( *ptr == '>' ) {
@@ -1180,16 +1145,14 @@ internal_proc PROC_CALLBACK(proc_string_escape) {
 
 internal_proc PROC_CALLBACK(proc_string_float) {
     char *end = 0;
-    Val *val = BASE(expr);
-    f32 f = strtof(val_str(val), &end);
-    Val *result = (end == val->ptr) ? arg_val(narg("default")) : val_float(f);
+    f32 f = strtof(val_str(value), &end);
+    Val *result = (end == value->ptr) ? arg_val(narg("default")) : val_float(f);
 
     return result;
 }
 
 internal_proc PROC_CALLBACK(proc_string_format) {
-    Val *val = BASE(expr);
-    char *format = val_str(val);
+    char *format = val_str(value);
     int num_arg = 0;
     char *result = "";
 
@@ -1288,9 +1251,8 @@ internal_proc PROC_CALLBACK(proc_string_indent) {
     b32 first = val_bool(arg_val(narg("first")));
     b32 blank = val_bool(arg_val(narg("blank")));
 
-    Val *val = BASE(expr);
     char *result = "";
-    char *ptr = (char *)val->ptr;
+    char *ptr = (char *)value->ptr;
 
     if ( first ) {
         result = strf("%*s", width, "");
@@ -1323,41 +1285,37 @@ internal_proc PROC_CALLBACK(proc_string_indent) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_int) {
-    Val *val = BASE(expr);
     char *end = 0;
-    s32 i = strtol(val_str(val), &end, val_int(arg_val(narg("base"))));
-    Val *result = (end == val->ptr) ? arg_val(narg("default")) : val_int(i);
+    s32 i = strtol(val_str(value), &end, val_int(arg_val(narg("base"))));
+    Val *result = (end == value->ptr) ? arg_val(narg("default")) : val_int(i);
 
     return result;
 }
 
 internal_proc PROC_CALLBACK(proc_string_lower) {
-    Val *val = BASE(expr);
-    char *str = val_str(val);
+    char *str = val_str(value);
     char *result = utf8_str_tolower(str);
 
     return val_str(result);
 }
 
 internal_proc PROC_CALLBACK(proc_string_truncate) {
-    Val *val = BASE(expr);
-
-    size_t len = MIN(val->len, val_int(arg_val(narg("length"))));
+    size_t len = MIN(value->len, val_int(arg_val(narg("length"))));
     s32 leeway = val_int(arg_val(narg("leeway")));
 
-    u64 diff = abs((s64)(len - val->len));
+    u64 diff = abs((s64)(len - value->len));
     if ( diff <= leeway ) {
-        return val;
+        return value;
     }
 
     char *result = "";
-    char *ptr = val_str(val);
+    char *ptr = val_str(value);
 
     b32 killwords = val_bool(arg_val(narg("killwords")));
     if ( !killwords ) {
-        char *ptrend = utf8_char_goto(ptr, val->len-1);
+        char *ptrend = utf8_char_goto(ptr, value->len-1);
         u32 char_count = 0;
-        for ( size_t i = val->len-1; i >= len; --i ) {
+        for ( size_t i = value->len-1; i >= len; --i ) {
             if ( *ptrend == ' ' ) {
                 char_count = 0;
             } else {
@@ -1391,8 +1349,7 @@ internal_proc PROC_CALLBACK(proc_string_truncate) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_upper) {
-    Val *val = BASE(expr);
-    char *result = utf8_str_toupper(val_str(val));
+    char *result = utf8_str_toupper(val_str(value));
 
     return val_str(result);
 }

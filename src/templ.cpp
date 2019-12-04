@@ -14,7 +14,7 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 /* @AUFGABE: werden args überhaupt genutzt? */
-#define PROC_CALLBACK(name)   templ::Val * name(templ::Val *operand, templ::Resolved_Expr *expr, templ::Resolved_Expr **args, size_t num_args, templ::Map *nargs, char **narg_keys, size_t num_narg_keys, templ::Resolved_Arg **kwargs, size_t num_kwargs, templ::Resolved_Arg **varargs, size_t num_varargs)
+#define PROC_CALLBACK(name)   templ::Val * name(templ::Val *operand, templ::Val *value, templ::Resolved_Expr **args, size_t num_args, templ::Map *nargs, char **narg_keys, size_t num_narg_keys, templ::Resolved_Arg **kwargs, size_t num_kwargs, templ::Resolved_Arg **varargs, size_t num_varargs)
 
 #define erstes_if      if
 #define genf(...)      gen_result = strf("%s%s", gen_result, strf(__VA_ARGS__))

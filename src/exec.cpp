@@ -182,7 +182,7 @@ exec_expr(Resolved_Expr *expr) {
             Resolved_Expr *tester = expr->expr_is.tester;
             Val_Proc *proc = (Val_Proc *)tester->expr_call.expr->val->ptr;
 
-            result = proc->callback( operand, expr->expr_is.operand,
+            result = proc->callback(operand, 0,
                     tester->expr_call.args, tester->expr_call.num_args,
                     tester->expr_call.nargs, tester->expr_call.narg_keys,
                     tester->expr_call.num_narg_keys, tester->expr_call.kwargs,
@@ -195,11 +195,16 @@ exec_expr(Resolved_Expr *expr) {
         } break;
 
         case EXPR_CALL: {
-            Val *val = exec_expr(expr->expr_call.expr);
-            Val_Proc *proc = (Val_Proc *)val->ptr;
+            Val *op = exec_expr(expr->expr_call.expr);
+            Val_Proc *proc = (Val_Proc *)op->ptr;
+            Val *val = 0;
+
+            if ( expr->expr_call.expr->kind == EXPR_FIELD ) {
+                val = exec_expr(expr->expr_call.expr->expr_field.base);
+            }
 
             if ( proc ) {
-                result = proc->callback(val, expr->expr_call.expr,
+                result = proc->callback(op, val,
                         expr->expr_call.args, expr->expr_call.num_args,
                         expr->expr_call.nargs, expr->expr_call.narg_keys,
                         expr->expr_call.num_narg_keys, expr->expr_call.kwargs,
