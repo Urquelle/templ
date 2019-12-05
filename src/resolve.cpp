@@ -1929,6 +1929,7 @@ resolve_init_builtin_type_procs() {
     sym_push_proc("indent",         type_proc(indent_type,  3, type_str), val_proc(indent_type,  3, type_str, proc_string_indent));
     sym_push_proc("int",            type_proc(int_type,     2, type_str), val_proc(int_type,     2, type_str, proc_string_int));
     sym_push_proc("lower",          type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_lower));
+    sym_push_proc("trim",           type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_trim));
     sym_push_proc("truncate",       type_proc(trunc_type,   4, type_str), val_proc(trunc_type,   4, type_str, proc_string_truncate));
     sym_push_proc("upper",          type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_upper));
     /* }}} */

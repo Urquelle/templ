@@ -1289,6 +1289,27 @@ internal_proc PROC_CALLBACK(proc_string_lower) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(proc_string_trim) {
+    char *str = val_str(value);
+    s32 count = 0;
+
+    while ( *str == ' ' || *str == '\t' || *str == '\n' ) {
+        str++;
+        count++;
+    }
+
+    char *start = str;
+    str = val_str(value) + value->size;
+
+    while ( *str == ' ' || *str == '\t' || *str == '\n' ) {
+        str--;
+        count++;
+    }
+
+    char *result = strf("%.*s", value->size - count+1, start);
+    return val_str(result);
+}
+
 internal_proc PROC_CALLBACK(proc_string_truncate) {
     size_t len = MIN(value->len, val_int(arg_val(narg("length"))));
     s32 leeway = val_int(arg_val(narg("leeway")));

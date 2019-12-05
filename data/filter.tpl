@@ -214,3 +214,5 @@ first line
 
 {{ users | sort(attribute="name", reverse=true) | tojson(indent=3) }}
 
+{{ "   abc   " | trim }}
+
