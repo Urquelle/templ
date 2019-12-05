@@ -456,6 +456,10 @@ internal_proc PROC_CALLBACK(proc_any_pprint) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(proc_any_safe) {
+    return val_safe(value);
+}
+
 internal_proc PROC_CALLBACK(proc_any_tojson) {
     Val *arg = arg_val(narg("indent"));
     s32 indent = (arg->kind == VAL_NONE) ? 0 : val_int(arg);

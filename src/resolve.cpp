@@ -1791,6 +1791,7 @@ resolve_init_builtin_type_procs() {
     sym_push_proc("max",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_max));
     sym_push_proc("min",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_min));
     sym_push_proc("pprint",     type_proc(pprint_type,  pp_size, type_str), val_proc(pprint_type, pp_size, type_str, proc_any_pprint));
+    sym_push_proc("safe",       type_proc(0,            0,       type_any), val_proc(0, 0, type_any, proc_any_safe));
     sym_push_proc("tojson",     type_proc(tojson_type,  tj_size, type_str), val_proc(tojson_type, tj_size, type_str, proc_any_tojson));
     /* }}} */
     /* @INFO: sequence methoden {{{ */

@@ -192,6 +192,13 @@ val_safe(Val *val) {
 }
 
 internal_proc Val *
+val_unsafe(Val *val) {
+    val->safe = false;
+
+    return val;
+}
+
+internal_proc Val *
 val_copy(Val *val) {
     if ( !val ) {
         return 0;
