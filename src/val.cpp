@@ -1,3 +1,28 @@
+internal_proc char *
+utf8_str_escape(char *ptr) {
+    char *result = "";
+    size_t len = utf8_str_len(ptr);
+
+    for ( int i = 0; i < len; ++i ) {
+        erstes_if ( *ptr == '<' ) {
+            result = strf("%s&lt;", result);
+        } else if ( *ptr == '>' ) {
+            result = strf("%s&gt;", result);
+        } else if ( *ptr == '&' ) {
+            result = strf("%s&amp;", result);
+        } else if ( *ptr == '\'' ) {
+            result = strf("%s&#39;", result);
+        } else if ( *ptr == '"' ) {
+            result = strf("%s&#34;", result);
+        } else {
+            result = strf("%s%.*s", result, utf8_char_size(ptr), ptr);
+        }
+
+        ptr += utf8_char_size(ptr);
+    }
+
+    return result;
+}
 /* scope {{{ */
 struct Scope {
     char*  name;
@@ -120,6 +145,7 @@ struct Val {
     void  *ptr;
     void *user_data;
     Scope *scope;
+    b32 safe;
 };
 
 internal_proc Val *
@@ -159,6 +185,13 @@ val_undefined() {
 }
 
 internal_proc Val *
+val_safe(Val *val) {
+    val->safe = true;
+
+    return val;
+}
+
+internal_proc Val *
 val_copy(Val *val) {
     if ( !val ) {
         return 0;
@@ -171,6 +204,7 @@ val_copy(Val *val) {
     Val *result = val_new(val->kind, val->size);
 
     result->len = val->len;
+    result->size = val->size;
     result->scope = val->scope;
     result->user_data = val->user_data;
 
@@ -347,7 +381,7 @@ val_tuple(Val **vals, size_t num_vals) {
 
 internal_proc Val *
 val_list(Val **vals, size_t num_vals) {
-    Val *result = val_new(VAL_LIST, sizeof(Val)*num_vals);
+    Val *result = val_new(VAL_LIST, sizeof(Val *)*num_vals);
 
     result->ptr = (Val **)AST_DUP(vals);
     result->len = num_vals;
@@ -481,7 +515,7 @@ val_print(Val *val) {
         } break;
 
         case VAL_FLOAT: {
-            char *result = strf("%.9g", val_float(val));
+            char *result = strf("%f", val_float(val));
             return result;
         } break;
 
@@ -578,6 +612,47 @@ val_pprint(Val *val, b32 verbose = false) {
         result = strf("<undefined>");
     } else {
         result = strf("<unknown>");
+    }
+
+    return result;
+}
+
+internal_proc char *
+val_tojson(Val *val, s32 indent, s32 depth = 0) {
+    char *result = "";
+
+    switch ( val->kind ) {
+        case VAL_TUPLE:
+        case VAL_LIST: {
+            result = strf("%*s[", depth*indent, "");
+            for ( int i = 0; i < val->len; ++i ) {
+                Val *v = val_elem(val, i);
+                result = strf("%s%s\n%s", result, (i > 0) ? "," : "", val_tojson(v, indent, depth + 1));
+            }
+            result = strf("%*s%s\n]", depth*indent, "", result);
+        } break;
+
+        case VAL_DICT: {
+            result = strf("%*s{", depth*indent, "");
+            for ( int i = 0; i < val->scope->num_syms; ++i ) {
+                Sym *sym = val->scope->sym_list[i];
+                result = strf("%s%s\n%*s\"%s\": %s", result, (i > 0) ? "," : "", (depth+1)*indent, "", sym_name(sym), val_tojson(sym_val(sym), indent, depth + 1));
+            }
+            result = strf("%s\n%*s}", result, depth*indent, "");
+        } break;
+
+        case VAL_STR: {
+            result = strf("\"%s\"", utf8_str_escape(val_print(val)));
+        } break;
+
+        case VAL_UNDEFINED:
+        case VAL_NONE: {
+            result = "null";
+        } break;
+
+        default: {
+            result = strf("%s", val_print(val));
+        } break;
     }
 
     return result;
@@ -778,6 +853,9 @@ operator<(Val left, Val right) {
         s32 t = utf8_strcmp(lval, rval);
 
         result = (t < 0) ? true : false;
+    } else if ( left.kind == VAL_DICT || right.kind == VAL_DICT ) {
+        /* @AUFGABE: was ist an dieser stelle sinnvoll? */
+        result = false;
     } else {
         illegal_path();
     }
@@ -826,6 +904,9 @@ operator>(Val &left, Val &right) {
         s32 t = utf8_strcmp(lval, rval);
 
         result = (t > 0) ? true : false;
+    } else if ( left.kind == VAL_DICT || right.kind == VAL_DICT ) {
+        /* @AUFGABE: was ist an dieser stelle sinnvoll? */
+        result = true;
     } else {
         illegal_path();
     }
@@ -884,6 +965,10 @@ operator==(Val &left, Val &right) {
 
     if ( left.kind == VAL_BOOL ) {
         return val_bool(&left) == val_bool(&right);
+    }
+
+    if ( left.kind == VAL_DICT && right.kind == VAL_DICT ) {
+        return &left == &right;
     }
 
     return false;

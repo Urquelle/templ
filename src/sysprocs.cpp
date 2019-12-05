@@ -1,8 +1,8 @@
 internal_proc void
 quicksort(Val **left, Val **right, b32 reverse, b32 case_sensitive, char *attr = 0) {
-#define compneq(left, right) ((attr) ? 0 : (*left != *right))
-#define compgt(left, right)  ((attr) ? 0 : (*left  > *right))
-#define complt(left, right)  ((attr) ? 0 : (*left  < *right))
+#define compneq(left, right) ((attr) ? (scope_attr((left)->scope, attr) != (scope_attr((right)->scope, attr))) : (*left != *right))
+#define compgt(left, right)  ((attr) ? (scope_attr((left)->scope, attr)  > (scope_attr((right)->scope, attr))) : (*left  > *right))
+#define complt(left, right)  ((attr) ? (scope_attr((left)->scope, attr)  < (scope_attr((right)->scope, attr))) : (*left  < *right))
 
     if ( compneq(*left, *right) ) {
         Val **ptr0 = left;
@@ -454,6 +454,15 @@ internal_proc PROC_CALLBACK(proc_any_pprint) {
     char *result = val_pprint(value, verbose);
 
     return val_str(result);
+}
+
+internal_proc PROC_CALLBACK(proc_any_tojson) {
+    Val *arg = arg_val(narg("indent"));
+    s32 indent = (arg->kind == VAL_NONE) ? 0 : val_int(arg);
+
+    char *result = val_tojson(value, indent);
+
+    return val_safe(val_str(result));
 }
 /* }}} */
 /* @INFO: sequence methoden {{{ */
@@ -1118,26 +1127,7 @@ internal_proc PROC_CALLBACK(proc_string_center) {
 }
 
 internal_proc PROC_CALLBACK(proc_string_escape) {
-    char *result = "";
-    char *ptr = (char *)value->ptr;
-
-    for ( int i = 0; i < value->len; ++i ) {
-        erstes_if ( *ptr == '<' ) {
-            result = strf("%s&lt;", result);
-        } else if ( *ptr == '>' ) {
-            result = strf("%s&gt;", result);
-        } else if ( *ptr == '&' ) {
-            result = strf("%s&amp;", result);
-        } else if ( *ptr == '\'' ) {
-            result = strf("%s&#39;", result);
-        } else if ( *ptr == '"' ) {
-            result = strf("%s&#34;", result);
-        } else {
-            result = strf("%s%.*s", result, utf8_char_size(ptr), ptr);
-        }
-
-        ptr += utf8_char_size(ptr);
-    }
+    char *result = utf8_str_escape((char *)value->ptr);
 
     return val_str(result);
 }

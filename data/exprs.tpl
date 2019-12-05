@@ -14,3 +14,4 @@
 {{ "abc" ~ users[0].name ~ "def" }}
 {#{ a in ["blub", "blab", "blob"] }#}
 {{ (2 - 5).abs() }}
+{{ hello().upper() }}

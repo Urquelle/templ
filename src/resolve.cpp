@@ -1781,6 +1781,9 @@ resolve_init_builtin_type_procs() {
     Type_Field *pprint_type[] = { type_field("verbose", type_bool, val_bool(false)) };
     size_t pp_size = ARRAY_SIZE(pprint_type);
 
+    Type_Field *tojson_type[] = { type_field("indent", type_bool, val_none()) };
+    size_t tj_size = ARRAY_SIZE(tojson_type);
+
     scope_set(&type_any_scope);
     sym_push_proc("default",    type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
     sym_push_proc("d",          type_proc(default_type, dt_size, type_str), val_proc(default_type, dt_size, type_str, proc_any_default));
@@ -1788,6 +1791,7 @@ resolve_init_builtin_type_procs() {
     sym_push_proc("max",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_max));
     sym_push_proc("min",        type_proc(max_type,     mx_size, type_any), val_proc(max_type, mx_size, type_any, proc_any_min));
     sym_push_proc("pprint",     type_proc(pprint_type,  pp_size, type_str), val_proc(pprint_type, pp_size, type_str, proc_any_pprint));
+    sym_push_proc("tojson",     type_proc(tojson_type,  tj_size, type_str), val_proc(tojson_type, tj_size, type_str, proc_any_tojson));
     /* }}} */
     /* @INFO: sequence methoden {{{ */
     Type_Field *batch_type[]  = { type_field("line_count", type_int), type_field("fill_with", type_str, val_none()) };

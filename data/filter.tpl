@@ -208,7 +208,9 @@ first line
 
 -- sort --
 {% set sss = [1, 3, 7, 5, 2] %}
-{% for it in sss | sort %}
+{% for it in sss | sort(reverse=true) %}
     --{{ it }}--
 {% endfor %}
+
+{{ users | sort(attribute="name", reverse=true) | tojson(indent=3) }}
 

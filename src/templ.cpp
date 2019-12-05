@@ -129,6 +129,7 @@ internal_proc char            * type_field_name(Type_Field *field);
 internal_proc Val             * type_field_value(Type_Field *field);
 internal_proc char            * utf8_char_tolower(char *str);
 internal_proc char            * utf8_char_toupper(char *str);
+internal_proc Val             * val_elem(Val *val, int idx);
 
 global_var char               * gen_result = "";
 global_var int                  gen_indent   = 0;
@@ -196,6 +197,7 @@ templ_var_add(Templ_Var *container, Templ_Var *var) {
 
     buf_push(ptr, var->val);
     container->type->type_list.base = var->type;
+    container->val->size += sizeof(Val *);
     container->val->len = buf_len(ptr);
     container->val->ptr = ptr;
 }
@@ -447,6 +449,18 @@ templ_register_proc(char *name, Proc_Callback *callback, Type_Field **fields,
 }
 
 user_api void
+templ_register_test(char *name, Proc_Callback *callback, Type_Field **fields,
+        size_t num_fields, Type *ret)
+{
+    Scope *prev_scope = scope_set(&tester_scope);
+    Sym *sym = sym_get(name);
+    if ( sym_invalid(sym) ) {
+        sym_push_proc(name, type_proc(fields, num_fields, ret),
+                val_proc(fields, num_fields, ret, callback));
+    }
+}
+
+user_api void
 templ_register_any_proc(char *name, Proc_Callback *callback, Type_Field **fields,
         size_t num_fields, Type *ret)
 {
@@ -611,7 +625,9 @@ namespace api {
 }
 
 namespace devapi {
+    using templ::intern_str;
     using templ::templ_register_proc;
+    using templ::templ_register_test;
     using templ::templ_register_any_proc;
     using templ::templ_register_seq_proc;
     using templ::templ_register_num_proc;
