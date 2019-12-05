@@ -127,6 +127,7 @@ internal_proc Type            * sym_type(Sym *sym);
 user_api void                   templ_var_set(Templ_Var *var, Templ_Var *value);
 internal_proc char            * type_field_name(Type_Field *field);
 internal_proc Val             * type_field_value(Type_Field *field);
+internal_proc char            * type_pprint(Type *type);
 internal_proc char            * utf8_char_tolower(char *str);
 internal_proc char            * utf8_char_toupper(char *str);
 internal_proc Val             * val_elem(Val *val, int idx);
@@ -450,13 +451,13 @@ templ_register_proc(char *name, Proc_Callback *callback, Type_Field **fields,
 
 user_api void
 templ_register_test(char *name, Proc_Callback *callback, Type_Field **fields,
-        size_t num_fields, Type *ret)
+        size_t num_fields)
 {
     Scope *prev_scope = scope_set(&tester_scope);
     Sym *sym = sym_get(name);
     if ( sym_invalid(sym) ) {
-        sym_push_proc(name, type_proc(fields, num_fields, ret),
-                val_proc(fields, num_fields, ret, callback));
+        sym_push_proc(name, type_proc(fields, num_fields, type_bool),
+                val_proc(fields, num_fields, type_bool, callback));
     }
 }
 

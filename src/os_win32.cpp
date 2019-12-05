@@ -1,8 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <shlwapi.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 #ifndef MAX_PATH
 #define MAX_PATH _MAX_PATH

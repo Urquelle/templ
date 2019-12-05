@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <stdio.h>
+
 #ifdef _MSC_VER
 #    include "os_win32.cpp"
 #elif __linux__
@@ -11,5 +14,4 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <math.h>
-#include <locale>
 

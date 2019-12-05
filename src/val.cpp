@@ -559,22 +559,22 @@ val_print(Val *val) {
 }
 
 internal_proc char *
-val_pprint(Val *val, b32 verbose = false) {
+val_pprint(Val *val, b32 verbose = false, s32 depth = 0) {
     char *result = "";
 
     if ( val->kind == VAL_DICT ) {
-        result = strf("dict(\n");
+        result = strf("%*sdict(\n", depth*4, "");
         Scope *scope = val->scope;
         for ( int i = 0; i < scope_num_elems(scope); ++i ) {
             Sym *sym = scope_elem(scope, i);
-            result = strf("%s%s = %s\n", result, sym_name(sym), val_pprint(sym_val(sym)));
+            result = strf("%s%*s%s = %s\n", result, (depth+1)*4, "", sym_name(sym), val_pprint(sym_val(sym), verbose, depth+1));
         }
-        result = strf("%s)", result);
+        result = strf("%s%*s)", result, depth*4, "");
     } else if ( val->kind == VAL_LIST ) {
-        result = strf("list(");
+        result = strf("%*slist(\n", depth*4, "");
         for ( int i = 0; i < val->len; ++i ) {
             Val *v = ((Val **)val->ptr)[i];
-            result = strf("%s%s\n", result, val_pprint(v));
+            result = strf("%s%s\n", result, val_pprint(v, verbose, depth+1));
         }
         result = strf("%s)", result);
     } else if ( val->kind == VAL_RANGE ) {
@@ -583,7 +583,7 @@ val_pprint(Val *val, b32 verbose = false) {
         result = strf("tuple(");
         for ( int i = 0; i < val->len; ++i ) {
             Val *v = ((Val **)val->ptr)[i];
-            result = strf("%s%s\n", result, val_pprint(v));
+            result = strf("%s%s\n", result, val_pprint(v, verbose, depth+1));
         }
         result = strf("%s)", result);
     } else if ( val->kind == VAL_PAIR ) {
@@ -602,12 +602,15 @@ val_pprint(Val *val, b32 verbose = false) {
     } else if ( val->kind == VAL_PROC ) {
         Val_Proc *proc = (Val_Proc *)val->ptr;
 
-        result = strf("proc(");
+        result = strf("proc(%s%s", (proc->ret) ? " -> " : "", type_pprint(proc->ret));
         for ( int i = 0; i < proc->num_params; ++i ) {
             Type_Field *param = proc->params[i];
-            result = strf("%s\nparam = %s(%s)", result, type_field_name(param), val_pprint(type_field_value(param)));
+            result = strf("%s\n%*sparam = %s(%s)", result,
+                    (depth+1)*4, "",
+                    type_field_name(param),
+                    val_pprint(type_field_value(param), verbose, depth));
         }
-        result = strf("%s)", result);
+        result = strf("%s\n%*s)", result, depth*4, "");
     } else if ( val->kind == VAL_UNDEFINED ) {
         result = strf("<undefined>");
     } else {
@@ -1288,6 +1291,55 @@ type_is_callable(Type *type) {
 internal_proc b32
 type_is_iterable(Type *type) {
     b32 result = type->flags & TYPE_FLAGS_ITERABLE;
+
+    return result;
+}
+
+internal_proc char *
+type_pprint(Type *type) {
+    char *result = "";
+
+    if ( !type ) {
+        return "<null>";
+    }
+
+    switch ( type->kind ) {
+        case TYPE_INT: {
+            result = "int()";
+        } break;
+
+        case TYPE_FLOAT: {
+            result = "float()";
+        } break;
+
+        case TYPE_STR: {
+            result = "string()";
+        } break;
+
+        case TYPE_BOOL: {
+            result = "bool()";
+        } break;
+
+        case TYPE_RANGE: {
+            result = "range()";
+        } break;
+
+        case TYPE_LIST: {
+            result = "list()";
+        } break;
+
+        case TYPE_TUPLE: {
+            result = "tuple()";
+        } break;
+
+        case TYPE_DICT: {
+            result = "dict()";
+        } break;
+
+        case TYPE_PROC: {
+            result = "proc()";
+        } break;
+    }
 
     return result;
 }

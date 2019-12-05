@@ -129,6 +129,7 @@ table of contents
    * [custom procs](#custom-procs)
       * [global](#global)
       * [type](#type)
+      * [tester](#tester)
 
 ## simple c++ example
 
@@ -623,8 +624,8 @@ enum Json_Node_Kind {
 
 ## custom procs
 
-templ supports the registering of custom procedures which then can be executed in a template. you can
-register two types of procedures.
+templ supports registering of custom procedures which then can be executed in a template. you can
+register three types of procedures.
 
 ### global
 
@@ -671,3 +672,9 @@ templ::templ_register_range_proc;  // register procedure for range
 templ::templ_register_list_proc;   // register procedure for list
 templ::templ_register_string_proc; // register procedure for string
 ```
+
+note: all type procs can also be used as filters on that type, so `{{ "abc".my_custom_proc() }}` is the same as {{ "abc" | my_custom_proc }}
+
+### tester
+
+tester are used in the `is` expression as a procedure to test against a given value, and have to evaluate to bool.

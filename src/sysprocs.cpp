@@ -994,11 +994,11 @@ internal_proc PROC_CALLBACK(proc_float_round) {
 
     f32 result = 0;
     if ( method == intern_str("common") ) {
-        result = round(val);
+        result = (f32)round(val);
     } else if ( method == intern_str("ceil") ) {
-        result = ceil(val);
+        result = (f32)ceil(val);
     } else {
-        result = floor(val);
+        result = (f32)floor(val);
     }
 
     return val_float(result);
@@ -1025,7 +1025,7 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
     char **suff = (binary) ? suff_bin : suff_dec;
 
     s64 size = val_int(value);
-    s32 mag = (s32)(log(size)/log(c));
+    s32 mag = (s32)(log((double)size)/log(c));
     f32 calc_size = ( mag ) ? ((f32)size/(mag*c)) : (f32)size;
 
     char *result = strf("%.3f %s", calc_size, suff[mag]);

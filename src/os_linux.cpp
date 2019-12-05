@@ -1,10 +1,8 @@
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #pragma GCC diagnostic ignored "-Wwrite-strings"
