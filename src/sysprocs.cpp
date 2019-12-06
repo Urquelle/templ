@@ -46,9 +46,9 @@ internal_proc void
 quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
     char *key = intern_str("key");
 
-#define compneq(left, right) ((by == key) ? (utf8_strcmp(sym_name(left), sym_name(right)) != 0) : (*sym_val(left) != *(sym_val(right))))
-#define compgt(left, right)  ((by == key) ? (utf8_strcmp(sym_name(left), sym_name(right))  > 0) : (*sym_val(left)  > *(sym_val(right))))
-#define complt(left, right)  ((by == key) ? (utf8_strcmp(sym_name(left), sym_name(right))  < 0) : (*sym_val(left)  < *(sym_val(right))))
+#define compneq(left, right) ((by == key) ? (utf8_str_cmp(sym_name(left), sym_name(right)) != 0) : (*sym_val(left) != *(sym_val(right))))
+#define compgt(left, right)  ((by == key) ? (utf8_str_cmp(sym_name(left), sym_name(right))  > 0) : (*sym_val(left)  > *(sym_val(right))))
+#define complt(left, right)  ((by == key) ? (utf8_str_cmp(sym_name(left), sym_name(right))  < 0) : (*sym_val(left)  < *(sym_val(right))))
 
     if ( compneq(*left, *right) ) {
         Sym **ptr0 = left;
@@ -404,7 +404,7 @@ internal_proc PROC_CALLBACK(proc_any_max) {
             char *left_str  = utf8_str_tolower(val_str(left_tmp));
             char *right_str = utf8_str_tolower(val_str(right_tmp));
 
-            result = (utf8_strcmp(left_str, right_str) > 0) ? result : right;
+            result = (utf8_str_cmp(left_str, right_str) > 0) ? result : right;
         } else {
             result = (*left_tmp > *right_tmp) ? result : right;
         }
@@ -440,7 +440,7 @@ internal_proc PROC_CALLBACK(proc_any_min) {
             char *left_str  = utf8_str_tolower(val_str(left_tmp));
             char *right_str = utf8_str_tolower(val_str(right_tmp));
 
-            result = (utf8_strcmp(left_str, right_str) < 0) ? result : right;
+            result = (utf8_str_cmp(left_str, right_str) < 0) ? result : right;
         } else {
             result = (*left_tmp < *right_tmp) ? result : right;
         }
@@ -935,7 +935,8 @@ internal_proc PROC_CALLBACK(proc_seq_selectattr) {
 internal_proc PROC_CALLBACK(proc_seq_sort) {
     Val *result = val_copy(value);
 
-    b32 reverse = val_bool(arg_val(narg("reverse")));
+    Resolved_Arg *arg = narg("reverse");
+    b32 reverse = val_bool(arg_val(arg));
     b32 case_sensitive = val_bool(arg_val(narg("case_sensitive")));
     Val *attr = arg_val(narg("attribute"));
 
@@ -945,6 +946,45 @@ internal_proc PROC_CALLBACK(proc_seq_sort) {
     }
 
     return result;
+}
+
+internal_proc PROC_CALLBACK(proc_seq_unique) {
+    b32 case_sensitive = val_bool(arg_val(narg("case_sensitive")));
+    Val *attr = arg_val(narg("attribute"));
+
+    Val **vals = 0;
+    for ( int i = 0; i < value->len; ++i ) {
+        b32 found = false;
+        Val *left = val_elem(value, i);
+
+        if ( attr->kind != VAL_NONE ) {
+            assert(left->kind == VAL_DICT);
+            Sym *sym = scope_attr(left->scope, val_str(attr));
+            left = sym_val(sym);
+        }
+
+        for ( int j = 0; j < buf_len(vals); ++j ) {
+            Val *right = vals[j];
+
+            if ( left->kind == VAL_STR ) {
+                if ( utf8_str_cmp(val_str(left), val_str(right), case_sensitive) == 0 ) {
+                    found = true;
+                    break;
+                }
+            } else {
+                if ( *left == *right ) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if ( !found ) {
+            buf_push(vals, val_elem(value, i));
+        }
+    }
+
+    return val_list(vals, buf_len(vals));
 }
 /* }}} */
 /* @INFO: dict methoden {{{ */

@@ -216,3 +216,10 @@ first line
 
 {{ "   abc   " | trim }}
 
+-- unique --
+{{ [1, 5, 2, 1, 3] | unique | sort | pprint }}
+-- unique case sensitive --
+{{ ["c", "a", "z", "Z", "c", "b"] | unique(case_sensitive=true) | pprint }}
+-- unique case insensitive --
+{{ ["c", "a", "z", "Z", "c", "b"] | unique | pprint }}
+{{ users | unique(attribute="name") | pprint }}

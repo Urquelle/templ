@@ -570,7 +570,7 @@ val_pprint(Val *val, b32 verbose = false, s32 depth = 0) {
     char *result = "";
 
     if ( val->kind == VAL_DICT ) {
-        result = strf("%*sdict(\n", depth*4, "");
+        result = strf("dict(\n");
         Scope *scope = val->scope;
         for ( int i = 0; i < scope_num_elems(scope); ++i ) {
             Sym *sym = scope_elem(scope, i);
@@ -578,12 +578,12 @@ val_pprint(Val *val, b32 verbose = false, s32 depth = 0) {
         }
         result = strf("%s%*s)", result, depth*4, "");
     } else if ( val->kind == VAL_LIST ) {
-        result = strf("%*slist(\n", depth*4, "");
+        result = strf("%*slist(", depth*4, "");
         for ( int i = 0; i < val->len; ++i ) {
             Val *v = ((Val **)val->ptr)[i];
-            result = strf("%s%s\n", result, val_pprint(v, verbose, depth+1));
+            result = strf("%s\n%*s%s", result, (depth+1)*4, "", val_pprint(v, verbose, depth+1));
         }
-        result = strf("%s)", result);
+        result = strf("%s\n)", result);
     } else if ( val->kind == VAL_RANGE ) {
         result = strf("range(%d..%d)", val_range0(val), val_range1(val));
     } else if ( val->kind == VAL_TUPLE ) {
@@ -860,7 +860,7 @@ operator<(Val left, Val right) {
     } else if ( left.kind == VAL_STR && right.kind == VAL_STR ) {
         char *lval = val_str(&left);
         char *rval = val_str(&right);
-        s32 t = utf8_strcmp(lval, rval);
+        s32 t = utf8_str_cmp(lval, rval);
 
         result = (t < 0) ? true : false;
     } else if ( left.kind == VAL_DICT || right.kind == VAL_DICT ) {
@@ -911,7 +911,7 @@ operator>(Val &left, Val &right) {
     } else if ( left.kind == VAL_STR && right.kind == VAL_STR ) {
         char *lval = val_str(&left);
         char *rval = val_str(&right);
-        s32 t = utf8_strcmp(lval, rval);
+        s32 t = utf8_str_cmp(lval, rval);
 
         result = (t > 0) ? true : false;
     } else if ( left.kind == VAL_DICT || right.kind == VAL_DICT ) {

@@ -1821,6 +1821,12 @@ resolve_init_builtin_type_procs() {
     };
     size_t so_size = ARRAY_SIZE(sort_type);
 
+    Type_Field *unique_type[] = {
+        type_field("case_sensitive", type_bool, val_bool(false)),
+        type_field("attribute", type_str, val_none())
+    };
+    size_t uq_size = ARRAY_SIZE(unique_type);
+
     Scope *groupby_scope = scope_new(0, "groupby");
     scope_set(groupby_scope);
     sym_push_var("grouper", type_str);
@@ -1838,12 +1844,13 @@ resolve_init_builtin_type_procs() {
     sym_push_proc("map", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_map));
     sym_push_proc("random", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_random));
     sym_push_proc("reject", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_reject));
-    sym_push_proc("rejectattr", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_rejectattr));
-    sym_push_proc("replace", type_proc(replace_type, re_size, type_any), val_proc(replace_type, re_size, type_any, proc_seq_replace));
-    sym_push_proc("reverse", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_reverse));
+    sym_push_proc("rejectattr", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_rejectattr));
+    sym_push_proc("replace", type_proc(replace_type, re_size, type_list(type_any)), val_proc(replace_type, re_size, type_list(type_any), proc_seq_replace));
+    sym_push_proc("reverse", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_reverse));
     sym_push_proc("select", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_select));
-    sym_push_proc("selectattr", type_proc(0, 0, type_any), val_proc(0, 0, type_any, proc_seq_selectattr));
-    sym_push_proc("sort", type_proc(sort_type, so_size, type_any), val_proc(sort_type, so_size, type_any, proc_seq_sort));
+    sym_push_proc("selectattr", type_proc(0, 0, type_list(type_any)), val_proc(0, 0, type_list(type_any), proc_seq_selectattr));
+    sym_push_proc("sort", type_proc(sort_type, so_size, type_list(type_any)), val_proc(sort_type, so_size, type_list(type_any), proc_seq_sort));
+    sym_push_proc("unique", type_proc(unique_type, uq_size, type_list(type_any)), val_proc(unique_type, uq_size, type_list(type_any), proc_seq_unique));
     /* }}} */
     /* @INFO: numeric methoden {{{ */
     scope_set(&type_numeric_scope);

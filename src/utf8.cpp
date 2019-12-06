@@ -128,11 +128,6 @@ utf8_char_goto(char *input, size_t count) {
     return result;
 }
 
-internal_proc s32
-utf8_strcmp(char *left, char *right) {
-    return strcmp(left, right);
-}
-
 global_var char global_toupper_buf[5];
 internal_proc char *
 utf8_char_toupper(char *str) {
@@ -332,5 +327,18 @@ utf8_str_tolower(char *str) {
     result[size] = 0;
 
     return result;
+}
+
+internal_proc s32
+utf8_str_cmp(char *left, char *right, b32 case_sensitive = true) {
+    char *lval = left;
+    char *rval = right;
+
+    if ( !case_sensitive ) {
+        lval = utf8_str_tolower(lval);
+        rval = utf8_str_tolower(rval);
+    }
+
+    return strcmp(lval, rval);
 }
 
