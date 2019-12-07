@@ -342,3 +342,29 @@ utf8_str_cmp(char *left, char *right, b32 case_sensitive = true) {
     return strcmp(lval, rval);
 }
 
+internal_proc b32
+utf8_char_isalpha(char *ch) {
+    char *c = utf8_char_tolower(ch);
+    size_t size = utf8_char_size(c);
+
+    u8 c0 =                (u8)c[0];
+    u8 c1 = ( size > 1 ) ? (u8)c[1] : 0;
+    u8 c2 = ( size > 2 ) ? (u8)c[2] : 0;
+
+    b32 result =
+        (*c >= 'a' && *c <= 'z') ||
+        (c0 == 0xc3 && ( c1 >= 0xa0 && c1 <= 0xb6 || c1 >= 0xb8 && c1 <= 0xbe )) ||
+        (c0 == 0xc3 && c1 == 0x9f ) ||
+        (c0 == 0xc3 && c1 == 0xbf ) ||
+        (c0 == 0xc4 && c1 <= 0xb7 && (c1 & 0x1) == 1 ) ||
+        (c0 == 0xc4 && c1 >= 0xba && c1 <= 0xbe && (c1 & 0x1) == 0 ) ||
+        (c0 == 0xc5 && c1 >= 0x82 && c1 <= 0x88 && (c1 & 0x1) == 0 ) ||
+        (c0 == 0xc5 && c1 >= 0x8b && c1 <= 0xbe && (c1 & 0x1) == 1 ) ||
+        (c0 == 0xc5 && c1 == 0x80) ||
+        (c0 == 0xd0 && c1 >= 0xb0 && c1 <= 0xbf) ||
+        (c0 == 0xd1 && (c1 <= 0x8f || c1 == 0x91))
+    ;
+
+    return result;
+}
+

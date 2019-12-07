@@ -1408,5 +1408,22 @@ internal_proc PROC_CALLBACK(proc_string_upper) {
 
     return val_str(result);
 }
+
+internal_proc PROC_CALLBACK(proc_string_wordcount) {
+    s32 result = 0;
+    char *str = val_str(value);
+
+    while ( *str ) {
+        while ( *str && utf8_char_isalpha(str) ) {
+            str += utf8_char_size(str);
+        }
+        result++;
+        while ( *str && !utf8_char_isalpha(str) ) {
+            str += utf8_char_size(str);
+        }
+    }
+
+    return val_int(result);
+}
 /* }}} */
 

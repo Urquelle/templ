@@ -223,3 +223,5 @@ first line
 -- unique case insensitive --
 {{ ["c", "a", "z", "Z", "c", "b"] | unique | pprint }}
 {{ users | unique(attribute="name") | pprint }}
+-- wc --
+{{ "veni vidi vici" | wordcount }}
