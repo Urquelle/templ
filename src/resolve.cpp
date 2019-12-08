@@ -1941,6 +1941,7 @@ resolve_init_builtin_type_procs() {
     sym_push_proc("truncate",       type_proc(trunc_type,   4, type_str), val_proc(trunc_type,   4, type_str, proc_string_truncate));
     sym_push_proc("upper",          type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_upper));
     sym_push_proc("wordcount",      type_proc(0,            0, type_int), val_proc(0,            0, type_int, proc_string_wordcount));
+    sym_push_proc("urlencode",      type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_urlencode));
     /* }}} */
 
     scope_set(prev_scope);

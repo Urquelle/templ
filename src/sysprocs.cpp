@@ -1425,5 +1425,96 @@ internal_proc PROC_CALLBACK(proc_string_wordcount) {
 
     return val_int(result);
 }
+
+internal_proc PROC_CALLBACK(proc_string_urlencode) {
+    char *str = val_str(value);
+    char *result = "";
+
+    /* @INFO: umwandlungstabelle
+              !   #   $   %   &   '   (   )   *   +   ,   /   :   ;   =   ?   @   [   ]
+             %21 %23 %24 %25 %26 %27 %28 %29 %2A %2B %2C %2F %3A %3B %3D %3F %40 %5B %5D
+
+             newline               space   "   -   .   <   >   \   ^   _   `   {   |   }   ~
+             %0A or %0D or %0D%0A   %20   %22 %2D %2E %3C %3E %5C %5E %5F %60 %7B %7C %7D %7E
+
+    */
+    while ( *str ) {
+        erstes_if ( *str == ' ' ) {
+            result = strf("%s%s", result, "%20");
+        } else if ( *str == '!' ) {
+            result = strf("%s%s", result, "%21");
+        } else if ( *str == '"' ) {
+            result = strf("%s%s", result, "%22");
+        } else if ( *str == '#' ) {
+            result = strf("%s%s", result, "%23");
+        } else if ( *str == '$' ) {
+            result = strf("%s%s", result, "%24");
+        } else if ( *str == '%' ) {
+            result = strf("%s%s", result, "%25");
+        } else if ( *str == '&' ) {
+            result = strf("%s%s", result, "%26");
+        } else if ( *str == '\'' ) {
+            result = strf("%s%s", result, "%27");
+        } else if ( *str == '(' ) {
+            result = strf("%s%s", result, "%28");
+        } else if ( *str == ')' ) {
+            result = strf("%s%s", result, "%29");
+        } else if ( *str == '*' ) {
+            result = strf("%s%s", result, "%2A");
+        } else if ( *str == '+' ) {
+            result = strf("%s%s", result, "%2B");
+        } else if ( *str == ',' ) {
+            result = strf("%s%s", result, "%2C");
+        } else if ( *str == '-' ) {
+            result = strf("%s%s", result, "%2D");
+        } else if ( *str == '.' ) {
+            result = strf("%s%s", result, "%2E");
+        } else if ( *str == '/' ) {
+            result = strf("%s%s", result, "%2F");
+        } else if ( *str == ':' ) {
+            result = strf("%s%s", result, "%3A");
+        } else if ( *str == ';' ) {
+            result = strf("%s%s", result, "%3B");
+        } else if ( *str == '<' ) {
+            result = strf("%s%s", result, "%3C");
+        } else if ( *str == '=' ) {
+            result = strf("%s%s", result, "%3D");
+        } else if ( *str == '>' ) {
+            result = strf("%s%s", result, "%3E");
+        } else if ( *str == '?' ) {
+            result = strf("%s%s", result, "%3F");
+        } else if ( *str == '@' ) {
+            result = strf("%s%s", result, "%40");
+        } else if ( *str == '[' ) {
+            result = strf("%s%s", result, "%5B");
+        } else if ( *str == '\\' ) {
+            result = strf("%s%s", result, "%5C");
+        } else if ( *str == ']' ) {
+            result = strf("%s%s", result, "%5D");
+        } else if ( *str == '^' ) {
+            result = strf("%s%s", result, "%5E");
+        } else if ( *str == '_' ) {
+            result = strf("%s%s", result, "%5F");
+        } else if ( *str == '`' ) {
+            result = strf("%s%s", result, "%60");
+        } else if ( *str == '{' ) {
+            result = strf("%s%s", result, "%7B");
+        } else if ( *str == '|' ) {
+            result = strf("%s%s", result, "%7C");
+        } else if ( *str == '}' ) {
+            result = strf("%s%s", result, "%7D");
+        } else if ( *str == '~' ) {
+            result = strf("%s%s", result, "%7E");
+        } else if ( *str == '\n' ) {
+            result = strf("%s%s", result, "%0A");
+        } else {
+            result = strf("%s%.*s", result, utf8_char_size(str), str);
+        }
+
+        str += utf8_char_size(str);
+    }
+
+    return val_str(result);
+}
 /* }}} */
 

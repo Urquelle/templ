@@ -225,3 +225,5 @@ first line
 {{ users | unique(attribute="name") | pprint }}
 -- wc --
 {{ "veni vidi vici" | wordcount }}
+
+{{ "test@test.de" | urlencode }}
