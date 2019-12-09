@@ -238,3 +238,5 @@ first line
 {{ "test url6 http://www.test.de:8080/index.html?a=b with text" | urlize }}
 {{ "test url7 http://www.test.de:8080/?a=b with text" | urlize }}
 {{ "test url8 http://www.test.de:8080?a=b with text" | urlize }}
+{{ "test url9 http://user@www.test.de:8080?a=b with text" | urlize }}
+{{ "test url10 http://user:pass@www.test.de:8080?a=b with text" | urlize }}

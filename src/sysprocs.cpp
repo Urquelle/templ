@@ -1534,6 +1534,7 @@ sys_streq(char *str, char *substr, size_t substr_len) {
 
     return true;
 }
+
 enum Url_Scheme {
     URL_NONE,
     URL_HTTP,
@@ -1550,7 +1551,12 @@ struct Url {
     char *start;
     size_t size;
 
-    char *host;
+    char *username;
+    char *password;
+
+    char **host;
+    size_t num_host;
+
     char *tld;
     char *port;
     char *path;
@@ -1598,24 +1604,65 @@ parse_url(char *str) {
         return result;
     }
 
-    char *host = "";
-    char *tld = "";
+    char *buf = "";
+    char **host = 0;
+
+    char *username = "";
+    char *password = "";
+
+    /* @INFO: authority */
+    char *temp = str;
+    while ( *temp && !utf8_char_isws(temp) && *temp != '?' && *temp != '/' && *temp != '#' ) {
+        if ( *temp == '@' ) {
+            temp++;
+            char *t = buf;
+            b32 password_token_seen = false;
+
+            while ( *t ) {
+                if ( *t == ':' ) {
+                    t++;
+                    password_token_seen = true;
+                }
+
+                if ( password_token_seen ) {
+                    password = strf("%s%.*s", password, utf8_char_size(t), t);
+                } else {
+                    username = strf("%s%.*s", username, utf8_char_size(t), t);
+                }
+
+                t += utf8_char_size(t);
+            }
+
+            str = temp;
+            break;
+        }
+
+        buf = strf("%s%.*s", buf, utf8_char_size(temp), temp);
+        temp += utf8_char_size(temp);
+    }
+
+    buf = "";
+    result.username = username;
+    result.password = password;
 
     /* @INFO: host */
-    /* @ACHTUNG: unvollständig */
-    while ( *str && (utf8_char_isalpha(str) || utf8_char_isnum(str) || *str == '.' || *str == '-') ) {
-        host = strf("%s%.*s", host, utf8_char_size(str), str);
-        tld = strf("%s%.*s", tld, utf8_char_size(str), str);
-
+    while ( *str && !utf8_char_isws(str) && *str != ':' && *str != '?' && *str != '/' && *str != '#' ) {
         if ( *str == '.' ) {
-            tld = "";
+            buf_push(host, buf);
+            buf = "";
+        } else {
+            buf = strf("%s%.*s", buf, utf8_char_size(str), str);
         }
 
         str += utf8_char_size(str);
     }
 
+    buf_push(host, buf);
+    size_t num_host = buf_len(host);
     result.host = host;
-    result.tld = tld;
+    result.num_host = num_host;
+    assert(num_host > 1);
+    result.tld = host[num_host-1];
 
     /* @INFO: port */
     char *port = "";
@@ -1681,7 +1728,11 @@ internal_proc PROC_CALLBACK(proc_string_urlize) {
                 result = strf("%s rel=\"nofollow\"", result);
             }
 
-            result = strf("%s>%s</a>", result, url.host);
+            result = strf("%s>", result);
+            for ( int i = 0; i < url.num_host; ++i ) {
+                result = strf("%s%s%s", result, (i > 0) ? "." : "", url.host[i]);
+            }
+            result = strf("%s</a>", result);
 
             str += url.size;
         } else {
