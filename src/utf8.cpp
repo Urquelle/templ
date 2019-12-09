@@ -343,6 +343,13 @@ utf8_str_cmp(char *left, char *right, b32 case_sensitive = true) {
 }
 
 internal_proc b32
+utf8_str_eq(char *left, char *right, b32 case_sensitive = true) {
+    s32 result = utf8_str_cmp(left, right, case_sensitive) == 0;
+
+    return result;
+}
+
+internal_proc b32
 utf8_char_isalpha(char *ch) {
     char *c = utf8_char_tolower(ch);
     size_t size = utf8_char_size(c);
@@ -364,6 +371,20 @@ utf8_char_isalpha(char *ch) {
         (c0 == 0xd0 && c1 >= 0xb0 && c1 <= 0xbf) ||
         (c0 == 0xd1 && (c1 <= 0x8f || c1 == 0x91))
     ;
+
+    return result;
+}
+
+internal_proc b32
+utf8_char_isnum(char *ch) {
+    b32 result = (*ch >= '0' && *ch <= '9');
+
+    return result;
+}
+
+internal_proc b32
+utf8_char_isws(char *ch) {
+    b32 result = (*ch == ' ' || *ch == '\t' || *ch == '\n' || *ch == '\v' || *ch == '\f' || *ch == '\r');
 
     return result;
 }

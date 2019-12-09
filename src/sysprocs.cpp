@@ -1516,5 +1516,181 @@ internal_proc PROC_CALLBACK(proc_string_urlencode) {
 
     return val_str(result);
 }
+
+internal_proc b32
+sys_streq(char *str, char *substr, size_t substr_len) {
+    char *s = utf8_str_tolower(str);
+    size_t len = utf8_str_len(s);
+
+    if ( len < substr_len ) {
+        return false;
+    }
+
+    for ( int i = 0; i < substr_len; ++i ) {
+        if ( !s[i] || s[i] != substr[i] ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+enum Url_Scheme {
+    URL_NONE,
+    URL_HTTP,
+    URL_HTTPS,
+    URL_FTP,
+    URL_FILE,
+    URL_WS,
+    URL_WSS,
+};
+struct Url {
+    b32 valid;
+    u32 scheme;
+
+    char *start;
+    size_t size;
+
+    char *host;
+    char *tld;
+    char *port;
+    char *path;
+    char *query;
+};
+internal_proc Url
+parse_url(char *str) {
+    /* @AUFGABE: url parser nach vorgabe umsetzen
+     *           https://url.spec.whatwg.org/#concept-basic-url-parser
+     */
+
+    Url result = {};
+    result.start = str;
+
+    /* @INFO: scheme */
+    if ( sys_streq(str, "http", 4) ) {
+        str += 4;
+        result.scheme = URL_HTTP;
+
+        if ( *str == 's' ) {
+            str++;
+            result.scheme = URL_HTTPS;
+        }
+    } else if ( sys_streq(str, "ftp", 3) ) {
+        str += 3;
+        result.scheme = URL_FTP;
+    } else if ( sys_streq(str, "file", 4) ) {
+        str += 4;
+        result.scheme = URL_FILE;
+    } else if ( sys_streq(str, "ws", 2) ) {
+        str += 2;
+        result.scheme = URL_WS;
+
+        if ( *str == 's' ) {
+            str++;
+            result.scheme = URL_WSS;
+        }
+    } else {
+        return result;
+    }
+
+    if ( sys_streq(str, "://", 3) ) {
+        str += 3;
+    } else {
+        return result;
+    }
+
+    char *host = "";
+    char *tld = "";
+
+    /* @INFO: host */
+    /* @ACHTUNG: unvollständig */
+    while ( *str && (utf8_char_isalpha(str) || utf8_char_isnum(str) || *str == '.' || *str == '-') ) {
+        host = strf("%s%.*s", host, utf8_char_size(str), str);
+        tld = strf("%s%.*s", tld, utf8_char_size(str), str);
+
+        if ( *str == '.' ) {
+            tld = "";
+        }
+
+        str += utf8_char_size(str);
+    }
+
+    result.host = host;
+    result.tld = tld;
+
+    /* @INFO: port */
+    char *port = "";
+    if ( *str == ':' ) {
+        str++;
+        while ( utf8_char_isnum(str) ) {
+            port = strf("%s%c", port, *str);
+            str++;
+        }
+    }
+
+    result.port = port;
+
+    char *path = "";
+    if ( *str == '/' ) {
+        str++;
+        while ( *str && !utf8_char_isws(str) && *str != '?' ) {
+            path = strf("%s%c", path, *str);
+            str++;
+        }
+    }
+
+    result.path = path;
+
+    char *query = "";
+    if ( *str == '?' ) {
+        str++;
+        while ( *str && !utf8_char_isws(str)) {
+            query = strf("%s%c", query, *str);
+            str++;
+        }
+    }
+
+    result.query = query;
+
+    result.size = str - result.start;
+    result.valid = true;
+
+    return result;
+}
+
+internal_proc PROC_CALLBACK(proc_string_urlize) {
+    char *str = val_str(value);
+    char *result = "";
+
+    Val *target   = arg_val(narg("target"));
+    Val *trim     = arg_val(narg("trim_url_limit"));
+    b32  nofollow = val_bool(arg_val(narg("nofollow")));
+    Val *rel      = arg_val(narg("rel"));
+
+    while ( *str ) {
+        Url url = parse_url(str);
+        if ( url.valid ) {
+            size_t size = (trim->kind != VAL_NONE) ? MIN(val_int(trim), url.size) : url.size;
+
+            result = strf("%s<a href=\"%.*s\"", result, size, url.start);
+
+            if ( target->kind != VAL_NONE ) {
+                result = strf("%s target=\"%s\"", result, val_str(target));
+            }
+
+            if ( nofollow ) {
+                result = strf("%s rel=\"nofollow\"", result);
+            }
+
+            result = strf("%s>%s</a>", result, url.host);
+
+            str += url.size;
+        } else {
+            result = strf("%s%.*s", result, utf8_char_size(str), str);
+            str += utf8_char_size(str);
+        }
+    }
+
+    return val_str(result);
+}
 /* }}} */
 
