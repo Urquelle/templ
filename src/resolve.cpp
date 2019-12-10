@@ -1935,22 +1935,30 @@ resolve_init_builtin_type_procs() {
     };
     size_t urlz_size = ARRAY_SIZE(urlz_type);
 
+    Type_Field *ww_type[]      = {
+        type_field("width", type_int, val_int(79)),
+        type_field("break_long_words", type_bool, val_bool(true)),
+        type_field("wrapstring", type_str, val_none())
+    };
+    size_t ww_size = ARRAY_SIZE(ww_type);
+
     scope_set(&type_string_scope);
-    sym_push_proc("capitalize",     type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_capitalize));
-    sym_push_proc("center",         type_proc(center_type,  2, type_str), val_proc(center_type,  2, type_str, proc_string_center));
-    sym_push_proc("escape",         type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_escape));
-    sym_push_proc("e",              type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_escape));
-    sym_push_proc("float",          type_proc(float_type,   1, type_str), val_proc(float_type,   1, type_str, proc_string_float));
-    sym_push_proc("format",         type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_format));
-    sym_push_proc("indent",         type_proc(indent_type,  3, type_str), val_proc(indent_type,  3, type_str, proc_string_indent));
-    sym_push_proc("int",            type_proc(int_type,     2, type_str), val_proc(int_type,     2, type_str, proc_string_int));
-    sym_push_proc("lower",          type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_lower));
-    sym_push_proc("trim",           type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_trim));
-    sym_push_proc("truncate",       type_proc(trunc_type,   4, type_str), val_proc(trunc_type,   4, type_str, proc_string_truncate));
-    sym_push_proc("upper",          type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_upper));
-    sym_push_proc("wordcount",      type_proc(0,            0, type_int), val_proc(0,            0, type_int, proc_string_wordcount));
-    sym_push_proc("urlencode",      type_proc(0,            0, type_str), val_proc(0,            0, type_str, proc_string_urlencode));
-    sym_push_proc("urlize",         type_proc(urlz_type,    urlz_size, type_str), val_proc(urlz_type, urlz_size, type_str, proc_string_urlize));
+    sym_push_proc("capitalize",     type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_capitalize));
+    sym_push_proc("center",         type_proc(center_type,  2, type_str),      val_proc(center_type,  2, type_str, proc_string_center));
+    sym_push_proc("escape",         type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_escape));
+    sym_push_proc("e",              type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_escape));
+    sym_push_proc("float",          type_proc(float_type,   1, type_str),      val_proc(float_type,   1, type_str, proc_string_float));
+    sym_push_proc("format",         type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_format));
+    sym_push_proc("indent",         type_proc(indent_type,  3, type_str),      val_proc(indent_type,  3, type_str, proc_string_indent));
+    sym_push_proc("int",            type_proc(int_type,     2, type_str),      val_proc(int_type,     2, type_str, proc_string_int));
+    sym_push_proc("lower",          type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_lower));
+    sym_push_proc("trim",           type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_trim));
+    sym_push_proc("truncate",       type_proc(trunc_type,   4, type_str),      val_proc(trunc_type,   4, type_str, proc_string_truncate));
+    sym_push_proc("upper",          type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_upper));
+    sym_push_proc("wordcount",      type_proc(0,            0, type_int),      val_proc(0,            0, type_int, proc_string_wordcount));
+    sym_push_proc("urlencode",      type_proc(0,            0, type_str),      val_proc(0,            0, type_str, proc_string_urlencode));
+    sym_push_proc("urlize",         type_proc(urlz_type, urlz_size, type_str), val_proc(urlz_type, urlz_size, type_str, proc_string_urlize));
+    sym_push_proc("wordwrap",       type_proc(ww_type, ww_size, type_str),     val_proc(ww_type, ww_size, type_str, proc_string_wordwrap));
     /* }}} */
 
     scope_set(prev_scope);

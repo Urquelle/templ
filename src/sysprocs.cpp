@@ -1561,6 +1561,7 @@ struct Url {
     char *port;
     char *path;
     char *query;
+    char *fragment;
 };
 internal_proc Url
 parse_url(char *str) {
@@ -1612,16 +1613,25 @@ parse_url(char *str) {
 
     /* @INFO: authority */
     char *temp = str;
+    b32 password_token_seen = false;
     while ( *temp && !utf8_char_isws(temp) && *temp != '?' && *temp != '/' && *temp != '#' ) {
         if ( *temp == '@' ) {
+            if ( utf8_str_len(buf) == 0 ) {
+                return result;
+            }
+
             temp++;
             char *t = buf;
-            b32 password_token_seen = false;
 
             while ( *t ) {
                 if ( *t == ':' ) {
+                    if ( utf8_str_len(username) == 0 ) {
+                        return result;
+                    }
+
                     t++;
                     password_token_seen = true;
+                    continue;
                 }
 
                 if ( password_token_seen ) {
@@ -1641,11 +1651,15 @@ parse_url(char *str) {
         temp += utf8_char_size(temp);
     }
 
-    buf = "";
+    if ( password_token_seen && utf8_str_len(password) == 0 ) {
+        return result;
+    }
+
     result.username = username;
     result.password = password;
 
     /* @INFO: host */
+    buf = "";
     while ( *str && !utf8_char_isws(str) && *str != ':' && *str != '?' && *str != '/' && *str != '#' ) {
         if ( *str == '.' ) {
             buf_push(host, buf);
@@ -1690,13 +1704,23 @@ parse_url(char *str) {
     char *query = "";
     if ( *str == '?' ) {
         str++;
-        while ( *str && !utf8_char_isws(str)) {
+        while ( *str && !utf8_char_isws(str) && *str != '#') {
             query = strf("%s%c", query, *str);
             str++;
         }
     }
 
     result.query = query;
+
+    char *fragment = "";
+    if ( *str == '#' ) {
+        while ( *str && !utf8_char_isws(str) ) {
+            fragment = strf("%s%.*s", fragment, utf8_char_size(str), str);
+            str += utf8_char_size(str);
+        }
+    }
+
+    result.fragment = fragment;
 
     result.size = str - result.start;
     result.valid = true;
@@ -1739,6 +1763,35 @@ internal_proc PROC_CALLBACK(proc_string_urlize) {
             result = strf("%s%.*s", result, utf8_char_size(str), str);
             str += utf8_char_size(str);
         }
+    }
+
+    return val_str(result);
+}
+
+internal_proc PROC_CALLBACK(proc_string_wordwrap) {
+    s32 width = val_int(arg_val(narg("width")));
+    b32 break_long_words = val_bool(arg_val(narg("break_long_words")));
+    Val *wrap = arg_val(narg("wrapstring"));
+
+    char *newline = "\n";
+    if ( wrap->kind != VAL_NONE ) {
+        newline = val_str(wrap);
+    }
+
+    char *result = "";
+    char *str = val_str(value);
+    s32 line_width = 0;
+    while ( *str ) {
+        if ( line_width > width ) {
+            if ( !utf8_char_isalpha(str) || break_long_words ) {
+                result = strf("%s%s", result, newline);
+                line_width = 0;
+            }
+        }
+
+        result = strf("%s%.*s", result, utf8_char_size(str), str);
+        str += utf8_char_size(str);
+        line_width++;
     }
 
     return val_str(result);

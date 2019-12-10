@@ -230,13 +230,19 @@ first line
 {{ "test@test.de" | urlencode }}
 
 -- urlize --
-{{ "test url1 http://www.test.de with text" | urlize }}
-{{ "test url2 http://www.test.de with text" | urlize(10) }}
-{{ "test url3 http://www.test.de with text" | urlize(15, true) }}
-{{ "test url4 http://www.test.de:8080/ with text" | urlize(15, true, target="_blank") }}
-{{ "test url5 http://www.test.de:8080/index.html with text" | urlize }}
-{{ "test url6 http://www.test.de:8080/index.html?a=b with text" | urlize }}
-{{ "test url7 http://www.test.de:8080/?a=b with text" | urlize }}
-{{ "test url8 http://www.test.de:8080?a=b with text" | urlize }}
-{{ "test url9 http://user@www.test.de:8080?a=b with text" | urlize }}
-{{ "test url10 http://user:pass@www.test.de:8080?a=b with text" | urlize }}
+{{ "url1 http://www.test.de with text" | urlize }}
+{{ "url2 http://www.test.de with text" | urlize(10) }}
+{{ "url3 http://www.test.de with text" | urlize(15, true) }}
+{{ "url4 http://www.test.de:8080/ with text" | urlize(15, true, target="_blank") }}
+{{ "url5 http://www.test.de:8080/index.html with text" | urlize }}
+{{ "url6 http://www.test.de:8080/index.html?a=b with text" | urlize }}
+{{ "url7 http://www.test.de:8080/?a=b with text" | urlize }}
+{{ "url8 http://www.test.de:8080?a=b with text" | urlize }}
+{{ "url9 http://user@www.test.de:8080?a=b with text" | urlize }}
+{{ "url10 http://user:pass@www.test.de:8080?a=b with text" | urlize }}
+{{ "url11 http://:pass@www.test.de:8080?a=b with text" | urlize }}
+{{ "url12 http://user:@www.test.de:8080?a=b with text" | urlize }}
+{{ "url13 http://:@www.test.de:8080?a=b with text" | urlize }}
+
+-- wordwrap --
+{{ lipsum() | wordwrap }}
