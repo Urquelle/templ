@@ -1866,9 +1866,15 @@ resolve_init_builtin_type_procs() {
     };
     size_t ds_size = ARRAY_SIZE(dictsort_type);
 
+    Type_Field *xm_type[]      = {
+        type_field("autospace", type_bool, val_bool(true))
+    };
+    size_t xm_size = ARRAY_SIZE(xm_type);
+
     scope_set(&type_dict_scope);
     sym_push_proc("attr",     type_proc(attr_type, at_size, type_any), val_proc(attr_type, at_size, type_any, proc_dict_attr));
     sym_push_proc("dictsort", type_proc(dictsort_type, ds_size, type_any), val_proc(dictsort_type, ds_size, type_any, proc_dict_dictsort));
+    sym_push_proc("xmlattr",  type_proc(xm_type, xm_size, type_str), val_proc(xm_type, xm_size, type_str, proc_dict_xmlattr));
     /* }}} */
     /* @INFO: float methoden {{{ */
     Type_Field *round_type[] = {

@@ -1029,6 +1029,23 @@ internal_proc PROC_CALLBACK(proc_dict_dictsort) {
 
     return val_dict(scope);
 }
+
+internal_proc PROC_CALLBACK(proc_dict_xmlattr) {
+    b32 autospace = val_bool(arg_val(narg("autospace")));
+
+    char *result = "";
+    for ( int i = 0; i < value->scope->num_syms; ++i ) {
+        Sym *sym = value->scope->sym_list[i];
+        Val *val = sym_val(sym);
+
+        if ( val->kind != VAL_NONE && val->kind != VAL_UNDEFINED ) {
+            result = strf("%s%s%s=\"%s\"", result, (i > 0 || autospace) ? " " : "",
+                    sym_name(sym), utf8_str_escape(val_print(val)));
+        }
+    }
+
+    return val_str(result);
+}
 /* }}} */
 /* @INFO: float methoden {{{ */
 internal_proc PROC_CALLBACK(proc_float_round) {

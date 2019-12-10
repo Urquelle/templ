@@ -249,3 +249,6 @@ first line
 
 -- wordwrap --
 {{ lipsum() | wordwrap }}
+
+-- xmlattr --
+<xml{{ users[0] | xmlattr }}>
