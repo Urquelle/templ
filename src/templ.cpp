@@ -13,6 +13,11 @@
 #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
+
+#define KB(X) (  (X)*1024)
+#define MB(X) (KB(X)*1024)
+#define GB(X) (MB(X)*1024)
+
 /* @AUFGABE: werden args überhaupt genutzt? */
 #define PROC_CALLBACK(name)   templ::Val * name(templ::Val *operand, templ::Val *value, templ::Resolved_Expr **args, size_t num_args, templ::Map *nargs, char **narg_keys, size_t num_narg_keys, templ::Resolved_Arg **kwargs, size_t num_kwargs, templ::Resolved_Arg **varargs, size_t num_varargs)
 
@@ -27,9 +32,6 @@
 #define narg(name)     ((Resolved_Arg *)map_get(nargs, intern_str(name)))
 #define user_api
 
-#define GB(X) (MB(X)*1024)
-#define KB(X) (  (X)*1024)
-#define MB(X) (KB(X)*1024)
 #define buf__hdr(b) ((Buf_Hdr *)((char *)(b) - offsetof(Buf_Hdr, buf)))
 #define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
 #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)

@@ -16,7 +16,7 @@ main(int argc, char **argv) {
     using namespace templ::devapi;
 
     templ_init(MB(100), MB(100), MB(100));
-    templ_register_test("xxx", custom_test_xxx, 0, 0, type_bool);
+    templ_register_test("xxx", custom_test_xxx, 0, 0);
 
     Templ *templ = templ_compile_string(R"END(
         {% if "xxx" is xxx %}
