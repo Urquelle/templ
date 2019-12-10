@@ -212,6 +212,9 @@ first line
     --{{ it }}--
 {% endfor %}
 
+-- title --
+{{ "eine überschrift" | title }}
+
 {{ users | sort(attribute="name", reverse=true) | tojson(indent=3) }}
 
 {{ "   abc   " | trim }}

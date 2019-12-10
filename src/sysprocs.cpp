@@ -1333,6 +1333,26 @@ internal_proc PROC_CALLBACK(proc_string_lower) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(proc_string_title) {
+    char *prev_char = "";
+    char *str = val_str(value);
+    char *result = "";
+
+    while ( *str ) {
+        if ( utf8_char_isalpha(str) && !utf8_char_isalpha(prev_char) ) {
+            char *upper = utf8_char_toupper(str);
+            result = strf("%s%.*s", result, utf8_char_size(upper), upper);
+        } else {
+            result = strf("%s%.*s", result, utf8_char_size(str), str);
+        }
+
+        prev_char = str;
+        str += utf8_char_size(str);
+    }
+
+    return val_str(result);
+}
+
 internal_proc PROC_CALLBACK(proc_string_trim) {
     char *str = val_str(value);
     s32 count = 0;
@@ -1407,23 +1427,6 @@ internal_proc PROC_CALLBACK(proc_string_upper) {
     char *result = utf8_str_toupper(val_str(value));
 
     return val_str(result);
-}
-
-internal_proc PROC_CALLBACK(proc_string_wordcount) {
-    s32 result = 0;
-    char *str = val_str(value);
-
-    while ( *str ) {
-        while ( *str && utf8_char_isalpha(str) ) {
-            str += utf8_char_size(str);
-        }
-        result++;
-        while ( *str && !utf8_char_isalpha(str) ) {
-            str += utf8_char_size(str);
-        }
-    }
-
-    return val_int(result);
 }
 
 internal_proc PROC_CALLBACK(proc_string_urlencode) {
@@ -1766,6 +1769,23 @@ internal_proc PROC_CALLBACK(proc_string_urlize) {
     }
 
     return val_str(result);
+}
+
+internal_proc PROC_CALLBACK(proc_string_wordcount) {
+    s32 result = 0;
+    char *str = val_str(value);
+
+    while ( *str ) {
+        while ( *str && utf8_char_isalpha(str) ) {
+            str += utf8_char_size(str);
+        }
+        result++;
+        while ( *str && !utf8_char_isalpha(str) ) {
+            str += utf8_char_size(str);
+        }
+    }
+
+    return val_int(result);
 }
 
 internal_proc PROC_CALLBACK(proc_string_wordwrap) {
