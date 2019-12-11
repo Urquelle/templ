@@ -1638,6 +1638,7 @@ struct Url {
     u32 scheme;
 
     char *start;
+    char *end;
     size_t size;
 
     char *username;
@@ -1664,36 +1665,37 @@ parse_url(char *str) {
 
     Url result = {};
     result.start = str;
+    result.end   = str;
 
     /* @INFO: scheme */
-    if ( sys_streq(str, "http", 4) ) {
-        str += 4;
+    if ( sys_streq(result.end, "http", 4) ) {
+        result.end += 4;
         result.scheme = URL_HTTP;
 
-        if ( *str == 's' ) {
-            str++;
+        if ( *result.end == 's' ) {
+            result.end++;
             result.scheme = URL_HTTPS;
         }
-    } else if ( sys_streq(str, "ftp", 3) ) {
-        str += 3;
+    } else if ( sys_streq(result.end, "ftp", 3) ) {
+        result.end += 3;
         result.scheme = URL_FTP;
-    } else if ( sys_streq(str, "file", 4) ) {
-        str += 4;
+    } else if ( sys_streq(result.end, "file", 4) ) {
+        result.end += 4;
         result.scheme = URL_FILE;
-    } else if ( sys_streq(str, "ws", 2) ) {
-        str += 2;
+    } else if ( sys_streq(result.end, "ws", 2) ) {
+        result.end += 2;
         result.scheme = URL_WS;
 
-        if ( *str == 's' ) {
-            str++;
+        if ( *result.end == 's' ) {
+            result.end++;
             result.scheme = URL_WSS;
         }
     } else {
         return result;
     }
 
-    if ( sys_streq(str, "://", 3) ) {
-        str += 3;
+    if ( sys_streq(result.end, "://", 3) ) {
+        result.end += 3;
     } else {
         return result;
     }
@@ -1705,7 +1707,7 @@ parse_url(char *str) {
     char *password = "";
 
     /* @INFO: authority */
-    char *temp = str;
+    char *temp = result.end;
     b32 password_token_seen = false;
     while ( *temp && !utf8_char_isws(temp) && *temp != '?' && *temp != '/' && *temp != '#' ) {
         if ( *temp == '@' ) {
@@ -1736,7 +1738,7 @@ parse_url(char *str) {
                 t += utf8_char_size(t);
             }
 
-            str = temp;
+            result.end = temp;
             break;
         }
 
@@ -1753,15 +1755,17 @@ parse_url(char *str) {
 
     /* @INFO: host */
     buf = "";
-    while ( *str && !utf8_char_isws(str) && *str != ':' && *str != '?' && *str != '/' && *str != '#' ) {
-        if ( *str == '.' ) {
+    while ( *result.end && !utf8_char_isws(result.end) && *result.end != ':' &&
+            *result.end != '?' && *result.end != '/' && *result.end != '#' )
+    {
+        if ( *result.end == '.' ) {
             buf_push(host, buf);
             buf = "";
         } else {
-            buf = strf("%s%.*s", buf, utf8_char_size(str), str);
+            buf = strf("%s%.*s", buf, utf8_char_size(result.end), result.end);
         }
 
-        str += utf8_char_size(str);
+        result.end += utf8_char_size(result.end);
     }
 
     buf_push(host, buf);
@@ -1773,39 +1777,40 @@ parse_url(char *str) {
 
     /* @INFO: port */
     char *port = "";
-    if ( *str == ':' ) {
-        str++;
-        while ( utf8_char_isnum(str) ) {
-            port = strf("%s%c", port, *str);
-            str++;
+    if ( *result.end == ':' ) {
+        result.end++;
+        while ( utf8_char_isnum(result.end) ) {
+            port = strf("%s%c", port, *result.end);
+            result.end++;
         }
     }
 
     result.port = port;
 
     char *path = "";
-    if ( *str == '/' ) {
-        str++;
-        while ( *str && !utf8_char_isws(str) && *str != '?' ) {
-            path = strf("%s%c", path, *str);
-            str++;
+    if ( *result.end == '/' ) {
+        result.end++;
+        while ( *result.end && !utf8_char_isws(result.end) && *result.end != '?' ) {
+            path = strf("%s%c", path, *result.end);
+            result.end++;
         }
     }
 
     result.path = path;
 
     char *query = "";
-    char *key = "";
-    char *value = "";
     Url_Query_Pair **query_pairs = 0;
     b32 query_value_token_seen = false;
-    if ( *str == '?' ) {
-        str++;
-        while ( *str && !utf8_char_isws(str) && *str != '#') {
-            query = strf("%s%c", query, *str);
+    if ( *result.end == '?' ) {
+        result.end++;
 
-            if ( *str == '=' ) {
-                str++;
+        char *key = "";
+        char *value = "";
+        while ( *result.end && !utf8_char_isws(result.end) && *result.end != '#') {
+            query = strf("%s%c", query, *result.end);
+
+            if ( *result.end == '=' ) {
+                result.end++;
 
                 if ( utf8_str_len(key) == 0 ) {
                     return result;
@@ -1815,8 +1820,8 @@ parse_url(char *str) {
                 continue;
             }
 
-            if ( *str == '&' ) {
-                str++;
+            if ( *result.end == '&' ) {
+                result.end++;
                 buf_push(query_pairs, url_query_pair(key, value));
                 query_value_token_seen = false;
                 key = "";
@@ -1825,12 +1830,12 @@ parse_url(char *str) {
             }
 
             if ( query_value_token_seen ) {
-                value = strf("%s%.*s", value, utf8_char_size(str), str);
+                value = strf("%s%.*s", value, utf8_char_size(result.end), result.end);
             } else {
-                key = strf("%s%.*s", key, utf8_char_size(str), str);
+                key = strf("%s%.*s", key, utf8_char_size(result.end), result.end);
             }
 
-            str++;
+            result.end++;
         }
 
         if ( utf8_str_len(key) ) {
@@ -1843,16 +1848,16 @@ parse_url(char *str) {
     result.num_query_pairs = buf_len(query_pairs);
 
     char *fragment = "";
-    if ( *str == '#' ) {
-        while ( *str && !utf8_char_isws(str) ) {
-            fragment = strf("%s%.*s", fragment, utf8_char_size(str), str);
-            str += utf8_char_size(str);
+    if ( *result.end == '#' ) {
+        while ( *result.end && !utf8_char_isws(result.end) ) {
+            fragment = strf("%s%.*s", fragment, utf8_char_size(result.end), result.end);
+            result.end += utf8_char_size(result.end);
         }
     }
 
     result.fragment = fragment;
 
-    result.size = str - result.start;
+    result.size = result.end - result.start;
     result.valid = true;
 
     return result;
