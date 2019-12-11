@@ -1350,6 +1350,60 @@ internal_proc PROC_CALLBACK(proc_string_lower) {
     return val_str(result);
 }
 
+internal_proc PROC_CALLBACK(proc_string_striptags) {
+    char *str = val_str(value);
+    char *result = "";
+
+    while ( *str ) {
+        if ( *str == '<' ) {
+            while ( *str && *str != '>' ) {
+                /* @INFO: falls \" im "" string vorkommt */
+                erstes_if ( str[0] == '\\' && str[1] == '"' ) {
+                    str += 2;
+
+                    while ( *str && str[0] != '\\' && str[1] != '"' ) {
+                        if ( *str == '\\' ) {
+                            str++;
+                        }
+
+                        str += utf8_char_size(str);
+                    }
+
+                    str++;
+                }
+
+                /* @INFO: falls \' im '' string vorkommt */
+                else if ( str[0] == '\\' && str[1] == '\'' ) {
+                    str += 2;
+
+                    while ( *str && str[0] != '\\' && str[1] != '\'' ) {
+                        if ( *str == '\\' ) {
+                            str++;
+                        }
+
+                        str += utf8_char_size(str);
+                    }
+
+                    str++;
+                }
+
+                str += utf8_char_size(str);
+            }
+
+            if ( *str == '>' ) {
+                str++;
+            }
+
+            continue;
+        }
+
+        result = strf("%s%.*s", result, utf8_char_size(str), str);
+        str += utf8_char_size(str);
+    }
+
+    return val_str(result);
+}
+
 internal_proc PROC_CALLBACK(proc_string_title) {
     char *prev_char = "";
     char *str = val_str(value);
@@ -1564,6 +1618,21 @@ enum Url_Scheme {
     URL_WS,
     URL_WSS,
 };
+struct Url_Query_Pair {
+    char *key;
+    char *value;
+};
+
+internal_proc Url_Query_Pair *
+url_query_pair(char *key, char *value) {
+    Url_Query_Pair *result = ALLOC_STRUCT(&resolve_arena, Url_Query_Pair);
+
+    result->key = key;
+    result->value = value;
+
+    return result;
+}
+
 struct Url {
     b32 valid;
     u32 scheme;
@@ -1580,7 +1649,11 @@ struct Url {
     char *tld;
     char *port;
     char *path;
+
     char *query;
+    Url_Query_Pair **query_pairs;
+    size_t num_query_pairs;
+
     char *fragment;
 };
 internal_proc Url
@@ -1722,15 +1795,52 @@ parse_url(char *str) {
     result.path = path;
 
     char *query = "";
+    char *key = "";
+    char *value = "";
+    Url_Query_Pair **query_pairs = 0;
+    b32 query_value_token_seen = false;
     if ( *str == '?' ) {
         str++;
         while ( *str && !utf8_char_isws(str) && *str != '#') {
             query = strf("%s%c", query, *str);
+
+            if ( *str == '=' ) {
+                str++;
+
+                if ( utf8_str_len(key) == 0 ) {
+                    return result;
+                }
+
+                query_value_token_seen = true;
+                continue;
+            }
+
+            if ( *str == '&' ) {
+                str++;
+                buf_push(query_pairs, url_query_pair(key, value));
+                query_value_token_seen = false;
+                key = "";
+                value = "";
+                continue;
+            }
+
+            if ( query_value_token_seen ) {
+                value = strf("%s%.*s", value, utf8_char_size(str), str);
+            } else {
+                key = strf("%s%.*s", key, utf8_char_size(str), str);
+            }
+
             str++;
+        }
+
+        if ( utf8_str_len(key) ) {
+            buf_push(query_pairs, url_query_pair(key, value));
         }
     }
 
     result.query = query;
+    result.query_pairs = query_pairs;
+    result.num_query_pairs = buf_len(query_pairs);
 
     char *fragment = "";
     if ( *str == '#' ) {

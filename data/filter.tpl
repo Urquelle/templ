@@ -219,6 +219,11 @@ first line
 
 {{ "   abc   " | trim }}
 
+{{ "abc abc <a href=\"index.html\">index</a>" | striptags }}
+{{ "abc abc <a href='index.html'>index</a>" | striptags }}
+{{ 'abc abc <a href=\'index.html\'>index</a>' | striptags }}
+{{ 'abc abc <a href="index.html">index</a>' | striptags }}
+
 -- unique --
 {{ [1, 5, 2, 1, 3] | unique | sort | pprint }}
 -- unique case sensitive --
@@ -238,7 +243,7 @@ first line
 {{ "url3 http://www.test.de with text" | urlize(15, true) }}
 {{ "url4 http://www.test.de:8080/ with text" | urlize(15, true, target="_blank") }}
 {{ "url5 http://www.test.de:8080/index.html with text" | urlize }}
-{{ "url6 http://www.test.de:8080/index.html?a=b with text" | urlize }}
+{{ "url6 http://www.test.de:8080/index.html?a=b&c=d with text" | urlize }}
 {{ "url7 http://www.test.de:8080/?a=b with text" | urlize }}
 {{ "url8 http://www.test.de:8080?a=b with text" | urlize }}
 {{ "url9 http://user@www.test.de:8080?a=b with text" | urlize }}
