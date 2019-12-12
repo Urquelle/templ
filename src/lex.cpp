@@ -274,7 +274,7 @@ scan_float(Lexer *lex) {
 }
 
 internal_proc void
-next_raw_token(Lexer *lex) {
+next_raw_token(Lexer *lex, b32 in_literal = false) {
     char *start = lex->input;
 
     lex->token_prev = lex->token;
@@ -420,7 +420,13 @@ next_raw_token(Lexer *lex) {
         lex->token.kind = T_STR;
         next(lex);
 
-        while (at0(lex) != '\'') {
+        b32 skip_next = false;
+        while (at0(lex) && at0(lex) != '\'') {
+            if ( !is_lit(lex) && in_literal ) {
+                skip_next = true;
+                break;
+            }
+
             if ( at0(lex) == '\\' ) {
                 next(lex);
             }
@@ -429,12 +435,21 @@ next_raw_token(Lexer *lex) {
         }
 
         lex->token.str_value = intern_str(start+utf8_char_size(start), utf8_char_lastbyte(lex->input));
-        next(lex);
+
+        if ( !skip_next ) {
+            next(lex);
+        }
     } else if ( c == '"' ) {
         lex->token.kind = T_STR;
         next(lex);
 
-        while (at0(lex) != '"') {
+        b32 skip_next = false;
+        while (at0(lex) && at0(lex) != '"') {
+            if ( !is_lit(lex) && in_literal ) {
+                skip_next = true;
+                break;
+            }
+
             if ( at0(lex) == '\\' ) {
                 next(lex);
             }
@@ -443,7 +458,10 @@ next_raw_token(Lexer *lex) {
         }
 
         lex->token.str_value = intern_str(start+utf8_char_size(start), utf8_char_lastbyte(lex->input));
-        next(lex);
+
+        if ( !skip_next ) {
+            next(lex);
+        }
     } else if ( c == '#' ) {
         lex->token.kind = T_HASH;
         next(lex);
@@ -494,8 +512,8 @@ next_raw_token(Lexer *lex) {
 }
 
 internal_proc void
-next_token(Lexer *lex) {
-    next_raw_token(lex);
+next_token(Lexer *lex, b32 entering_literal = false) {
+    next_raw_token(lex, entering_literal);
 
     if ( lex->ignore_whitespace ) {
         while ( is_raw(lex->token) ) {

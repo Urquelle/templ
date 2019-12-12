@@ -20,12 +20,14 @@ global_var char ** keywords;
 global_var char *keyword_and;
 global_var char *keyword_block;
 global_var char *keyword_break;
+global_var char *keyword_call;
 global_var char *keyword_continue;
 global_var char *keyword_do;
 global_var char *keyword_elif;
 global_var char *keyword_else;
 global_var char *keyword_embed;
 global_var char *keyword_endblock;
+global_var char *keyword_endcall;
 global_var char *keyword_endfilter;
 global_var char *keyword_endfor;
 global_var char *keyword_endif;
@@ -60,12 +62,14 @@ init_keywords() {
     ADD_KEYWORD(and);
     ADD_KEYWORD(block);
     ADD_KEYWORD(break);
+    ADD_KEYWORD(call);
     ADD_KEYWORD(continue);
     ADD_KEYWORD(do);
     ADD_KEYWORD(elif);
     ADD_KEYWORD(else);
     ADD_KEYWORD(embed);
     ADD_KEYWORD(endblock);
+    ADD_KEYWORD(endcall);
     ADD_KEYWORD(endfilter);
     ADD_KEYWORD(endfor);
     ADD_KEYWORD(endif);
@@ -145,9 +149,9 @@ match_token(Parser *p, Token_Kind kind) {
 }
 
 internal_proc void
-expect_token(Parser *p, Token_Kind kind) {
+expect_token(Parser *p, Token_Kind kind, b32 entering_literal = false) {
     if ( is_token(p, kind) ) {
-        next_token(&p->lex);
+        next_token(&p->lex, entering_literal);
     } else {
         fatal(p->lex.pos.name, p->lex.pos.line, "unerwartetes token. erwartet %s, erhalten %s", tokenkind_to_str(kind), tokenkind_to_str(p->lex.token.kind));
     }
@@ -716,6 +720,27 @@ parse_stmt_block(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_call(Parser *p) {
+    Expr *expr = parse_expr(p);
+    expect_token(p, T_CODE_END);
+
+    Stmt **stmts = 0;
+    do {
+        Stmt *stmt = parse_stmt(p);
+        if ( stmt->kind == STMT_ENDCALL ) {
+            break;
+        }
+
+        buf_push(stmts, stmt);
+    } while(status_is_not_error() && parser_valid(p));
+
+    Stmt *result = stmt_call(expr, stmts, buf_len(stmts));
+    buf_free(stmts);
+
+    return result;
+}
+
+internal_proc Stmt *
 parse_stmt_extends(Parser *p) {
     Expr *name = parse_expr(p);
     assert(name->kind == EXPR_STR);
@@ -872,12 +897,17 @@ parse_stmt_macro(Parser *p) {
     expect_token(p, T_CODE_END);
 
     Stmt **stmts = 0;
-    Stmt *stmt = parse_stmt(p);
+    do {
+        Stmt *stmt = parse_stmt(p);
 
-    while ( stmt->kind != STMT_ENDMACRO ) {
-        buf_push(stmts, stmt);
-        stmt = parse_stmt(p);
-    }
+        if ( stmt ) {
+            if ( stmt->kind == STMT_ENDMACRO ) {
+                break;
+            }
+
+            buf_push(stmts, stmt);
+        }
+    } while(status_is_not_error() && parser_valid(p));
 
     return stmt_macro(name, params, buf_len(params), stmts, buf_len(stmts));
 }
@@ -1015,6 +1045,12 @@ parse_stmt_endblock(Parser *p) {
 }
 
 internal_proc Stmt *
+parse_stmt_endcall(Parser *p) {
+    expect_token(p, T_CODE_END);
+    return &stmt_endcall;
+}
+
+internal_proc Stmt *
 parse_stmt_endfilter(Parser *p) {
     expect_token(p, T_CODE_END);
     return &stmt_endfilter;
@@ -1054,6 +1090,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_endif(p);
         } else if ( match_keyword(p, keyword_endblock) ) {
             result = parse_stmt_endblock(p);
+        } else if ( match_keyword(p, keyword_endcall) ) {
+            result = parse_stmt_endcall(p);
         } else if ( match_keyword(p, keyword_endfilter) ) {
             result = parse_stmt_endfilter(p);
         } else if ( match_keyword(p, keyword_endmacro) ) {
@@ -1068,6 +1106,8 @@ parse_stmt(Parser *p) {
             result = parse_stmt_elseif(p);
         } else if ( match_keyword(p, keyword_block) ) {
             result = parse_stmt_block(p);
+        } else if ( match_keyword(p, keyword_call) ) {
+            result = parse_stmt_call(p);
         } else if ( match_keyword(p, keyword_extends) ) {
             result = parse_stmt_extends(p);
         } else if ( match_keyword(p, keyword_filter) ) {
@@ -1113,7 +1153,7 @@ internal_proc Stmt *
 parse_stmt_var(Parser *p) {
     Expr *expr = parse_expr(p);
 
-    expect_token(p, T_VAR_END);
+    expect_token(p, T_VAR_END, true);
 
     return stmt_var(expr);
 }

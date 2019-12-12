@@ -530,6 +530,12 @@ struct Resolved_Stmt {
 
         struct {
             Resolved_Expr *expr;
+            Resolved_Stmt **stmts;
+            size_t num_stmts;
+        } stmt_call;
+
+        struct {
+            Resolved_Expr *expr;
         } stmt_do;
 
         struct {
@@ -651,6 +657,20 @@ stmt_block_stmts(Resolved_Stmt *stmt) {
 }
 
 internal_proc size_t
+stmt_call_num_stmts(Resolved_Stmt *stmt) {
+    size_t result = stmt->stmt_call.num_stmts;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt **
+stmt_call_stmts(Resolved_Stmt *stmt) {
+    Resolved_Stmt **result = stmt->stmt_call.stmts;
+
+    return result;
+}
+
+internal_proc size_t
 stmt_for_num_else_stmts(Resolved_Stmt *stmt) {
     size_t result = stmt->stmt_for.num_else_stmts;
 
@@ -697,6 +717,17 @@ resolved_stmt_new(Stmt_Kind kind) {
     Resolved_Stmt *result = ALLOC_STRUCT(&resolve_arena, Resolved_Stmt);
 
     result->kind = kind;
+
+    return result;
+}
+
+internal_proc Resolved_Stmt *
+resolved_stmt_call(Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts) {
+    Resolved_Stmt *result = resolved_stmt_new(STMT_CALL);
+
+    result->stmt_call.expr = expr;
+    result->stmt_call.stmts = (Resolved_Stmt **)AST_DUP(stmts);
+    result->stmt_call.num_stmts = num_stmts;
 
     return result;
 }
@@ -1103,6 +1134,18 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             }
         } break;
 
+        case STMT_CALL: {
+            Resolved_Expr *expr = resolve_expr(stmt->stmt_call.expr);
+
+            Resolved_Stmt **stmts = 0;
+            for ( int i = 0; i < stmt->stmt_call.num_stmts; ++i ) {
+                Resolved_Stmt *resolved_stmt = resolve_stmt(stmt->stmt_call.stmts[i], templ);
+                buf_push(stmts, resolved_stmt);
+            }
+
+            result = resolved_stmt_call(expr, stmts, buf_len(stmts));
+        } break;
+
         case STMT_DO: {
             Resolved_Expr *expr = resolve_expr(stmt->stmt_do.expr);
 
@@ -1227,6 +1270,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             sym_push_var("name",      type_str, val_str(macro_name));
             sym_push_var("arguments", type_tuple(num_param_names), val_tuple(param_names, num_param_names));
             sym_push_var("varargs",   type_list(type_any), val_undefined());
+            sym_push_var("caller",    type_proc(0, 0, type_str), val_proc(0, 0, type_str, proc_caller));
             /* }}} */
 
             Resolved_Stmt **stmts = 0;
@@ -1345,6 +1389,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
         case STMT_ENDWITH:
         case STMT_ENDIF:
         case STMT_ENDBLOCK:
+        case STMT_ENDCALL:
         case STMT_ENDFILTER:
         case STMT_ENDFOR: {
         } break;

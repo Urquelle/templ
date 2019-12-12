@@ -388,11 +388,13 @@ enum Stmt_Kind {
     STMT_NONE,
     STMT_BLOCK,
     STMT_BREAK,
+    STMT_CALL,
     STMT_CONTINUE,
     STMT_DO,
     STMT_ELSE,
     /* @AUFGABE: end statements loswerden */
     STMT_ENDBLOCK,
+    STMT_ENDCALL,
     STMT_ENDFILTER,
     STMT_ENDFOR,
     STMT_ENDIF,
@@ -432,6 +434,12 @@ struct Stmt {
             Stmt **else_stmts;
             size_t num_else_stmts;
         } stmt_for;
+
+        struct {
+            Expr *expr;
+            Stmt **stmts;
+            size_t num_stmts;
+        } stmt_call;
 
         struct {
             Expr *expr;
@@ -525,6 +533,7 @@ struct Stmt {
 
 global_var Stmt stmt_illegal   = { STMT_NONE };
 global_var Stmt stmt_endblock  = { STMT_ENDBLOCK };
+global_var Stmt stmt_endcall   = { STMT_ENDCALL };
 global_var Stmt stmt_endfilter = { STMT_ENDFILTER };
 global_var Stmt stmt_endfor    = { STMT_ENDFOR };
 global_var Stmt stmt_endif     = { STMT_ENDIF };
@@ -559,6 +568,17 @@ stmt_for(Expr **vars, size_t num_vars, Expr *set, Stmt **stmts,
 
     result->stmt_for.else_stmts = (Stmt **)AST_DUP(else_stmts);
     result->stmt_for.num_else_stmts = num_else_stmts;
+
+    return result;
+}
+
+internal_proc Stmt *
+stmt_call(Expr *expr, Stmt **stmts, size_t num_stmts) {
+    Stmt *result = stmt_new(STMT_CALL);
+
+    result->stmt_call.expr = expr;
+    result->stmt_call.stmts = (Stmt **)AST_DUP(stmts);
+    result->stmt_call.num_stmts = num_stmts;
 
     return result;
 }

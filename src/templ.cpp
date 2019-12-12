@@ -112,6 +112,8 @@ internal_proc Resolved_Stmt   * resolved_stmt_for(Scope *scope, Sym **vars, size
 internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
 internal_proc size_t            stmt_block_num_stmts(Resolved_Stmt *stmt);
 internal_proc Resolved_Stmt  ** stmt_block_stmts(Resolved_Stmt *stmt);
+internal_proc size_t            stmt_call_num_stmts(Resolved_Stmt *stmt);
+internal_proc Resolved_Stmt  ** stmt_call_stmts(Resolved_Stmt *stmt);
 internal_proc size_t            stmt_for_num_else_stmts(Resolved_Stmt *stmt);
 internal_proc Resolved_Stmt  ** stmt_for_else_stmts(Resolved_Stmt *stmt);
 internal_proc size_t            stmt_for_num_stmts(Resolved_Stmt *stmt);

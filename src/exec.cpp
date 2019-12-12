@@ -450,6 +450,15 @@ exec_stmt(Resolved_Stmt *stmt) {
             exec_stmt_set(dest, exec_expr(stmt->stmt_set_block.name));
         } break;
 
+        case STMT_CALL: {
+            Resolved_Expr *proc = stmt->stmt_call.expr->expr_call.expr;
+            Sym *caller = scope_attr(proc->val->scope, intern_str("caller"));
+            caller->val->user_data = stmt;
+
+            Val *value = exec_expr(stmt->stmt_call.expr);
+            genf("%s", val_print(value));
+        } break;
+
         case STMT_FOR: {
             global_for_stmt = stmt;
             Val *list = exec_expr(stmt->stmt_for.set);

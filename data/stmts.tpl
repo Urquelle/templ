@@ -180,3 +180,12 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
 {{ test_lst[0].format(1) }}
 
 {{ "stadt".capitalize() }}
+
+{% macro call_macro() %}
+    <div class="parent">
+    {% for it in 1..6 %}
+        <div class="child-{{ it }}">{{ caller() }}</div>
+    {% endfor %}
+    </div>
+{% endmacro %}
+{% call call_macro() %}call content{% endcall %}

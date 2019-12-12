@@ -136,6 +136,25 @@ internal_proc PROC_CALLBACK(proc_exec_macro) {
     return result;
 }
 
+internal_proc PROC_CALLBACK(proc_caller) {
+    Resolved_Stmt *stmt = (Resolved_Stmt *)operand->user_data;
+
+    char *old_gen_result = gen_result;
+    char *temp = "";
+    gen_result = temp;
+
+    size_t num_stmts = stmt_call_num_stmts(stmt);
+    Resolved_Stmt **stmts = stmt_call_stmts(stmt);
+    for ( int i = 0; i < num_stmts; ++i ) {
+        exec_stmt(stmts[i]);
+    }
+
+    Val *result = val_str(gen_result);
+    gen_result = old_gen_result;
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(proc_dict) {
     Scope *scope = scope_new(0, "dict");
     Scope *prev_scope = scope_set(scope);
