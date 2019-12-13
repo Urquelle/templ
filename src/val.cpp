@@ -342,7 +342,7 @@ internal_proc Val *
 val_range(int min, int max, int step = 1) {
     Val *result = val_new(VAL_RANGE, sizeof(int)*3);
 
-    result->len = max - min;
+    result->len = (max - min) + 1;
     *((int *)result->ptr)   = min;
     *((int *)result->ptr+1) = max;
     *((int *)result->ptr+2) = step;

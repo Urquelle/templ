@@ -183,7 +183,7 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
 
 {% macro call_macro() %}
     <div class="parent">
-    {% for it in 1..6 %}
+    {% for it in 1..5 %}
         <div class="child-{{ it }}">{{ caller() }}</div>
     {% endfor %}
     </div>
