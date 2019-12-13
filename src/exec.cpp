@@ -321,44 +321,6 @@ if_expr_cond(Resolved_Expr *if_expr) {
 
 internal_proc void
 exec_stmt_set(Val *dest, Val *source) {
-    erstes_if ( source->kind == VAL_STR && dest->kind == VAL_CHAR ) {
-        Val *orig = (Val *)dest->ptr;
-
-        char * old_char_loc  = utf8_char_goto((char *)orig->ptr, dest->len);
-        size_t size_new_char = utf8_char_size((char *)source->ptr);
-        size_t size_old_char = utf8_char_size(old_char_loc);
-        size_t old_size      = utf8_str_size((char *)orig->ptr);
-        size_t new_size      = old_size - size_old_char + size_new_char;
-
-        if ( new_size == old_size && size_new_char == size_old_char ) {
-            size_t offset = utf8_char_offset((char *)orig->ptr, old_char_loc);
-            utf8_char_write((char *)orig->ptr + offset, (char *)source->ptr);
-            dest->ptr = intern_str((char *)dest->ptr);
-        } else {
-            size_t len = utf8_str_len((char *)orig->ptr);
-            char *new_mem = (char *)xcalloc(1, new_size+1);
-
-            for ( int i = 0; i < dest->len; ++i ) {
-                utf8_char_write(utf8_char_goto(new_mem, i), utf8_char_goto((char *)orig->ptr, i));
-            }
-
-            utf8_char_write(utf8_char_goto(new_mem, dest->len), (char *)source->ptr);
-
-            for ( size_t i = dest->len+1; i < len; ++i ) {
-                utf8_char_write(utf8_char_goto(new_mem, i), utf8_char_goto((char *)orig->ptr, i));
-            }
-
-            new_mem[new_size] = 0;
-            orig->ptr = intern_str(new_mem);
-        }
-    } else {
-        dest->kind  = source->kind;
-        dest->size  = source->size;
-        dest->len   = source->len;
-        dest->scope = source->scope;
-        dest->ptr   = source->ptr;
-        dest->user_data = source->user_data;
-    }
 }
 
 internal_proc void
@@ -420,11 +382,11 @@ exec_stmt(Resolved_Stmt *stmt) {
              */
             if ( stmt->stmt_set.num_names == 1 ) {
                 Val *dest = exec_expr(stmt->stmt_set.names[0]);
-                exec_stmt_set(dest, source);
+                val_set(dest, source);
             } else {
                 for ( int i = 0; i < stmt->stmt_set.num_names; ++i ) {
                     Val *dest = exec_expr(stmt->stmt_set.names[i]);
-                    exec_stmt_set(dest, val_elem(source, i));
+                    val_set(dest, val_elem(source, i));
                 }
             }
         } break;
@@ -444,10 +406,10 @@ exec_stmt(Resolved_Stmt *stmt) {
                 exec_stmt(stmt->stmt_set_block.stmts[i]);
             }
 
-            exec_stmt_set(dest, val_str(gen_result));
+            val_set(dest, val_str(gen_result));
             gen_result = old_gen_result;
 
-            exec_stmt_set(dest, exec_expr(stmt->stmt_set_block.name));
+            val_set(dest, exec_expr(stmt->stmt_set_block.name));
         } break;
 
         case STMT_CALL: {

@@ -189,3 +189,12 @@ person heißt {{ proc_dict_val.vorname }} {{ proc_dict_val.name }}
     </div>
 {% endmacro %}
 {% call call_macro() %}call content{% endcall %}
+
+{% set user = {"name": "ferdinand"} %}
+{% macro call_user_macro() %}
+    {{ caller(user) }}
+{% endmacro %}
+
+{% call(user) call_user_macro() %}
+    -- {{ user.name }}
+{% endcall %}

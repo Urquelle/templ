@@ -138,6 +138,9 @@ internal_proc PROC_CALLBACK(proc_exec_macro) {
 
 internal_proc PROC_CALLBACK(proc_caller) {
     Resolved_Stmt *stmt = (Resolved_Stmt *)operand->user_data;
+    if ( !stmt ) {
+        return val_none();
+    }
 
     char *old_gen_result = gen_result;
     char *temp = "";
@@ -147,6 +150,17 @@ internal_proc PROC_CALLBACK(proc_caller) {
     Resolved_Stmt **stmts = stmt_call_stmts(stmt);
     for ( int i = 0; i < num_stmts; ++i ) {
         exec_stmt(stmts[i]);
+    }
+
+    size_t num_call_args = stmt_call_num_args(stmt);
+    Sym **call_args = stmt_call_args(stmt);
+    for ( int i = 0; i < num_varargs; ++i ) {
+        Resolved_Arg *arg = varargs[i];
+        if ( i > num_call_args ) {
+            break;
+        }
+
+        val_set(sym_val(call_args[i]), arg_val(arg));
     }
 
     Val *result = val_str(gen_result);

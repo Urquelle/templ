@@ -721,6 +721,16 @@ parse_stmt_block(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_call(Parser *p) {
+    Expr **args = 0;
+    if ( match_token(p, T_LPAREN) ) {
+        if ( !is_token(p, T_RPAREN) ) {
+            do {
+                buf_push(args, parse_expr(p));
+            } while(match_token(p, T_COMMA));
+        }
+        expect_token(p, T_RPAREN);
+    }
+
     Expr *expr = parse_expr(p);
     expect_token(p, T_CODE_END);
 
@@ -734,7 +744,7 @@ parse_stmt_call(Parser *p) {
         buf_push(stmts, stmt);
     } while(status_is_not_error() && parser_valid(p));
 
-    Stmt *result = stmt_call(expr, stmts, buf_len(stmts));
+    Stmt *result = stmt_call(args, buf_len(args), expr, stmts, buf_len(stmts));
     buf_free(stmts);
 
     return result;

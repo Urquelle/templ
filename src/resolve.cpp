@@ -529,6 +529,9 @@ struct Resolved_Stmt {
         } stmt_var;
 
         struct {
+            Scope *scope;
+            Sym **args;
+            size_t num_args;
             Resolved_Expr *expr;
             Resolved_Stmt **stmts;
             size_t num_stmts;
@@ -671,6 +674,20 @@ stmt_call_stmts(Resolved_Stmt *stmt) {
 }
 
 internal_proc size_t
+stmt_call_num_args(Resolved_Stmt *stmt) {
+    size_t result = stmt->stmt_call.num_args;
+
+    return result;
+}
+
+internal_proc Sym **
+stmt_call_args(Resolved_Stmt *stmt) {
+    Sym **result = stmt->stmt_call.args;
+
+    return result;
+}
+
+internal_proc size_t
 stmt_for_num_else_stmts(Resolved_Stmt *stmt) {
     size_t result = stmt->stmt_for.num_else_stmts;
 
@@ -722,9 +739,14 @@ resolved_stmt_new(Stmt_Kind kind) {
 }
 
 internal_proc Resolved_Stmt *
-resolved_stmt_call(Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts) {
+resolved_stmt_call(Scope *scope, Sym **args, size_t num_args,
+        Resolved_Expr *expr, Resolved_Stmt **stmts, size_t num_stmts)
+{
     Resolved_Stmt *result = resolved_stmt_new(STMT_CALL);
 
+    result->stmt_call.scope = scope;
+    result->stmt_call.args = args;
+    result->stmt_call.num_args = num_args;
     result->stmt_call.expr = expr;
     result->stmt_call.stmts = (Resolved_Stmt **)AST_DUP(stmts);
     result->stmt_call.num_stmts = num_stmts;
@@ -1136,6 +1158,14 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
         case STMT_CALL: {
             Resolved_Expr *expr = resolve_expr(stmt->stmt_call.expr);
+            Scope *scope = scope_enter("call");
+
+            Sym **args = 0;
+            for ( int i = 0; i < stmt->stmt_call.num_args; ++i ) {
+                Resolved_Expr *arg = resolve_expr(stmt->stmt_call.args[i]);
+                assert(arg->kind == EXPR_NAME);
+                buf_push(args, sym_push_var(arg->expr_name.name, arg->type, val_undefined()));
+            }
 
             Resolved_Stmt **stmts = 0;
             for ( int i = 0; i < stmt->stmt_call.num_stmts; ++i ) {
@@ -1143,7 +1173,8 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                 buf_push(stmts, resolved_stmt);
             }
 
-            result = resolved_stmt_call(expr, stmts, buf_len(stmts));
+            scope_leave();
+            result = resolved_stmt_call(scope, args, buf_len(args), expr, stmts, buf_len(stmts));
         } break;
 
         case STMT_DO: {
@@ -1241,12 +1272,14 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                 Param *param = stmt->stmt_macro.params[i];
 
                 Val *default_value = 0;
+                Type *default_type = 0;
                 if ( param->default_value ) {
                     Resolved_Expr *t = resolve_expr(param->default_value);
                     default_value = t->val;
+                    default_type = t->type;
                 }
 
-                buf_push(params, type_field(param->name, type_any, default_value));
+                buf_push(params, type_field(param->name, (default_type) ? default_type : type_any, default_value));
             }
 
             Val *val = val_proc(params, buf_len(params), 0, proc_exec_macro);
@@ -1271,6 +1304,14 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             sym_push_var("arguments", type_tuple(num_param_names), val_tuple(param_names, num_param_names));
             sym_push_var("varargs",   type_list(type_any), val_undefined());
             sym_push_var("caller",    type_proc(0, 0, type_str), val_proc(0, 0, type_str, proc_caller));
+
+            Val **default_values = 0;
+            for ( int i = 0; i < type->type_proc.num_params; ++i ) {
+                Type_Field *field = type->type_proc.params[i];
+                buf_push(default_values, field->default_value);
+            }
+            size_t num_default_values = buf_len(default_values);
+            sym_push_var("defaults", type_tuple(num_default_values), val_tuple(default_values, num_default_values));
             /* }}} */
 
             Resolved_Stmt **stmts = 0;

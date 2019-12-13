@@ -473,6 +473,48 @@ val_set(Val *dest, Val *source, size_t index) {
 }
 
 internal_proc void
+val_set(Val *dest, Val *source) {
+    erstes_if ( source->kind == VAL_STR && dest->kind == VAL_CHAR ) {
+        Val *orig = (Val *)dest->ptr;
+
+        char * old_char_loc  = utf8_char_goto((char *)orig->ptr, dest->len);
+        size_t size_new_char = utf8_char_size((char *)source->ptr);
+        size_t size_old_char = utf8_char_size(old_char_loc);
+        size_t old_size      = utf8_str_size((char *)orig->ptr);
+        size_t new_size      = old_size - size_old_char + size_new_char;
+
+        if ( new_size == old_size && size_new_char == size_old_char ) {
+            size_t offset = utf8_char_offset((char *)orig->ptr, old_char_loc);
+            utf8_char_write((char *)orig->ptr + offset, (char *)source->ptr);
+            dest->ptr = intern_str((char *)dest->ptr);
+        } else {
+            size_t len = utf8_str_len((char *)orig->ptr);
+            char *new_mem = (char *)xcalloc(1, new_size+1);
+
+            for ( int i = 0; i < dest->len; ++i ) {
+                utf8_char_write(utf8_char_goto(new_mem, i), utf8_char_goto((char *)orig->ptr, i));
+            }
+
+            utf8_char_write(utf8_char_goto(new_mem, dest->len), (char *)source->ptr);
+
+            for ( size_t i = dest->len+1; i < len; ++i ) {
+                utf8_char_write(utf8_char_goto(new_mem, i), utf8_char_goto((char *)orig->ptr, i));
+            }
+
+            new_mem[new_size] = 0;
+            orig->ptr = intern_str(new_mem);
+        }
+    } else {
+        dest->kind  = source->kind;
+        dest->size  = source->size;
+        dest->len   = source->len;
+        dest->scope = source->scope;
+        dest->ptr   = source->ptr;
+        dest->user_data = source->user_data;
+    }
+}
+
+internal_proc void
 val_inc(Val *val) {
     assert(val->kind == VAL_INT);
 
