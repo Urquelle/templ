@@ -717,6 +717,15 @@ val_subscript(Val *val, int idx) {
             return val_int(val_range0(val) + idx);
         } break;
 
+        case VAL_PAIR: {
+            Resolved_Pair *pair = (Resolved_Pair *)val->ptr;
+            if ( idx == 0 ) {
+                return pair->key;
+            }
+
+            return pair->value;
+        } break;
+
         case VAL_LIST: {
             return *((Val **)val->ptr + idx);
         } break;

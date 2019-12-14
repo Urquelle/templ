@@ -1960,6 +1960,7 @@ resolve_init_builtin_type_procs() {
     scope_set(&type_dict_scope);
     sym_push_proc("attr",     type_proc(attr_type, at_size, type_any), val_proc(attr_type, at_size, type_any, proc_dict_attr));
     sym_push_proc("dictsort", type_proc(dictsort_type, ds_size, type_any), val_proc(dictsort_type, ds_size, type_any, proc_dict_dictsort));
+    sym_push_proc("items",    type_proc(0, 0, type_dict(0)), val_proc(0, 0, type_dict(0), proc_dict_items));
     sym_push_proc("xmlattr",  type_proc(xm_type, xm_size, type_str), val_proc(xm_type, xm_size, type_str, proc_dict_xmlattr));
     /* }}} */
     /* @INFO: float methoden {{{ */

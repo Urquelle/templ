@@ -142,6 +142,14 @@ elem2 = {{ elem2 }}
     key = {{ key }} val = {{ value }}
 {% endfor %}
 
+{% for it in di %}
+    -- {{ it[0] }} -- {{ it[1] }} --
+{% endfor %}
+
+{% for it in di.items() %}
+    -- {{ it[0] }} -- {{ it[1] }} --
+{% endfor %}
+
 {% set cyc = cycler("eins", "zwei", "polizei") %}
 {{ cyc.current }}
 {{ cyc.next() }}

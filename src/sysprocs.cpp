@@ -1063,6 +1063,10 @@ internal_proc PROC_CALLBACK(proc_dict_dictsort) {
     return val_dict(scope);
 }
 
+internal_proc PROC_CALLBACK(proc_dict_items) {
+    return value;
+}
+
 internal_proc PROC_CALLBACK(proc_dict_xmlattr) {
     b32 autospace = val_bool(arg_val(narg("autospace")));
 
