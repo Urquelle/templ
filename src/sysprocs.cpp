@@ -1327,6 +1327,46 @@ internal_proc PROC_CALLBACK(proc_string_format) {
             } else {
                 illegal_path();
             }
+        } else if ( format[0] == '{' ) {
+            format++;
+
+            while ( *format && utf8_char_isws(format) ) {
+                format++;
+            }
+
+            if ( *format && format[0] == '}' ) {
+                if ( num_arg < num_varargs ) {
+                    Resolved_Arg *arg = varargs[num_arg++];
+                    result = strf("%s%s", result, val_print(arg_val(arg)));
+                } else {
+                    warn(0, 0, "anzahl formatierungsparamter ist größer als die anzahl übergebener argumente");
+                }
+            } else if ( utf8_char_isalpha(format) || format[0] == '_' ) {
+                char *argname = strf("%.*s", utf8_char_size(format), format);
+                format += utf8_char_size(format);
+
+                while ( *format && (utf8_char_isalpha(format) || utf8_char_isnum(format) || format[0] == '_' )) {
+                    argname = strf("%s%.*s", argname, utf8_char_size(format), format);
+                    format += utf8_char_size(format);
+                }
+
+                while ( *format && utf8_char_isws(format) ) {
+                    format++;
+                }
+
+                if ( *format != '}' ) {
+                    fatal(0, 0, "formatierungsstring hat die falsche formatierung");
+                } else {
+                    argname = intern_str(argname);
+                    for ( int i = 0; i < num_kwargs; ++i ) {
+                        Resolved_Arg *arg = kwargs[i];
+                        if ( arg_name(arg) == argname ) {
+                            result = strf("%s%s", result, val_print(arg_val(arg)));
+                            break;
+                        }
+                    }
+                }
+            }
         } else {
             result = strf("%s%.*s", result, utf8_char_size(format), format);
         }
