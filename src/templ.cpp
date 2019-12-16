@@ -116,7 +116,7 @@ internal_proc Resolved_Expr   * resolve_expr_cond(Expr *expr);
 internal_proc Resolved_Expr   * resolve_filter(Expr *expr);
 internal_proc Resolved_Stmt   * resolve_stmt(Stmt *stmt, Resolved_Templ *templ);
 internal_proc Resolved_Arg    * resolved_arg(Pos pos, char *name, Type *type, Val *val);
-internal_proc Resolved_Stmt   * resolved_stmt_for(Scope *scope, Sym **vars, size_t num_vars, Resolved_Expr *set, Resolved_Stmt **stmts, size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts, Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0, Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle, Sym *loop_depth, Sym *loop_depth0);
+internal_proc Resolved_Stmt   * resolved_stmt_for(Scope *scope, Sym **vars, size_t num_vars, Resolved_Expr *set, Resolved_Stmt **stmts, size_t num_stmts, Resolved_Stmt **else_stmts, size_t num_else_stmts, Sym *loop_index, Sym *loop_index0, Sym *loop_previtem, Sym *loop_nextitem, Sym *loop_revindex, Sym *loop_revindex0, Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle, Sym *loop_depth, Sym *loop_depth0);
 internal_proc Resolved_Expr   * resolve_tester(Expr *expr);
 internal_proc size_t            stmt_block_num_stmts(Resolved_Stmt *stmt);
 internal_proc Resolved_Stmt  ** stmt_block_stmts(Resolved_Stmt *stmt);

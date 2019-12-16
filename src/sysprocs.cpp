@@ -311,6 +311,8 @@ internal_proc PROC_CALLBACK(proc_loop) {
 
     Sym *loop_index     = sym_push_var(symname_index, type_int,  val_int(1));
     Sym *loop_index0    = sym_push_var("index0",      type_int,  val_int(0));
+    Sym *loop_previtem  = sym_push_var("previtem",    type_any,  val_none());
+    Sym *loop_nextitem  = sym_push_var("nextitem",    type_any,  val_none());
     Sym *loop_revindex  = sym_push_var("revindex",    type_int,  val_int(0));
     Sym *loop_revindex0 = sym_push_var("revindex0",   type_int,  val_int(0));
     Sym *loop_first     = sym_push_var("first",       type_bool, val_bool(true));
@@ -331,7 +333,8 @@ internal_proc PROC_CALLBACK(proc_loop) {
             set,
             stmt_for_stmts(s), stmt_for_num_stmts(s),
             stmt_for_else_stmts(s), stmt_for_num_else_stmts(s),
-            loop_index, loop_index0, loop_revindex, loop_revindex0,
+            loop_index, loop_index0, loop_previtem, loop_nextitem,
+            loop_revindex, loop_revindex0,
             loop_first, loop_last, loop_length, loop_cycle, loop_depth, loop_depth0);
 
 

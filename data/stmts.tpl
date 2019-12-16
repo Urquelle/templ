@@ -68,6 +68,13 @@ b[1] = {{ b[1] }}
     <div>kontinent:</div><div>{{ kontinent }}</div>
 {% endfor %}
 
+-- loop previtem --
+{% for it in [1, 2, 3, 4] %}
+    {% if loop.previtem == 1 %}
+        -- {{ it }} --
+    {% endif %}
+{% endfor %}
+
 {# liste mit tupeln #}
 {% set c = [(1, 2), (3, 4)] %}
 {% set c[1] = (7, 8) %}

@@ -480,6 +480,7 @@ exec_stmt(Resolved_Stmt *stmt) {
                     val_dec(stmt->stmt_for.loop_revindex->val);
                     val_dec(stmt->stmt_for.loop_revindex0->val);
                     val_set(stmt->stmt_for.loop_first->val, false);
+                    val_set(stmt->stmt_for.loop_previtem->val, it.val);
                 }
             } else if ( stmt->stmt_for.else_stmts ) {
                 for ( int i = 0; i < stmt->stmt_for.num_else_stmts; ++i ) {

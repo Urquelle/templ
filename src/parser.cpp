@@ -728,11 +728,11 @@ parse_stmt_block(Parser *p) {
 
 internal_proc Stmt *
 parse_stmt_call(Parser *p) {
-    Expr **args = 0;
+    char **args = 0;
     if ( match_token(p, T_LPAREN) ) {
         if ( !is_token(p, T_RPAREN) ) {
             do {
-                buf_push(args, parse_expr(p));
+                buf_push(args, parse_name(p));
             } while(match_token(p, T_COMMA));
         }
         expect_token(p, T_RPAREN);

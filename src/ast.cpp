@@ -439,7 +439,7 @@ struct Stmt {
         } stmt_for;
 
         struct {
-            Expr **args;
+            char **args;
             size_t num_args;
             Expr *expr;
             Stmt **stmts;
@@ -579,10 +579,10 @@ stmt_for(Expr **vars, size_t num_vars, Expr *set, Stmt **stmts,
 }
 
 internal_proc Stmt *
-stmt_call(Expr **args, size_t num_args, Expr *expr, Stmt **stmts, size_t num_stmts) {
+stmt_call(char **args, size_t num_args, Expr *expr, Stmt **stmts, size_t num_stmts) {
     Stmt *result = stmt_new(STMT_CALL);
 
-    result->stmt_call.args = (Expr **)AST_DUP(args);
+    result->stmt_call.args = (char **)AST_DUP(args);
     result->stmt_call.num_args = num_args;
     result->stmt_call.expr = expr;
     result->stmt_call.stmts = (Stmt **)AST_DUP(stmts);

@@ -41,3 +41,4 @@ sb_push(String_Buffer *sb, char *str, Arena *arena) {
 
     return result;
 }
+

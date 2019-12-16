@@ -554,6 +554,8 @@ struct Resolved_Stmt {
 
             Sym *loop_index;
             Sym *loop_index0;
+            Sym *loop_previtem;
+            Sym *loop_nextitem;
             Sym *loop_revindex;
             Sym *loop_revindex0;
             Sym *loop_first;
@@ -801,7 +803,8 @@ internal_proc Resolved_Stmt *
 resolved_stmt_for(Scope *scope, Sym **vars, size_t num_vars, Resolved_Expr *set,
         Resolved_Stmt **stmts, size_t num_stmts, Resolved_Stmt **else_stmts,
         size_t num_else_stmts,
-        Sym *loop_index, Sym *loop_index0, Sym *loop_revindex, Sym *loop_revindex0,
+        Sym *loop_index, Sym *loop_index0, Sym *loop_previtem, Sym *loop_nextitem,
+        Sym *loop_revindex, Sym *loop_revindex0,
         Sym *loop_first, Sym *loop_last, Sym *loop_length, Sym *loop_cycle,
         Sym *loop_depth, Sym *loop_depth0)
 {
@@ -820,6 +823,8 @@ resolved_stmt_for(Scope *scope, Sym **vars, size_t num_vars, Resolved_Expr *set,
 
     result->stmt_for.loop_index     = loop_index;
     result->stmt_for.loop_index0    = loop_index0;
+    result->stmt_for.loop_previtem  = loop_previtem;
+    result->stmt_for.loop_nextitem  = loop_nextitem;
     result->stmt_for.loop_revindex  = loop_revindex;
     result->stmt_for.loop_revindex0 = loop_revindex0;
     result->stmt_for.loop_first     = loop_first;
@@ -1084,6 +1089,8 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             Sym *loop_index     = sym_push_var(symname_index, type_int,  val_int(1));
             Sym *loop_index0    = sym_push_var("index0",      type_int,  val_int(0));
+            Sym *loop_previtem  = sym_push_var("previtem",    type_any,  val_none());
+            Sym *loop_nextitem  = sym_push_var("nextitem",    type_any,  val_none());
             Sym *loop_revindex  = sym_push_var("revindex",    type_int,  val_int(0));
             Sym *loop_revindex0 = sym_push_var("revindex0",   type_int,  val_int(0));
             Sym *loop_first     = sym_push_var("first",       type_bool, val_bool(true));
@@ -1110,7 +1117,8 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             result = resolved_stmt_for(scope_for, vars, num_vars, set, stmts,
                     buf_len(stmts), else_stmts, buf_len(else_stmts),
-                    loop_index, loop_index0, loop_revindex, loop_revindex0,
+                    loop_index, loop_index0, loop_previtem, loop_nextitem,
+                    loop_revindex, loop_revindex0,
                     loop_first, loop_last, loop_length, loop_cycle, loop_depth,
                     loop_depth0);
         } break;
@@ -1162,9 +1170,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
 
             Sym **args = 0;
             for ( int i = 0; i < stmt->stmt_call.num_args; ++i ) {
-                Resolved_Expr *arg = resolve_expr(stmt->stmt_call.args[i]);
-                assert(arg->kind == EXPR_NAME);
-                buf_push(args, sym_push_var(arg->expr_name.name, arg->type, val_undefined()));
+                buf_push(args, sym_push_var(stmt->stmt_call.args[i], type_any, val_undefined()));
             }
 
             Resolved_Stmt **stmts = 0;

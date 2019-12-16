@@ -17,8 +17,14 @@ main(int argc, char **argv) {
 
     templ_vars_add(&vars, users);
 
-    char *result = templ_render(templ, &vars);
-    os_file_write("out.html", result, utf8_str_size(result));
+    char *result = "";
+
+    int num_iterations = 1;
+    for (int i = 0; i < num_iterations; ++i) {
+        result = templ_render(templ, &vars);
+        os_file_write("out.html", result, utf8_str_size(result));
+        templ_reset();
+    }
 
     return 0;
 }
