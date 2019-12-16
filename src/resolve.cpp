@@ -367,7 +367,7 @@ internal_proc Resolved_Expr *
 resolved_expr_name(char *name, Val *val, Type *type) {
     Resolved_Expr *result = resolved_expr_new(EXPR_NAME, type);
 
-    result->val   = val;
+    result->val = val;
     result->expr_name.name = name;
 
     return result;
@@ -1058,7 +1058,7 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
             Sym **vars = 0;
             size_t num_vars = 0;
             for ( int i = 0; i < stmt->stmt_for.num_vars; ++i ) {
-                assert(stmt->stmt_for.vars[i]->kind == EXPR_NAME);
+                ASSERT(stmt->stmt_for.vars[i]->kind == EXPR_NAME);
                 Sym *sym = sym_push_var(stmt->stmt_for.vars[i]->expr_name.value, set_type, val_undefined());
                 buf_push(vars, sym);
             }
@@ -1369,10 +1369,10 @@ resolve_stmt(Stmt *stmt, Resolved_Templ *templ) {
                             resolve_stmt(parsed_stmt, templ);
                         }
                     } else {
-                        assert(parsed_stmt->kind == STMT_SET);
+                        ASSERT(parsed_stmt->kind == STMT_SET);
                         for ( int k = 0; k < parsed_stmt->stmt_set.num_names; ++k ) {
                             Expr *name = parsed_stmt->stmt_set.names[k];
-                            assert(name->kind == EXPR_NAME);
+                            ASSERT(name->kind == EXPR_NAME);
 
                             if ( import_sym->name == name->expr_name.value ) {
                                 parsed_stmt->stmt_macro.alias = import_sym->alias;
@@ -1472,7 +1472,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
     scope_set(prev_scope);
 
     Type *type = call_expr->type;
-    assert(type);
+    ASSERT(type);
 
     Type_Field **proc_params = type->type_proc.params;
     size_t num_proc_params = type->type_proc.num_params;
@@ -1480,7 +1480,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
 
     Resolved_Expr **args = 0;
     /* benamte argumente */
-    Map *nargs = (Map *)xcalloc(1, sizeof(Map));
+    Map *nargs = ALLOC_STRUCT(&resolve_arena, Map);
     char **narg_keys = 0;
     /* benamte argumente, die nicht im typen definiert wurden */
     Resolved_Arg **kwargs = 0;
@@ -1562,7 +1562,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
                     param = proc_params[i];
                 }
 
-                assert(param);
+                ASSERT(param);
                 Resolved_Arg *r_arg = resolved_arg(expr->pos, param->name, arg_expr->type, arg_expr->val);
                 map_put(nargs, param->name, r_arg);
                 buf_push(narg_keys, param->name);
@@ -1673,9 +1673,9 @@ resolve_expr(Expr *expr) {
 
                 result = resolved_expr_range(min, max);
             } else {
-                assert(left->type->kind == TYPE_STR);
-                assert(right->type->kind == TYPE_STR);
-                assert(left->val && left->val->len == 1);
+                ASSERT(left->type->kind == TYPE_STR);
+                ASSERT(right->type->kind == TYPE_STR);
+                ASSERT(left->val && left->val->len == 1);
 
                 result = resolved_expr_range((s32)*val_str(left->val), (s32)*val_str(right->val));
             }
@@ -1696,7 +1696,7 @@ resolve_expr(Expr *expr) {
             Resolved_Expr *operand = resolve_expr(expr->expr_is.operand);
             Resolved_Expr *tester  = resolve_tester(expr->expr_is.tester);
 
-            assert(tester);
+            ASSERT(tester);
             result = resolved_expr_is(operand, tester);
         } break;
 
@@ -1780,7 +1780,7 @@ resolve_expr(Expr *expr) {
 
 internal_proc Resolved_Expr *
 resolve_tester(Expr *expr) {
-    assert(expr->kind == EXPR_CALL);
+    ASSERT(expr->kind == EXPR_CALL);
     Resolved_Expr *result = resolve_expr_call(expr, &tester_scope);
 
     return result;
@@ -1788,7 +1788,7 @@ resolve_tester(Expr *expr) {
 
 internal_proc Resolved_Expr *
 resolve_filter(Expr *expr) {
-    assert(expr->kind == EXPR_CALL);
+    ASSERT(expr->kind == EXPR_CALL);
     Resolved_Expr *result = resolve_expr_call(expr, &filter_scope);
 
     return result;

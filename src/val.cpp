@@ -72,7 +72,7 @@ scope_enter(char *name = NULL) {
 
 internal_proc void
 scope_leave() {
-    assert(current_scope->parent);
+    ASSERT(current_scope->parent);
     current_scope = current_scope->parent;
 }
 
@@ -243,7 +243,7 @@ val_bool(Val *val) {
 
 internal_proc Val *
 val_neg(Val *val) {
-    assert(val->kind == VAL_BOOL);
+    ASSERT(val->kind == VAL_BOOL);
 
     Val *result = val_new(VAL_BOOL, sizeof(s32));
 
@@ -432,13 +432,13 @@ val_proc(Type_Field **params, size_t num_params, Type *ret,
 
 internal_proc void
 val_set(Val *val, s32 value) {
-    assert(val->kind == VAL_INT);
+    ASSERT(val->kind == VAL_INT);
     *((s32 *)val->ptr) = value;
 }
 
 internal_proc void
 val_set(Val *val, b32 value) {
-    assert(val->kind == VAL_BOOL);
+    ASSERT(val->kind == VAL_BOOL);
     *((b32 *)val->ptr) = value;
 }
 
@@ -448,14 +448,14 @@ val_set(Val *val, f32 value) {
         val->kind = VAL_FLOAT;
         *((f32 *)val->ptr) = value;
     } else {
-        assert(val->kind == VAL_FLOAT);
+        ASSERT(val->kind == VAL_FLOAT);
         *((f32 *)val->ptr) = value;
     }
 }
 
 internal_proc void
 val_set(Val *val, char *value) {
-    assert(val->kind == VAL_STR);
+    ASSERT(val->kind == VAL_STR);
     *((char **)val->ptr) = value;
 }
 
@@ -467,7 +467,7 @@ val_set(Val *val, s32 min, s32 max) {
 
 internal_proc void
 val_set(Val *dest, Val *source, size_t index) {
-    assert(dest->kind == VAL_LIST || dest->kind == VAL_TUPLE);
+    ASSERT(dest->kind == VAL_LIST || dest->kind == VAL_TUPLE);
 
     *((Val **)dest->ptr + index) = source;
 }
@@ -516,14 +516,14 @@ val_set(Val *dest, Val *source) {
 
 internal_proc void
 val_inc(Val *val) {
-    assert(val->kind == VAL_INT);
+    ASSERT(val->kind == VAL_INT);
 
     val_set(val, val_int(val) + 1);
 }
 
 internal_proc void
 val_dec(Val *val) {
-    assert(val->kind == VAL_INT);
+    ASSERT(val->kind == VAL_INT);
 
     val_set(val, val_int(val) - 1);
 }
@@ -815,7 +815,7 @@ operator/(Val left, Val right) {
     Val *result = 0;
 
     if ( left.kind == VAL_INT && right.kind == VAL_INT ) {
-        assert(val_int(&right) != 0);
+        ASSERT(val_int(&right) != 0);
 
         int a = val_int(&left);
         int b = val_int(&right);
@@ -825,12 +825,12 @@ operator/(Val left, Val right) {
     } else if ( left.kind == VAL_INT && right.kind == VAL_FLOAT ) {
         result = val_float(val_int(&left) / val_float(&right));
     } else if ( left.kind == VAL_INT && right.kind == VAL_RANGE ) {
-        assert(val_range0(&right) != 0 && val_range1(&right) != 0);
+        ASSERT(val_range0(&right) != 0 && val_range1(&right) != 0);
         result = val_range(val_int(&left) / val_range0(&right), val_int(&left) / val_range1(&right));
     } else if ( left.kind == VAL_FLOAT && right.kind == VAL_FLOAT ) {
         result = val_float(val_float(&left) / val_float(&right));
     } else if ( left.kind == VAL_RANGE && right.kind == VAL_RANGE ) {
-        assert(val_range0(&right) != 0 && val_range1(&right) != 0);
+        ASSERT(val_range0(&right) != 0 && val_range1(&right) != 0);
         result = val_range(val_range0(&left) * val_range0(&right), val_range1(&left) * val_range1(&right));
     } else {
         illegal_path();

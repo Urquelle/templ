@@ -3,7 +3,7 @@ xmalloc(size_t size) {
     void *mem = malloc(size);
 
     if ( !mem ) {
-        assert(!"speicher konnte nicht reserviert werden!");
+        ASSERT(!"speicher konnte nicht reserviert werden!");
         exit(1);
     }
 
@@ -15,7 +15,7 @@ xcalloc(size_t num, size_t size) {
     void *mem = calloc(num, size);
 
     if ( !mem ) {
-        assert(!"speicher konnte nicht reserviert werden!");
+        ASSERT(!"speicher konnte nicht reserviert werden!");
         exit(1);
     }
 
@@ -26,7 +26,7 @@ internal_proc void *
 xrealloc(void *ptr, size_t num_bytes) {
     ptr = realloc(ptr, num_bytes);
     if (!ptr) {
-        assert(!"xrealloc failed");
+        ASSERT(!"xrealloc failed");
         exit(1);
     }
     return ptr;
@@ -226,11 +226,11 @@ struct Buf_Hdr {
 
 internal_proc void *
 buf__grow(const void *buf, size_t new_len, size_t elem_size) {
-    assert(buf_cap(buf) <= (SIZE_MAX - 1)/2);
+    ASSERT(buf_cap(buf) <= (SIZE_MAX - 1)/2);
 
     size_t new_cap = CLAMP_MIN(2*buf_cap(buf), MAX(new_len, 16));
-    assert(new_len <= new_cap);
-    assert(new_cap <= (SIZE_MAX - offsetof(Buf_Hdr, buf))/elem_size);
+    ASSERT(new_len <= new_cap);
+    ASSERT(new_cap <= (SIZE_MAX - offsetof(Buf_Hdr, buf))/elem_size);
     size_t new_size = offsetof(Buf_Hdr, buf) + new_cap*elem_size;
 
     Buf_Hdr *new_hdr;
@@ -256,7 +256,7 @@ buf__printf(char *buf, const char *fmt, ...) {
         va_start(args, fmt);
         size_t new_cap = buf_cap(buf) - buf_len(buf);
         n = 1 + vsnprintf(buf_end(buf), new_cap, fmt, args);
-        assert(n <= new_cap);
+        ASSERT(n <= new_cap);
         va_end(args);
     }
     buf__hdr(buf)->len += n - 1;
@@ -348,9 +348,9 @@ map_get(Map *map, void *key) {
         return NULL;
     }
 
-    assert(IS_POW2(map->cap));
+    ASSERT(IS_POW2(map->cap));
     size_t i = (size_t)ptr_hash(key);
-    assert(map->len < map->cap);
+    ASSERT(map->len < map->cap);
 
     for (;;) {
         i &= map->cap - 1;
@@ -390,15 +390,15 @@ map_grow(Map *map, size_t new_cap) {
 
 internal_proc void
 map_put(Map *map, void *key, void *val) {
-    assert(key);
-    assert(val);
+    ASSERT(key);
+    ASSERT(val);
 
     if (2*map->len >= map->cap) {
         map_grow(map, 2*map->cap);
     }
 
-    assert(2*map->len < map->cap);
-    assert(IS_POW2(map->cap));
+    ASSERT(2*map->len < map->cap);
+    ASSERT(IS_POW2(map->cap));
 
     size_t i = (size_t)ptr_hash(key);
     for (;;) {
@@ -422,8 +422,11 @@ map_put(Map *map, void *key, void *val) {
 
 internal_proc void
 map_reset(Map *map) {
-    map->len = 0;
-    map->cap = 0;
+    for ( int i = 0; i < map->cap; ++i ) {
+        if ( map->keys[i] ) {
+            ((char **)map->keys)[i] = 0;
+        }
+    }
 }
 
 enum { ARENA_SIZE = 1024*1024, ARENA_ALIGNMENT = 8 };
@@ -465,9 +468,9 @@ arena_alloc(Arena *arena, size_t size) {
 internal_proc void
 arena_free(Arena *arena) {
     for ( int i = 0; i < buf_len(arena->buckets); ++i ) {
-        free(arena->buckets[i]);
+        buf__hdr(arena->buckets[i])->len = 0;
     }
-    buf_free(arena->buckets);
+    arena->ptr = arena->base;
 }
 
 struct Intern {

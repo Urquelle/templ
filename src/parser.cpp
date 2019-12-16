@@ -102,6 +102,8 @@ init_keywords() {
 
 internal_proc void
 parser_init(Parser *p, char *input, char *name) {
+    arena_init(&ast_arena, MB(1));
+
     p->lex.input = input;
     p->lex.pos.name = name;
     p->lex.pos.line = 1;
@@ -114,6 +116,11 @@ parser_init(Parser *p, char *input, char *name) {
     refill(&p->lex);
     init_keywords();
     next_raw_token(&p->lex);
+}
+
+internal_proc void
+parser_reset() {
+    arena_free(&ast_arena);
 }
 
 internal_proc b32
@@ -325,7 +332,7 @@ parse_expr_field_or_call_or_subscript(Parser *p) {
                     Expr *expr = parse_expr(p);
 
                     if ( match_token(p, T_ASSIGN) ) {
-                        assert(expr->kind == EXPR_NAME);
+                        ASSERT(expr->kind == EXPR_NAME);
                         name = expr->expr_name.value;
                         expr = parse_expr(p);
                     }
@@ -541,8 +548,8 @@ parse_tester(Parser *p) {
         result = expr_call(p->lex.pos, result, args, num_args);
     }
 
-    assert(result->kind == EXPR_CALL);
-    assert(result->expr_call.expr->kind == EXPR_NAME);
+    ASSERT(result->kind == EXPR_CALL);
+    ASSERT(result->expr_call.expr->kind == EXPR_NAME);
 
     return result;
 }
@@ -577,7 +584,7 @@ parse_expr(Parser *p, b32 do_parse_filter) {
 internal_proc char *
 parse_name(Parser *p) {
     Expr *expr = parse_expr(p);
-    assert(expr->kind == EXPR_NAME);
+    ASSERT(expr->kind == EXPR_NAME);
 
     return expr->expr_name.value;
 }
@@ -585,7 +592,7 @@ parse_name(Parser *p) {
 internal_proc char *
 parse_str(Parser *p) {
     Expr *expr = parse_expr(p);
-    assert(expr->kind == EXPR_STR);
+    ASSERT(expr->kind == EXPR_STR);
 
     return expr->expr_str.value;
 }
@@ -753,7 +760,7 @@ parse_stmt_call(Parser *p) {
 internal_proc Stmt *
 parse_stmt_extends(Parser *p) {
     Expr *name = parse_expr(p);
-    assert(name->kind == EXPR_STR);
+    ASSERT(name->kind == EXPR_STR);
 
     expect_token(p, T_CODE_END);
 
@@ -762,7 +769,7 @@ parse_stmt_extends(Parser *p) {
     Parsed_Templ *else_templ = 0;
     if ( name->if_expr && name->if_expr->expr_if.else_expr ) {
         Expr *else_expr = name->if_expr->expr_if.else_expr;
-        assert(else_expr->kind == EXPR_STR);
+        ASSERT(else_expr->kind == EXPR_STR);
 
         /* @AUFGABE: überprüfen ob endlosschleife bei imports besteht */
         /* @AUFGABE: im thread verarbeiten */
@@ -796,7 +803,7 @@ parse_stmt_include(Parser *p) {
     if ( expr->kind == EXPR_LIST ) {
         for ( int i = 0; i < expr->expr_list.num_expr; ++i ) {
             Expr *name_expr = expr->expr_list.expr[i];
-            assert(name_expr->kind == EXPR_STR);
+            ASSERT(name_expr->kind == EXPR_STR);
 
             b32 success = os_file_exists(name_expr->expr_str.value);
             if ( !success && !ignore_missing ) {

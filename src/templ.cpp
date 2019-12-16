@@ -1,5 +1,11 @@
 #include "os.cpp"
 
+#if defined(TEMPL_DEBUG)
+#    define ASSERT(X) assert(X)
+#else
+#    define ASSERT(X)
+#endif
+
 #define ARRAY_SIZE(ARRAY) (sizeof(ARRAY) / sizeof((ARRAY)[0]))
 #define ALLOC_SIZE(arena, size) arena_alloc(arena, size)
 #define ALLOC_STRUCT(arena, s)  (s *)arena_alloc(arena, sizeof(s))
@@ -27,8 +33,8 @@
 #define genlnf(...)    gen_result = strf("%s\n", gen_result); gen_indentation(); genf(__VA_ARGS__)
 #define global_var     static
 #define internal_proc  static
-#define illegal_path() assert(0)
-#define implement_me() assert(0)
+#define illegal_path() ASSERT(0)
+#define implement_me() ASSERT(0)
 #define narg(name)     ((Resolved_Arg *)map_get(nargs, intern_str(name)))
 #define user_api
 
@@ -56,6 +62,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 typedef float    f32;
 
+struct Arena;
 struct Expr;
 struct Map;
 struct Parsed_Templ;
@@ -82,6 +89,7 @@ struct Pos {
     char *start;
 };
 
+internal_proc void            * arena_alloc(Arena *arena, size_t size);
 internal_proc char            * arg_name(Resolved_Arg *arg);
 internal_proc Pos               arg_pos(Resolved_Arg *arg);
 internal_proc Type            * arg_type(Resolved_Arg *arg);
@@ -148,11 +156,12 @@ global_var Resolved_Stmt      * global_super_block;
 global_var Resolved_Templ     * current_templ;
 
 #include "utf8.cpp"
+#include "string_buffer.cpp"
 #include "common.cpp"
 #include "json.cpp"
 
 global_var Map                  global_blocks;
-global_var Arena                parse_arena;
+global_var Arena                ast_arena;
 global_var Arena                resolve_arena;
 global_var Arena                exec_arena;
 global_var Arena                templ_arena;
@@ -430,6 +439,7 @@ templ_render(Templ *templ, Templ_Vars *vars = 0) {
 
 user_api void
 templ_reset() {
+    parser_reset();
     resolve_reset();
     exec_reset();
 }
@@ -438,10 +448,8 @@ user_api void
 templ_init(size_t parse_arena_size, size_t resolve_arena_size,
         size_t exec_arena_size)
 {
-    arena_init(&templ_arena, MB(100));
-    arena_init(&parse_arena, parse_arena_size);
-
     resolve_init(resolve_arena_size);
+    arena_init(&templ_arena, MB(100));
 }
 
 user_api void

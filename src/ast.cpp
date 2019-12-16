@@ -18,7 +18,7 @@ struct Pair {
 
 internal_proc Pair *
 pair_new(char *key, Expr *value) {
-    Pair *result = (Pair *)xcalloc(1, sizeof(Pair));
+    Pair *result = ALLOC_STRUCT(&ast_arena, Pair);
 
     result->key = key;
     result->value = value;
@@ -34,7 +34,7 @@ struct Arg {
 
 internal_proc Arg *
 arg_new(Pos pos, char *name, Expr *expr) {
-    Arg *result = (Arg *)xcalloc(1, sizeof(Arg));
+    Arg *result = ALLOC_STRUCT(&ast_arena, Arg);
 
     result->pos  = pos;
     result->name = name;
@@ -164,10 +164,13 @@ global_var Expr expr_illegal = {EXPR_NONE};
 
 internal_proc Expr *
 expr_new(Pos pos, Expr_Kind kind) {
-    Expr *result = (Expr *)xcalloc(1, sizeof(Expr));
+    Expr *result = ALLOC_STRUCT(&ast_arena, Expr);
 
     result->pos  = pos;
     result->kind = kind;
+    result->if_expr = 0;
+    result->filters = 0;
+    result->num_filters = 0;
 
     return result;
 }
@@ -361,7 +364,7 @@ struct Param {
 
 internal_proc Param *
 param_new(char *name, Expr *default_value) {
-    Param *result = (Param *)xcalloc(1, sizeof(Param));
+    Param *result = ALLOC_STRUCT(&ast_arena, Param);
 
     result->name = name;
     result->default_value = default_value;
@@ -376,7 +379,7 @@ struct Imported_Sym {
 
 internal_proc Imported_Sym *
 imported_sym(char *name, char *alias) {
-    Imported_Sym *result = (Imported_Sym *)xcalloc(1, sizeof(Imported_Sym));
+    Imported_Sym *result = ALLOC_STRUCT(&ast_arena, Imported_Sym);
 
     result->name = name;
     result->alias = alias;
@@ -547,9 +550,10 @@ global_var Stmt stmt_continue  = { STMT_CONTINUE };
 
 internal_proc Stmt *
 stmt_new(Stmt_Kind kind) {
-    Stmt *result = (Stmt *)xmalloc(sizeof(Stmt));
+    Stmt *result = ALLOC_STRUCT(&ast_arena, Stmt);
 
     result->kind = kind;
+    result->pos = {};
 
     return result;
 }
@@ -778,9 +782,12 @@ struct Parsed_Templ {
 
 internal_proc Parsed_Templ *
 parsed_templ(char *name) {
-    Parsed_Templ *result = (Parsed_Templ *)xcalloc(1, sizeof(Parsed_Templ));
+    Parsed_Templ *result = ALLOC_STRUCT(&templ_arena, Parsed_Templ);
 
     result->name = name;
+    result->parent = 0;
+    result->stmts = 0;
+    result->num_stmts = 0;
 
     return result;
 }

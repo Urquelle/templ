@@ -89,8 +89,8 @@ quicksort(Sym **left, Sym **right, b32 case_sensitive, char *by, b32 reverse) {
 }
 /* @INFO: globale methoden {{{ */
 internal_proc PROC_CALLBACK(proc_super) {
-    assert(global_super_block);
-    assert(stmt_kind(global_super_block) == STMT_BLOCK);
+    ASSERT(global_super_block);
+    ASSERT(stmt_kind(global_super_block) == STMT_BLOCK);
 
     char *old_gen_result = gen_result;
     char *temp = "";
@@ -426,8 +426,8 @@ internal_proc PROC_CALLBACK(proc_any_max) {
         Val *right_tmp = right;
 
         if ( attribute->kind != VAL_NONE ) {
-            assert(result->kind == VAL_DICT);
-            assert(right->kind == VAL_DICT);
+            ASSERT(result->kind == VAL_DICT);
+            ASSERT(right->kind == VAL_DICT);
 
             left_tmp  = sym_val(scope_attr(result->scope, val_str(attribute)));
             right_tmp = sym_val(scope_attr(right->scope, val_str(attribute)));
@@ -462,8 +462,8 @@ internal_proc PROC_CALLBACK(proc_any_min) {
         Val *right_tmp = right;
 
         if ( attribute->kind != VAL_NONE ) {
-            assert(result->kind == VAL_DICT);
-            assert(right->kind == VAL_DICT);
+            ASSERT(result->kind == VAL_DICT);
+            ASSERT(right->kind == VAL_DICT);
 
             left_tmp  = sym_val(scope_attr(result->scope, val_str(attribute)));
             right_tmp = sym_val(scope_attr(right->scope, val_str(attribute)));
@@ -537,7 +537,7 @@ internal_proc PROC_CALLBACK(proc_seq_groupby) {
 
     for ( int i = 0; i < value->len; ++i ) {
         Val *v = val_elem(value, i);
-        assert(v->kind == VAL_DICT);
+        ASSERT(v->kind == VAL_DICT);
 
         scope_set(v->scope);
         Sym *sym = sym_get(attribute);
@@ -686,9 +686,9 @@ internal_proc PROC_CALLBACK(proc_seq_replace) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_reject) {
-    assert(num_varargs > 0);
+    ASSERT(num_varargs > 0);
     Sym *sym = scope_attr(&tester_scope, val_str(arg_val(varargs[0])));
-    assert(sym_val(sym)->kind == VAL_PROC);
+    ASSERT(sym_val(sym)->kind == VAL_PROC);
     Val_Proc *proc = (Val_Proc *)sym_val(sym)->ptr;
 
     Resolved_Arg **tester_varargs = (Resolved_Arg **)varargs + 1;
@@ -753,7 +753,7 @@ internal_proc PROC_CALLBACK(proc_seq_rejectattr) {
         return val_list(vals, buf_len(vals));
     } else if ( num_varargs > 1 ) {
         Sym *sym = scope_attr(&tester_scope, val_str(arg_val(varargs[1])));
-        assert(sym_val(sym)->kind == VAL_PROC);
+        ASSERT(sym_val(sym)->kind == VAL_PROC);
         Val_Proc *proc = (Val_Proc *)sym_val(sym)->ptr;
 
         Resolved_Arg **tester_varargs = (Resolved_Arg **)varargs + 2;
@@ -842,9 +842,9 @@ internal_proc PROC_CALLBACK(proc_seq_reverse) {
 }
 
 internal_proc PROC_CALLBACK(proc_seq_select) {
-    assert(num_varargs > 0);
+    ASSERT(num_varargs > 0);
     Sym *sym = scope_attr(&tester_scope, val_str(arg_val(varargs[0])));
-    assert(sym_val(sym)->kind == VAL_PROC);
+    ASSERT(sym_val(sym)->kind == VAL_PROC);
     Val_Proc *proc = (Val_Proc *)sym_val(sym)->ptr;
 
     Resolved_Arg **tester_varargs = (Resolved_Arg **)varargs + 1;
@@ -910,7 +910,7 @@ internal_proc PROC_CALLBACK(proc_seq_selectattr) {
         return val_list(vals, buf_len(vals));
     } else if ( num_varargs > 1 ) {
         Sym *sym = scope_attr(&tester_scope, val_str(arg_val(varargs[1])));
-        assert(sym_val(sym)->kind == VAL_PROC);
+        ASSERT(sym_val(sym)->kind == VAL_PROC);
         Val_Proc *proc = (Val_Proc *)sym_val(sym)->ptr;
 
         Resolved_Arg **tester_varargs = (Resolved_Arg **)varargs + 2;
@@ -991,7 +991,7 @@ internal_proc PROC_CALLBACK(proc_seq_unique) {
         Val *left = val_elem(value, i);
 
         if ( attr->kind != VAL_NONE ) {
-            assert(left->kind == VAL_DICT);
+            ASSERT(left->kind == VAL_DICT);
             Sym *sym = scope_attr(left->scope, val_str(attr));
             left = sym_val(sym);
         }
@@ -1809,7 +1809,7 @@ parse_url(char *str) {
     size_t num_host = buf_len(host);
     result.host = host;
     result.num_host = num_host;
-    assert(num_host > 1);
+    ASSERT(num_host > 1);
     result.tld = host[num_host-1];
 
     /* @INFO: port */

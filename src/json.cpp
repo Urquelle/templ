@@ -142,7 +142,7 @@ json_object(Json_Pair **pairs, size_t num_pairs) {
 
 internal_proc void *
 json_sym(Json_Node *node, char *name) {
-    assert(node->kind == JSON_OBJECT);
+    ASSERT(node->kind == JSON_OBJECT);
 
     void *result = map_get(&node->json_object.syms, name);
 
@@ -172,7 +172,7 @@ json_parse_node(char **str) {
         if ( VAL() != '}' ) {
             do {
                 Json_Node *name = json_parse_node(str);
-                assert(name->kind == JSON_STR);
+                ASSERT(name->kind == JSON_STR);
                 SKIP_WHITESPACE();
                 EXPECT(':');
 

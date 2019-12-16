@@ -18,7 +18,7 @@ iterator_init(Val *container) {
         container = ((Resolved_Pair *)container->ptr)->value;
     }
 
-    assert(container->kind == VAL_RANGE || container->kind == VAL_LIST || container->kind == VAL_TUPLE || container->kind == VAL_DICT);
+    ASSERT(container->kind == VAL_RANGE || container->kind == VAL_LIST || container->kind == VAL_TUPLE || container->kind == VAL_DICT);
 
     result.container = container;
     result.pos = 0;
@@ -258,7 +258,7 @@ exec_expr(Resolved_Expr *expr) {
             Val *index = exec_expr(expr->expr_subscript.index);
 
             if ( index->kind == VAL_STR ) {
-                assert(set->scope);
+                ASSERT(set->scope);
 
                 Scope *prev_scope = scope_set(set->scope);
                 Sym *sym = sym_get(val_str(index));
@@ -266,7 +266,7 @@ exec_expr(Resolved_Expr *expr) {
 
                 scope_set(prev_scope);
             } else {
-                assert(index->kind == VAL_INT);
+                ASSERT(index->kind == VAL_INT);
                 result = val_subscript(set, val_int(index));
             }
         } break;
@@ -314,7 +314,7 @@ if_expr_cond(Resolved_Expr *if_expr) {
     }
 
     Val *if_val = exec_expr(if_expr->expr_if.cond);
-    assert(if_val->kind == VAL_BOOL);
+    ASSERT(if_val->kind == VAL_BOOL);
 
     return val_bool(if_val);
 }
@@ -506,7 +506,7 @@ exec_stmt(Resolved_Stmt *stmt) {
             if ( stmt->stmt_extends.name->if_expr ) {
                 Resolved_Expr *if_expr = stmt->stmt_extends.name->if_expr;
                 Val *if_cond = exec_expr(if_expr->expr_if.cond);
-                assert(if_cond->kind == VAL_BOOL);
+                ASSERT(if_cond->kind == VAL_BOOL);
 
                 if ( val_bool(if_cond) ) {
                     exec(stmt->stmt_extends.tmpl);
@@ -544,7 +544,7 @@ exec_stmt(Resolved_Stmt *stmt) {
             while ( expr->kind == EXPR_CALL ) {
                 expr = expr->expr_call.expr;
             }
-            assert(expr->kind == EXPR_FIELD);
+            ASSERT(expr->kind == EXPR_FIELD);
             exec_stmt_set(expr->expr_field.base->val, val_str(gen_result));
 
             Val *val = exec_expr(stmt->stmt_filter.filter);
