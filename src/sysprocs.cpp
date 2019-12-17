@@ -1242,6 +1242,61 @@ internal_proc PROC_CALLBACK(proc_string_float) {
     return result;
 }
 
+struct String_Format {
+    u32 kind;
+    size_t size;
+    char *format;
+};
+internal_proc String_Format
+sys_parse_format(char *fmt) {
+    char *start = fmt;
+    String_Format result = {VAL_NONE, 0, ""};
+
+    if ( *fmt == '.' ) {
+        result.kind = VAL_FLOAT;
+
+        fmt++;
+        s32 dec = 0;
+        while ( *fmt && utf8_char_isnum(fmt) ) {
+            dec *= 10;
+            dec += *fmt - '0';
+            fmt = utf8_char_next(fmt);
+        }
+
+        if ( *fmt != '%' ) {
+            fatal(0, 0, "'%%' in der formatierung erwartet");
+        }
+
+        fmt++;
+        result.format = strf("%%.%df%%%%", dec);
+    } else {
+        if ( *fmt == '#' ) {
+            fmt++;
+            result.format = strf("#");
+        }
+
+        if ( utf8_char_isalpha(fmt) ) {
+            if ( *fmt == 'd' ) {
+                result.kind = VAL_INT;
+                result.format = strf("%s%%d", result.format);
+            } else if ( *fmt == 'x' ) {
+                result.kind = VAL_INT;
+                result.format = strf("%s%%x", result.format);
+            } else if ( *fmt == 'o' ) {
+                result.kind = VAL_INT;
+                result.format = strf("%s%%o", result.format);
+            } else if ( *fmt == 'b' ) {
+                result.kind = VAL_INT;
+                result.format = strf("%s%%b", result.format);
+            }
+        }
+    }
+
+    result.size = fmt - start;
+
+    return result;
+}
+
 internal_proc PROC_CALLBACK(proc_string_format) {
     char *format = val_str(value);
     int num_arg = 0;
@@ -1342,31 +1397,69 @@ internal_proc PROC_CALLBACK(proc_string_format) {
                     warn(0, 0, "anzahl formatierungsparamter ist größer als die anzahl übergebener argumente");
                 }
             } else if ( utf8_char_isalpha(format) || format[0] == '_' ) {
-                char *argname = strf("%.*s", utf8_char_size(format), format);
-                format += utf8_char_size(format);
+                char *name = strf("%.*s", utf8_char_size(format), format);
+                format = utf8_char_next(format);
 
                 while ( *format && (utf8_char_isalpha(format) || utf8_char_isnum(format) || format[0] == '_' )) {
-                    argname = strf("%s%.*s", argname, utf8_char_size(format), format);
-                    format += utf8_char_size(format);
+                    name = strf("%s%.*s", name, utf8_char_size(format), format);
+                    format = utf8_char_next(format);
                 }
 
                 while ( *format && utf8_char_isws(format) ) {
                     format++;
                 }
 
+                String_Format fmt = {VAL_NONE, 0, ""};
+                if ( *format == ':' ) {
+                    format++;
+                    fmt = sys_parse_format(format);
+                    format += fmt.size;
+                }
+
                 if ( *format != '}' ) {
                     fatal(0, 0, "formatierungsstring hat die falsche formatierung");
                 } else {
-                    argname = intern_str(argname);
+                    name = intern_str(name);
+                    b32 found = false;
                     for ( int i = 0; i < num_kwargs; ++i ) {
                         Resolved_Arg *arg = kwargs[i];
-                        if ( arg_name(arg) == argname ) {
-                            result = strf("%s%s", result, val_print(arg_val(arg)));
+                        if ( arg_name(arg) == name ) {
+                            result = strf("%s%s", result, val_print(arg_val(arg), fmt.format));
+                            found = true;
                             break;
                         }
                     }
+
+                    if ( !found ) {
+                        fatal(0, 0, "kein passendes argument '%s' gefunden", name);
+                    }
+                }
+            } else if ( utf8_char_isnum(format) ) {
+                s32 idx = 0;
+                while ( *format && utf8_char_isnum(format) ) {
+                    idx *= 10;
+                    idx += *format - '0';
+                    format = utf8_char_next(format);
+                }
+
+                while ( *format && utf8_char_isws(format) ) {
+                    format++;
+                }
+
+                if ( format[0] != '}' ) {
+                    fatal(0, 0, "formatierungsstring hat die falsche formatierung");
+                }
+
+                if ( num_varargs < idx ) {
+                    fatal(0, 0, "angeforderte index übersteigt die anzahl übergebener argumente");
+                } else {
+                    Resolved_Arg *arg = varargs[idx];
+                    result = strf("%s%s", result, val_print(arg_val(arg)));
                 }
             }
+        } else if ( format[0] == '\\' ) {
+            format++;
+            result = strf("%s%.*s", result, utf8_char_size(format), format);
         } else {
             result = strf("%s%.*s", result, utf8_char_size(format), format);
         }

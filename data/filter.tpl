@@ -47,6 +47,8 @@
 
 {{ "name %s alter %d und %.2f" | format(users[0].name, users[0].age, 7.53) | upper }}
 {{ "name { name }, alter { alter } und {}" | format(name = users[0].name, alter = users[0].age, 7.53) | upper }}
+{{ "name {0}, alter {1} und {1}" | format(users[0].name, users[0].age, 7.53) | upper }}
+{{ "{zahl:.2%}" | format(zahl=3.1415) }}
 
 {{ lipsum() | truncate(length = 9, end = " ???", killwords=true) }}
 

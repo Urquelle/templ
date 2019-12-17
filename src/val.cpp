@@ -540,7 +540,7 @@ val_op(Token_Kind op, Val *val) {
 }
 
 internal_proc char *
-val_print(Val *val) {
+val_print(Val *val, char *fmt = "") {
     switch ( val->kind ) {
         case VAL_STR: {
             size_t len = utf8_str_size((char *)val->ptr, val->len);
@@ -564,7 +564,8 @@ val_print(Val *val) {
         } break;
 
         case VAL_FLOAT: {
-            char *result = strf("%f", val_float(val));
+            fmt = (utf8_str_len(fmt)) ? fmt : "%f";
+            char *result = strf(fmt, val_float(val));
             return result;
         } break;
 
