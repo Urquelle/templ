@@ -1133,6 +1133,61 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
 
     return val_str(result);
 }
+
+internal_proc PROC_CALLBACK(proc_int_toroman) {
+    s64 dec = val_int(value);
+
+    /* @INFO:
+     *          1   5   10    50    100    500    1000
+     *          I   V   X     L      C      D      M
+     */
+
+    char *result = "";
+    while ( dec ) {
+        erstes_if ( dec >= 1000 ) {
+            result = strf("%sM", result);
+            dec -= 1000;
+        } else if ( dec >= 900 ) {
+            result = strf("%sCM", result);
+            dec -= 900;
+        } else if ( dec >= 500 ) {
+            result = strf("%sD", result);
+            dec -= 500;
+        } else if ( dec >= 400 ) {
+            result = strf("%sCD", result);
+            dec -= 400;
+        } else if ( dec >= 100 ) {
+            result = strf("%sC", result);
+            dec -= 100;
+        } else if ( dec >= 90 ) {
+            result = strf("%sXC", result);
+            dec -= 90;
+        } else if ( dec >= 50 ) {
+            result = strf("%sL", result);
+            dec -= 50;
+        } else if ( dec >= 40 ) {
+            result = strf("%sXL", result);
+            dec -= 40;
+        } else if ( dec >= 10 ) {
+            result = strf("%sX", result);
+            dec -= 10;
+        } else if ( dec >= 9 ) {
+            result = strf("%sIX", result);
+            dec -= 9;
+        } else if ( dec >= 5 ) {
+            result = strf("%sV", result);
+            dec -= 5;
+        } else if ( dec >= 4 ) {
+            result = strf("%sIV", result);
+            dec -= 4;
+        } else {
+            result = strf("%sI", result);
+            dec = dec-1;
+        }
+    }
+
+    return val_str(result);
+}
 /* }}} */
 /* @INFO: list methoden {{{ */
 internal_proc PROC_CALLBACK(proc_list_append) {

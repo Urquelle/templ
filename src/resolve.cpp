@@ -1986,6 +1986,7 @@ resolve_init_builtin_type_procs() {
     scope_set(&type_int_scope);
     sym_push_proc("abs", type_proc(0, 0, type_int), val_proc(0, 0, type_int, proc_int_abs));
     sym_push_proc("filesizeformat", type_proc(fs_type, fs_size, type_str), val_proc(fs_type, fs_size, type_str, proc_int_filesizeformat));
+    sym_push_proc("toroman", type_proc(0, 0, type_str), val_proc(0, 0, type_str, proc_int_toroman));
     /* }}} */
     /* @INFO: list methoden {{{ */
     Type_Field *append_type[] = { type_field("elem", type_any) };
