@@ -218,8 +218,9 @@ first line
 -- title --
 {{ "eine überschrift" | title }}
 
-{{ 5531 | toroman }}
-{{ 5941 | toroman }}
+{{ 2545 | convert }}
+{{ 5531 | convert(to="roman") }}
+{{ 32   | convert(to="bin") }}
 
 {{ users | sort(attribute="name", reverse=true) | tojson(indent=3) }}
 

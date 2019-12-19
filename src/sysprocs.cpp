@@ -1134,55 +1134,75 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
     return val_str(result);
 }
 
-internal_proc PROC_CALLBACK(proc_int_toroman) {
-    s64 dec = val_int(value);
-
-    /* @INFO:
-     *          1   5   10    50    100    500    1000
-     *          I   V   X     L      C      D      M
-     */
+internal_proc PROC_CALLBACK(proc_int_convert) {
+    char *to = val_str(arg_val(narg("to")));
 
     char *result = "";
-    while ( dec ) {
-        erstes_if ( dec >= 1000 ) {
-            result = strf("%sM", result);
-            dec -= 1000;
-        } else if ( dec >= 900 ) {
-            result = strf("%sCM", result);
-            dec -= 900;
-        } else if ( dec >= 500 ) {
-            result = strf("%sD", result);
-            dec -= 500;
-        } else if ( dec >= 400 ) {
-            result = strf("%sCD", result);
-            dec -= 400;
-        } else if ( dec >= 100 ) {
-            result = strf("%sC", result);
-            dec -= 100;
-        } else if ( dec >= 90 ) {
-            result = strf("%sXC", result);
-            dec -= 90;
-        } else if ( dec >= 50 ) {
-            result = strf("%sL", result);
-            dec -= 50;
-        } else if ( dec >= 40 ) {
-            result = strf("%sXL", result);
-            dec -= 40;
-        } else if ( dec >= 10 ) {
-            result = strf("%sX", result);
-            dec -= 10;
-        } else if ( dec >= 9 ) {
-            result = strf("%sIX", result);
-            dec -= 9;
-        } else if ( dec >= 5 ) {
-            result = strf("%sV", result);
-            dec -= 5;
-        } else if ( dec >= 4 ) {
-            result = strf("%sIV", result);
-            dec -= 4;
-        } else {
-            result = strf("%sI", result);
-            dec = dec-1;
+    s64 num = val_int(value);
+    if ( to == intern_str("roman") ) {
+        /* @INFO:
+        *          1   5   10    50    100    500    1000
+        *          I   V   X     L      C      D      M
+        */
+        while ( num ) {
+            erstes_if ( num >= 1000 ) {
+                result = strf("%sM", result);
+                num -= 1000;
+            } else if ( num >= 900 ) {
+                result = strf("%sCM", result);
+                num -= 900;
+            } else if ( num >= 500 ) {
+                result = strf("%sD", result);
+                num -= 500;
+            } else if ( num >= 400 ) {
+                result = strf("%sCD", result);
+                num -= 400;
+            } else if ( num >= 100 ) {
+                result = strf("%sC", result);
+                num -= 100;
+            } else if ( num >= 90 ) {
+                result = strf("%sXC", result);
+                num -= 90;
+            } else if ( num >= 50 ) {
+                result = strf("%sL", result);
+                num -= 50;
+            } else if ( num >= 40 ) {
+                result = strf("%sXL", result);
+                num -= 40;
+            } else if ( num >= 10 ) {
+                result = strf("%sX", result);
+                num -= 10;
+            } else if ( num >= 9 ) {
+                result = strf("%sIX", result);
+                num -= 9;
+            } else if ( num >= 5 ) {
+                result = strf("%sV", result);
+                num -= 5;
+            } else if ( num >= 4 ) {
+                result = strf("%sIV", result);
+                num -= 4;
+            } else {
+                result = strf("%sI", result);
+                num = num-1;
+            }
+        }
+    } else if ( to == intern_str("hex") ) {
+        while( num != 0) {
+            s32 remainder  = 0;
+            remainder = num % 16;
+
+            if ( remainder < 10) {
+                result = strf("%c%s", remainder + 48, result);
+            } else {
+                result = strf("%c%s", remainder + 55, result);
+            }
+
+            num = num/16;
+        }
+    } else if ( to == intern_str("bin") ) {
+        while (num > 0) {
+            result = strf("%d%s", num % 2, result);
+            num = num / 2;
         }
     }
 
@@ -1302,8 +1322,11 @@ struct String_Format {
     size_t size;
     char *format;
 };
+internal_proc char * sysproc_parse_python_formatting(char **format, s32 num_arg, Resolved_Arg **kwargs, size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs);
 internal_proc String_Format
-sys_parse_format(char *fmt) {
+sysproc_parse_format(char *fmt, s32 num_arg, Resolved_Arg **kwargs, size_t num_kwargs,
+        Resolved_Arg **varargs, size_t num_varargs)
+{
     char *start = fmt;
     String_Format result = {VAL_NONE, 0, ""};
 
@@ -1324,6 +1347,8 @@ sys_parse_format(char *fmt) {
 
         fmt++;
         result.format = strf("%%.%df%%%%", dec);
+    } else if ( *fmt == '{' ) {
+        char *ret = sysproc_parse_python_formatting(&fmt, num_arg, kwargs, num_kwargs, varargs, num_varargs);
     } else {
         if ( *fmt == '#' ) {
             fmt++;
@@ -1350,6 +1375,95 @@ sys_parse_format(char *fmt) {
     result.size = fmt - start;
 
     return result;
+}
+
+internal_proc char *
+sysproc_parse_python_formatting(char **format, s32 num_arg, Resolved_Arg **kwargs,
+        size_t num_kwargs, Resolved_Arg **varargs, size_t num_varargs)
+{
+#define NEXT() (*format)++
+#define VAL()  (**format)
+
+    char *result = "";
+    NEXT();
+
+    while ( VAL() && utf8_char_isws(*format) ) {
+        NEXT();
+    }
+
+    if ( VAL() && VAL() == '}' ) {
+        if ( num_arg < num_varargs ) {
+            Resolved_Arg *arg = varargs[num_arg++];
+            result = strf("%s%s", result, val_print(arg_val(arg)));
+        } else {
+            warn(0, 0, "anzahl formatierungsparamter ist größer als die anzahl übergebener argumente");
+        }
+    } else if ( utf8_char_isalpha(*format) || VAL() == '_' ) {
+        char *name = strf("%.*s", utf8_char_size(*format), *format);
+        *format = utf8_char_next(*format);
+
+        while ( VAL() && (utf8_char_isalpha(*format) || utf8_char_isnum(*format) || VAL() == '_' )) {
+            name = strf("%s%.*s", name, utf8_char_size(*format), *format);
+            *format = utf8_char_next(*format);
+        }
+
+        while ( *format && utf8_char_isws(*format) ) {
+            NEXT();
+        }
+
+        String_Format fmt = {VAL_NONE, 0, ""};
+        if ( VAL() == ':' ) {
+            NEXT();
+            fmt = sysproc_parse_format(*format, num_arg, kwargs, num_kwargs, varargs, num_varargs);
+            *format += fmt.size;
+        }
+
+        if ( VAL() != '}' ) {
+            fatal(0, 0, "formatierungsstring hat die falsche formatierung");
+        } else {
+            name = intern_str(name);
+            b32 found = false;
+            for ( int i = 0; i < num_kwargs; ++i ) {
+                Resolved_Arg *arg = kwargs[i];
+                if ( arg_name(arg) == name ) {
+                    result = strf("%s%s", result, val_print(arg_val(arg), fmt.format));
+                    found = true;
+                    break;
+                }
+            }
+
+            if ( !found ) {
+                fatal(0, 0, "kein passendes argument '%s' gefunden", name);
+            }
+        }
+    } else if ( utf8_char_isnum(*format) ) {
+        s32 idx = 0;
+        while ( VAL() && utf8_char_isnum(*format) ) {
+            idx *= 10;
+            idx += VAL() - '0';
+            *format = utf8_char_next(*format);
+        }
+
+        while ( VAL() && utf8_char_isws(*format) ) {
+            NEXT();
+        }
+
+        if ( VAL() != '}' ) {
+            fatal(0, 0, "formatierungsstring hat die falsche formatierung");
+        }
+
+        if ( num_varargs < idx ) {
+            fatal(0, 0, "angeforderte index übersteigt die anzahl übergebener argumente");
+        } else {
+            Resolved_Arg *arg = varargs[idx];
+            result = strf("%s%s", result, val_print(arg_val(arg)));
+        }
+    }
+
+    return result;
+
+#undef NEXT
+#undef VAL
 }
 
 internal_proc PROC_CALLBACK(proc_string_format) {
@@ -1438,80 +1552,8 @@ internal_proc PROC_CALLBACK(proc_string_format) {
                 illegal_path();
             }
         } else if ( format[0] == '{' ) {
-            format++;
-
-            while ( *format && utf8_char_isws(format) ) {
-                format++;
-            }
-
-            if ( *format && format[0] == '}' ) {
-                if ( num_arg < num_varargs ) {
-                    Resolved_Arg *arg = varargs[num_arg++];
-                    result = strf("%s%s", result, val_print(arg_val(arg)));
-                } else {
-                    warn(0, 0, "anzahl formatierungsparamter ist größer als die anzahl übergebener argumente");
-                }
-            } else if ( utf8_char_isalpha(format) || format[0] == '_' ) {
-                char *name = strf("%.*s", utf8_char_size(format), format);
-                format = utf8_char_next(format);
-
-                while ( *format && (utf8_char_isalpha(format) || utf8_char_isnum(format) || format[0] == '_' )) {
-                    name = strf("%s%.*s", name, utf8_char_size(format), format);
-                    format = utf8_char_next(format);
-                }
-
-                while ( *format && utf8_char_isws(format) ) {
-                    format++;
-                }
-
-                String_Format fmt = {VAL_NONE, 0, ""};
-                if ( *format == ':' ) {
-                    format++;
-                    fmt = sys_parse_format(format);
-                    format += fmt.size;
-                }
-
-                if ( *format != '}' ) {
-                    fatal(0, 0, "formatierungsstring hat die falsche formatierung");
-                } else {
-                    name = intern_str(name);
-                    b32 found = false;
-                    for ( int i = 0; i < num_kwargs; ++i ) {
-                        Resolved_Arg *arg = kwargs[i];
-                        if ( arg_name(arg) == name ) {
-                            result = strf("%s%s", result, val_print(arg_val(arg), fmt.format));
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if ( !found ) {
-                        fatal(0, 0, "kein passendes argument '%s' gefunden", name);
-                    }
-                }
-            } else if ( utf8_char_isnum(format) ) {
-                s32 idx = 0;
-                while ( *format && utf8_char_isnum(format) ) {
-                    idx *= 10;
-                    idx += *format - '0';
-                    format = utf8_char_next(format);
-                }
-
-                while ( *format && utf8_char_isws(format) ) {
-                    format++;
-                }
-
-                if ( format[0] != '}' ) {
-                    fatal(0, 0, "formatierungsstring hat die falsche formatierung");
-                }
-
-                if ( num_varargs < idx ) {
-                    fatal(0, 0, "angeforderte index übersteigt die anzahl übergebener argumente");
-                } else {
-                    Resolved_Arg *arg = varargs[idx];
-                    result = strf("%s%s", result, val_print(arg_val(arg)));
-                }
-            }
+            char *temp = sysproc_parse_python_formatting(&format, num_arg, kwargs, num_kwargs, varargs, num_varargs);
+            result = strf("%s%s", result, temp);
         } else if ( format[0] == '\\' ) {
             format++;
             result = strf("%s%.*s", result, utf8_char_size(format), format);

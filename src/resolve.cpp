@@ -1983,10 +1983,13 @@ resolve_init_builtin_type_procs() {
     Type_Field *fs_type[] = { type_field("binary", type_bool, val_bool(false)) };
     size_t fs_size = ARRAY_SIZE(fs_type);
 
+    Type_Field *cv_type[] = { type_field("to", type_str, val_str("hex")) };
+    size_t cv_size = ARRAY_SIZE(cv_type);
+
     scope_set(&type_int_scope);
     sym_push_proc("abs", type_proc(0, 0, type_int), val_proc(0, 0, type_int, proc_int_abs));
     sym_push_proc("filesizeformat", type_proc(fs_type, fs_size, type_str), val_proc(fs_type, fs_size, type_str, proc_int_filesizeformat));
-    sym_push_proc("toroman", type_proc(0, 0, type_str), val_proc(0, 0, type_str, proc_int_toroman));
+    sym_push_proc("convert", type_proc(cv_type, cv_size, type_str), val_proc(cv_type, cv_size, type_str, proc_int_convert));
     /* }}} */
     /* @INFO: list methoden {{{ */
     Type_Field *append_type[] = { type_field("elem", type_any) };
