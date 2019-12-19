@@ -1983,7 +1983,10 @@ resolve_init_builtin_type_procs() {
     Type_Field *fs_type[] = { type_field("binary", type_bool, val_bool(false)) };
     size_t fs_size = ARRAY_SIZE(fs_type);
 
-    Type_Field *cv_type[] = { type_field("to", type_str, val_str("hex")) };
+    Type_Field *cv_type[] = {
+        type_field("to", type_str, val_str("hex")),
+        type_field("prefix", type_str, val_none())
+    };
     size_t cv_size = ARRAY_SIZE(cv_type);
 
     scope_set(&type_int_scope);

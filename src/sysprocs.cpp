@@ -1136,6 +1136,7 @@ internal_proc PROC_CALLBACK(proc_int_filesizeformat) {
 
 internal_proc PROC_CALLBACK(proc_int_convert) {
     char *to = val_str(arg_val(narg("to")));
+    Val *prefix = arg_val(narg("prefix"));
 
     char *result = "";
     s64 num = val_int(value);
@@ -1204,6 +1205,10 @@ internal_proc PROC_CALLBACK(proc_int_convert) {
             result = strf("%d%s", num % 2, result);
             num = num / 2;
         }
+    }
+
+    if ( prefix->kind != VAL_NONE ) {
+        result = strf("%s%s", val_str(prefix), result);
     }
 
     return val_str(result);
