@@ -1,14 +1,14 @@
 <p align="center">
-    <img src="https://github.com/NoobSaibot/templ/blob/dev/misc/logo_250.png" />
+    <img src="https://github.com/Urquelle/templ/blob/dev/misc/logo_250.png" />
     <br /><br />
-    <a href="https://github.com/NoobSaibot/templ/releases/latest">
-        <img src="https://img.shields.io/github/v/release/NoobSaibot/templ" />
+    <a href="https://github.com/Urquelle/templ/releases/latest">
+        <img src="https://img.shields.io/github/v/release/Urquelle/templ" />
     </a>
     <a href="https://isocpp.org/">
         <img src="https://img.shields.io/badge/language-C++-blue.svg" />
     </a>
-    <a href="https://raw.githubusercontent.com/NoobSaibot/templ/dev/LICENSE">
-        <img src="https://img.shields.io/github/license/NoobSaibot/templ" />
+    <a href="https://raw.githubusercontent.com/Urquelle/templ/dev/LICENSE">
+        <img src="https://img.shields.io/github/license/Urquelle/templ" />
     </a>
     <a href="https://en.wikipedia.org/wiki/Made_in_Germany">
         <img src="https://img.shields.io/badge/made%20in-germany-red" />
@@ -29,15 +29,15 @@
                 <tr>
                     <td>travis:</td>
                     <td align="right">
-                        <a href="https://travis-ci.org/NoobSaibot/templ">
-                            <img src="https://travis-ci.org/NoobSaibot/templ.svg?branch=dev" />
+                        <a href="https://travis-ci.org/Urquelle/templ">
+                            <img src="https://travis-ci.org/Urquelle/templ.svg?branch=dev" />
                         </a>
                     </td>
                 </tr>
                 <tr>
                     <td>appveyor:</td>
                     <td align="right">
-                        <a href="https://ci.appveyor.com/project/NoobSaibot/templ/branch/dev">
+                        <a href="https://ci.appveyor.com/project/Urquelle/templ/branch/dev">
                             <img src="https://ci.appveyor.com/api/projects/status/d5vpfm3mtao94aow/branch/dev?svg=true" />
                         </a>
                     </td>
@@ -45,7 +45,7 @@
                 <tr>
                     <td>github:</td>
                     <td align="right">
-                        <img src="https://github.com/NoobSaibot/templ/workflows/windows-build/badge.svg" />
+                        <img src="https://github.com/Urquelle/templ/workflows/windows-build/badge.svg" />
                     </td>
                 </tr>
             </table>
@@ -53,34 +53,34 @@
         <td>
             <table>
                 <tr>
-                    <td><a href="https://github.com/NoobSaibot/templ/issues">issues</a>:</td>
+                    <td><a href="https://github.com/Urquelle/templ/issues">issues</a>:</td>
                     <td align="right">
-                        <a href="https://github.com/NoobSaibot/templ/issues">
-                            <img src="https://img.shields.io/github/issues/NoobSaibot/templ" />
+                        <a href="https://github.com/Urquelle/templ/issues">
+                            <img src="https://img.shields.io/github/issues/Urquelle/templ" />
                         </a>
                     </td>
                 </tr>
                 <tr>
-                    <td><a href="https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade">quality</a>:</td>
+                    <td><a href="https://www.codacy.com/manual/Urquelle/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Urquelle/templ&amp;utm_campaign=Badge_Grade">quality</a>:</td>
                     <td align="right">
-                        <a href="https://www.codacy.com/manual/NoobSaibot/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NoobSaibot/templ&amp;utm_campaign=Badge_Grade">
+                        <a href="https://www.codacy.com/manual/Urquelle/templ?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Urquelle/templ&amp;utm_campaign=Badge_Grade">
                             <img src="https://api.codacy.com/project/badge/Grade/f4e97144ea6d43b3a38fc34e9b5e50b7" />
                         </a>
                     </td>
                 </tr>
                 <tr>
                     <td>loc:</td>
-                    <td align="right"><img src="https://tokei.rs/b1/github/NoobSaibot/templ" /></td>
+                    <td align="right"><img src="https://tokei.rs/b1/github/Urquelle/templ" /></td>
                 </tr>
             </table>
         </td>
         <td>
             <table>
                 <tr>
-                    <td><a href="https://github.com/NoobSaibot/templ/commits/dev">commits</a>:</td>
+                    <td><a href="https://github.com/Urquelle/templ/commits/dev">commits</a>:</td>
                     <td align="right">
-                        <a href="https://github.com/NoobSaibot/templ/commits/dev">
-                            <img src="https://img.shields.io/github/commits-since/NoobSaibot/templ/latest/dev" />
+                        <a href="https://github.com/Urquelle/templ/commits/dev">
+                            <img src="https://img.shields.io/github/commits-since/Urquelle/templ/latest/dev" />
                         </a>
                     </td>
                 </tr>
@@ -176,7 +176,7 @@ main(int argc, char **argv) {
 
 ## jinja template examples
 
-[data](https://github.com/NoobSaibot/templ/tree/dev/data) folder contains a couple jinja templates with statements that are supported by the implementation so far.
+[data](https://github.com/Urquelle/templ/tree/dev/data) folder contains a couple jinja templates with statements that are supported by the implementation so far.
 
 ```jinja
 {% extends "template.tpl" if true %}
@@ -205,7 +205,7 @@ main(int argc, char **argv) {
 ## json
 
 there's a simple, and built-in support for json which is implemented in the
-[src/json.cpp](https://github.com/NoobSaibot/templ/blob/dev/src/json.cpp). the
+[src/json.cpp](https://github.com/Urquelle/templ/blob/dev/src/json.cpp). the
 `json_parse` method, will parse a given json string, and return a `Json`
 structure.
 
@@ -503,7 +503,7 @@ additional templates can be included into a template. `include` statement suppor
 
 ## filter
 
-ongoing process of implementing the vast amount of filters. the following filters are implemented in [dev](https://github.com/NoobSaibot/templ/tree/dev):
+ongoing process of implementing the vast amount of filters. the following filters are implemented in [dev](https://github.com/Urquelle/templ/tree/dev):
 
 * abs
 * attr
@@ -532,7 +532,7 @@ ongoing process of implementing the vast amount of filters. the following filter
 
 ## tests
 
-most of the tests present in the jinja2 spec are already implemented in [dev](https://github.com/NoobSaibot/templ/tree/dev).
+most of the tests present in the jinja2 spec are already implemented in [dev](https://github.com/Urquelle/templ/tree/dev).
 
 * callable
 * defined
