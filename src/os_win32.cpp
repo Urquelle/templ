@@ -18,15 +18,49 @@ os_env(char *name) {
 }
 
 static bool
-os_file_read(char *filename, char **result) {
+os_file_read(char *filename, char **result, size_t *size = 0) {
     HANDLE file = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
     if ( file == INVALID_HANDLE_VALUE ) {
         return false;
     }
 
+    if ( size ) {
+        *size = GetFileSize(file, 0);
+    }
+
     HANDLE file_mapping = CreateFileMapping(file, 0, PAGE_WRITECOPY, 0, 0, 0);
     *result = (char *)MapViewOfFileEx(file_mapping, FILE_MAP_COPY, 0, 0, 0, 0);
+
+    if ( !*result ) {
+        return false;
+    }
+
+    return true;
+}
+
+static bool
+os_file_read_unmapped(char *filename, char **result, size_t *size = 0) {
+    HANDLE file = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    OVERLAPPED ol = {0};
+
+    if ( file == INVALID_HANDLE_VALUE ) {
+        return false;
+    }
+
+    if ( size ) {
+        *size = GetFileSize(file, 0);
+    }
+
+    *result = (char *)malloc(*size);
+    HRESULT h = ReadFileEx(file, *result, (DWORD)(*size), &ol, NULL);
+    if ( FAILED(h) ) {
+        CloseHandle(file);
+        free(*result);
+        *result = 0;
+
+        return false;
+    }
 
     return true;
 }
