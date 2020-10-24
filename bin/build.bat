@@ -11,5 +11,6 @@ cl %compiler_flags% %PROJECT_PATH%\examples\main.cpp -Fetempl.exe /link %linker_
 cl %compiler_flags% %PROJECT_PATH%\examples\tester.cpp -Fetempl_tester.exe /link %linker_flags%
 cl %compiler_flags% %PROJECT_PATH%\examples\filter.cpp -Fetempl_filter.exe /link %linker_flags%
 cl %compiler_flags% %PROJECT_PATH%\examples\proc.cpp -Fetempl_proc.exe /link %linker_flags%
+cl %compiler_flags% %PROJECT_PATH%\examples\regex.cpp -Feregex.exe /link %linker_flags%
 
 popd

@@ -38,16 +38,17 @@
 #define narg(name)     ((Resolved_Arg *)map_get(nargs, intern_str(name)))
 #define user_api
 
-#define buf__hdr(b) ((Buf_Hdr *)((char *)(b) - offsetof(Buf_Hdr, buf)))
-#define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
-#define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
-#define buf_end(b) ((b) + buf_len(b))
-#define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : (*((void **)&(b)) = buf__grow((b), (n), sizeof(*(b)))))
-#define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
-#define buf_len(b) ((b) ? buf__hdr(b)->len : 0)
+#define buf__hdr(b)        ((Buf_Hdr *)((char *)(b) - offsetof(Buf_Hdr, buf)))
+#define buf_cap(b)         ((b) ? buf__hdr(b)->cap : 0)
+#define buf_clear(b)       ((b) ? buf__hdr(b)->len = 0 : 0)
+#define buf_end(b)         ((b) + buf_len(b))
+#define buf_fit(b, n)      ((n) <= buf_cap(b) ? 0 : (*((void **)&(b)) = buf__grow((b), (n), sizeof(*(b)))))
+#define buf_free(b)        ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
+#define buf_len(b)         ((b) ? buf__hdr(b)->len : 0)
 #define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
-#define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
-#define buf_sizeof(b) ((b) ? buf_len(b)*sizeof(*b) : 0)
+#define buf_push(b, ...)   (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
+#define buf_pop(b)         (buf__hdr(b)->len--, (b)[buf__hdr(b)->len])
+#define buf_sizeof(b)      ((b) ? buf_len(b)*sizeof(*b) : 0)
 
 namespace templ {
 
@@ -158,6 +159,7 @@ global_var Resolved_Templ     * current_templ;
 #include "utf8.cpp"
 #include "string_buffer.cpp"
 #include "common.cpp"
+#include "regex.cpp"
 #include "json.cpp"
 
 global_var Map                  global_blocks;
@@ -606,14 +608,21 @@ templ_register_string_proc(char *name, Proc_Callback *callback, Type_Field **fie
 }
 
 namespace api {
+    using templ::Arena;
     using templ::Json;
+    using templ::Queue;
+    using templ::Regex;
+    using templ::Regex_Result;
     using templ::Status;
     using templ::Templ;
     using templ::Templ_Var;
     using templ::Templ_Vars;
     using templ::json_parse;
-    using templ::os_file_write;
     using templ::os_file_read;
+    using templ::os_file_read_unmapped;
+    using templ::os_file_write;
+    using templ::queue_push;
+    using templ::regex_parse;
     using templ::status_error_get;
     using templ::status_filename;
     using templ::status_is_error;
@@ -669,6 +678,7 @@ namespace devapi {
 
 } /* namespace templ */
 
+#undef ASSERT
 #undef ARRAY_SIZE
 #undef ALLOC_SIZE
 #undef ALLOC_STRUCT
