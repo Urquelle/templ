@@ -1,7 +1,18 @@
 struct Regex;
 struct Regex_Result;
 
-Regex_Result regex_test(Regex *r, char *str, Arena *arena);
+Regex_Result regex_test(Regex *r, char *str);
+
+#define REGEX_ALLOCATOR(name) void * name(size_t size)
+typedef REGEX_ALLOCATOR(Regex_Alloc);
+
+REGEX_ALLOCATOR(regex_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Regex_Alloc *regex_alloc = regex_alloc_default;
 
 enum Regex_Rule_Kind {
     REGEX_RULE_KIND_NONE,
@@ -53,8 +64,8 @@ struct Regex {
 };
 
 Regex_Entry *
-regex_entry(Regex_Entry_State state, Regex_Rule *rule, u32 *consumed, size_t num_consumed, Arena *arena) {
-    Regex_Entry *result = ALLOC_STRUCT(arena, Regex_Entry);
+regex_entry(Regex_Entry_State state, Regex_Rule *rule, u32 *consumed, size_t num_consumed) {
+    Regex_Entry *result = (Regex_Entry *)regex_alloc(sizeof(Regex_Entry));
 
     result->state        = state;
     result->current_rule = rule;
@@ -65,8 +76,8 @@ regex_entry(Regex_Entry_State state, Regex_Rule *rule, u32 *consumed, size_t num
 }
 
 Regex_Rule *
-regex_rule(Arena *arena, Regex_Rule_Kind kind, Regex_Quantifier quantifier, char *value = NULL) {
-    Regex_Rule * result = ALLOC_STRUCT(arena, Regex_Rule);;
+regex_rule(Regex_Rule_Kind kind, Regex_Quantifier quantifier, char *value = NULL) {
+    Regex_Rule *result = (Regex_Rule *)regex_alloc(sizeof(Regex_Rule));
 
     result->kind       = kind;
     result->quantifier = quantifier;
@@ -76,15 +87,15 @@ regex_rule(Arena *arena, Regex_Rule_Kind kind, Regex_Quantifier quantifier, char
 }
 
 void
-regex_push_rule(Regex *r, Regex_Rule *rule, Arena *arena) {
+regex_push_rule(Regex *r, Regex_Rule *rule) {
     ASSERT(r);
 
-    queue_push(&r->rules, rule, arena);
+    queue_push(&r->rules, rule);
 }
 
 void
-regex_start_group(Regex *r, Arena *arena) {
-    Regex *group = ALLOC_STRUCT(arena, Regex);
+regex_start_group(Regex *r) {
+    Regex *group = (Regex *)regex_alloc(sizeof(Regex));
 
     *group       = {};
     group->prev = r;
@@ -92,10 +103,10 @@ regex_start_group(Regex *r, Arena *arena) {
 
     r->curr = group;
 
-    Regex_Rule *rule = regex_rule(arena, REGEX_RULE_KIND_GROUP, REGEX_QUANTIFIER_ONE);
+    Regex_Rule *rule = regex_rule(REGEX_RULE_KIND_GROUP, REGEX_QUANTIFIER_ONE);
     rule->r = group;
 
-    regex_push_rule(r, rule, arena);
+    regex_push_rule(r, rule);
 }
 
 void
@@ -109,10 +120,10 @@ regex_last(Regex *r) {
 }
 
 void
-regex_push_entry(Regex_Stack *stack, Regex_Entry *entry, Arena *arena) {
+regex_push_entry(Regex_Stack *stack, Regex_Entry *entry) {
     ASSERT(stack);
 
-    queue_push(&stack->entries, entry, arena);
+    queue_push(&stack->entries, entry);
 }
 
 Regex_Entry *
@@ -123,7 +134,7 @@ regex_pop_entry(Regex_Stack *stack) {
 }
 
 Regex_Result
-regex_rule_matches(Regex_Rule *rule, char *str, int index, Arena *arena) {
+regex_rule_matches(Regex_Rule *rule, char *str, int index) {
     Regex_Result result = {};
 
     if ( utf8_str_len(str) <= index ) {
@@ -160,36 +171,36 @@ regex_rule_matches(Regex_Rule *rule, char *str, int index, Arena *arena) {
     }
 
     if ( rule->kind == REGEX_RULE_KIND_GROUP ) {
-        return regex_test(rule->r, str+index, arena);
+        return regex_test(rule->r, str+index);
     }
 
     return result;
 }
 
 b32
-regex_backtrack(Queue *q, Regex_Stack *stack, Regex_Rule **current_rule, u32 *count, Arena *arena) {
+regex_backtrack(Queue *q, Regex_Stack *stack, Regex_Rule **current_rule, u32 *count) {
     b32 result = false;
 
-    queue_unshift(q, *current_rule, arena);
+    queue_unshift(q, *current_rule);
 
     while ( stack->entries.num_elems ) {
         Regex_Entry *entry = regex_pop_entry(stack);
 
         if ( entry->state == REGEX_ENTRY_BACKTRACKABLE ) {
             if ( entry->num_consumed == 0 ) {
-                queue_unshift(q, entry->current_rule, arena);
+                queue_unshift(q, entry->current_rule);
                 continue;
             }
 
             u32 n = buf_pop(entry->consumed);
             *count -= n;
-            regex_push_entry(stack, regex_entry(entry->state, entry->current_rule, entry->consumed, entry->num_consumed, arena), arena);
+            regex_push_entry(stack, regex_entry(entry->state, entry->current_rule, entry->consumed, entry->num_consumed));
             result = true;
 
             break;
         }
 
-        queue_unshift(q, entry->current_rule, arena);
+        queue_unshift(q, entry->current_rule);
         for ( int c = 0; c <= entry->num_consumed; c++ ) {
             u32 n = entry->consumed[c];
             *count -= n;
@@ -208,7 +219,7 @@ regex_backtrack(Queue *q, Regex_Stack *stack, Regex_Rule **current_rule, u32 *co
 //
 
 user_api Regex
-regex_parse(char *str, Arena *arena) {
+regex_parse(char *str) {
     Regex result = {};
 
     result.curr = &result;
@@ -218,7 +229,7 @@ regex_parse(char *str, Arena *arena) {
         Regex *curr = regex_last(&result);
 
         if ( *c == '.' ) {
-            regex_push_rule(curr, regex_rule(arena, REGEX_RULE_KIND_WILDCARD, REGEX_QUANTIFIER_ONE), arena);
+            regex_push_rule(curr, regex_rule(REGEX_RULE_KIND_WILDCARD, REGEX_QUANTIFIER_ONE));
         } else if ( *c == '?' ) {
             if ( !curr->rules.num_elems ) {
                 return result;
@@ -261,9 +272,9 @@ regex_parse(char *str, Arena *arena) {
             copy->value      = last_rule->value;
             copy->r          = last_rule->r;
 
-            regex_push_rule(curr, copy, arena);
+            regex_push_rule(curr, copy);
         } else if ( *c == '(' ) {
-            regex_start_group(curr, arena);
+            regex_start_group(curr);
         } else if ( *c == ')' ) {
             regex_close_group(curr);
         } else if ( *c == '\\' ) {
@@ -271,10 +282,10 @@ regex_parse(char *str, Arena *arena) {
                 return result;
             }
 
-            regex_push_rule(curr, regex_rule(arena, REGEX_RULE_KIND_ELEMENT, REGEX_QUANTIFIER_ONE, c+1), arena);
+            regex_push_rule(curr, regex_rule(REGEX_RULE_KIND_ELEMENT, REGEX_QUANTIFIER_ONE, c+1));
             c += 1;
         } else {
-            regex_push_rule(curr, regex_rule(arena, REGEX_RULE_KIND_ELEMENT, REGEX_QUANTIFIER_ONE, c), arena);
+            regex_push_rule(curr, regex_rule(REGEX_RULE_KIND_ELEMENT, REGEX_QUANTIFIER_ONE, c));
         }
 
         c += utf8_char_size(c);
@@ -284,7 +295,7 @@ regex_parse(char *str, Arena *arena) {
 }
 
 user_api Regex_Result
-regex_test(Regex *r, char *str, Arena *arena) {
+regex_test(Regex *r, char *str) {
     Regex_Result result = {};
     Regex_Stack stack = {};
 
@@ -297,11 +308,11 @@ regex_test(Regex *r, char *str, Arena *arena) {
     while ( rule ) {
         switch ( rule->quantifier ) {
             case REGEX_QUANTIFIER_ONE: {
-                Regex_Result res = regex_rule_matches(rule, str, count, arena);
+                Regex_Result res = regex_rule_matches(rule, str, count);
 
                 if ( !res.success ) {
                     int count_before_backtracking = count;
-                    b32 could_backtrack = regex_backtrack(queue, &stack, &rule, &count, arena);
+                    b32 could_backtrack = regex_backtrack(queue, &stack, &rule, &count);
 
                     if ( !could_backtrack) {
                         result.success = false;
@@ -321,10 +332,9 @@ regex_test(Regex *r, char *str, Arena *arena) {
                             REGEX_ENTRY_NON_BACKTRACKABLE,
                             rule,
                             consumed,
-                            buf_len(consumed),
-                            arena);
+                            buf_len(consumed));
 
-                queue_push(&stack.entries, entry, arena);
+                queue_push(&stack.entries, entry);
                 rule = (Regex_Rule *)queue_shift(queue);
 
                 continue;
@@ -335,17 +345,16 @@ regex_test(Regex *r, char *str, Arena *arena) {
                     Regex_Entry *entry = regex_entry(
                             REGEX_ENTRY_NON_BACKTRACKABLE,
                             rule,
-                            0, 0,
-                            arena
+                            0, 0
                     );
 
-                    queue_push(&stack.entries, entry, arena);
+                    queue_push(&stack.entries, entry);
                     rule = (Regex_Rule *)queue_shift(queue);
 
                     continue;
                 }
 
-                Regex_Result res = regex_rule_matches(rule, str, count, arena);
+                Regex_Result res = regex_rule_matches(rule, str, count);
                 count += res.count;
 
                 u32 *consumed = 0;
@@ -355,11 +364,10 @@ regex_test(Regex *r, char *str, Arena *arena) {
                             ? REGEX_ENTRY_BACKTRACKABLE
                             : REGEX_ENTRY_NON_BACKTRACKABLE,
                         rule,
-                        consumed, buf_len(consumed),
-                        arena
+                        consumed, buf_len(consumed)
                 );
 
-                queue_push(&stack.entries, entry, arena);
+                queue_push(&stack.entries, entry);
                 rule = (Regex_Rule *)queue_shift(queue);
 
                 continue;
@@ -369,8 +377,7 @@ regex_test(Regex *r, char *str, Arena *arena) {
                 Regex_Entry *entry = regex_entry(
                     REGEX_ENTRY_BACKTRACKABLE,
                     rule,
-                    0, 0,
-                    arena
+                    0, 0
                 );
 
                 for (;;) {
@@ -381,13 +388,13 @@ regex_test(Regex *r, char *str, Arena *arena) {
                             entry->state = REGEX_ENTRY_NON_BACKTRACKABLE;
                         }
 
-                        queue_push(&stack.entries, entry, arena);
+                        queue_push(&stack.entries, entry);
                         rule = (Regex_Rule *)queue_shift(queue);
 
                         break;
                     }
 
-                    Regex_Result res = regex_rule_matches(rule, str, count, arena);
+                    Regex_Result res = regex_rule_matches(rule, str, count);
                     if ( !res.success || res.count == 0 ) {
                         if ( stack.entries.num_elems == 0 ) {
                             buf_push(entry->consumed, 0);
@@ -395,7 +402,7 @@ regex_test(Regex *r, char *str, Arena *arena) {
                             entry->state = REGEX_ENTRY_NON_BACKTRACKABLE;
                         }
 
-                        queue_push(&stack.entries, entry, arena);
+                        queue_push(&stack.entries, entry);
                         rule = (Regex_Rule *)queue_shift(queue);
 
                         break;

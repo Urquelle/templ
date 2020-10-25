@@ -2,6 +2,16 @@
 
 #include "templ.cpp"
 
+templ::api::Arena *global_arena;
+
+REGEX_ALLOCATOR(regex_alloc_custom) {
+    using namespace templ::api;
+
+    void *result = arena_alloc(global_arena, size);
+
+    return result;
+}
+
 void
 test_regexp() {
     using namespace templ::api;
@@ -9,27 +19,29 @@ test_regexp() {
     Arena arena = {};
     arena_init(&arena, KB(10));
 
-    Regex r = regex_parse("a?bc", &arena);
-    Regex_Result result = regex_test(&r, "abc", &arena);
+    global_arena = &arena;
+
+    Regex r = regex_parse("a?bc");
+    Regex_Result result = regex_test(&r, "abc");
 
     assert(result.success);
-    result = regex_test(&r, "bc", &arena);
+    result = regex_test(&r, "bc");
     assert(result.success);
-    result = regex_test(&r, "zbc", &arena);
+    result = regex_test(&r, "zbc");
     assert(!result.success);
 
-    r = regex_parse("a(b.)*cd", &arena);
-    result = regex_test(&r, "ab!b$cd", &arena);
+    r = regex_parse("a(b.)*cd");
+    result = regex_test(&r, "ab!b$cd");
     assert(result.success);
-    result = regex_test(&r, "ab!cd", &arena);
+    result = regex_test(&r, "ab!cd");
     assert(result.success);
-    result = regex_test(&r, "acd", &arena);
+    result = regex_test(&r, "acd");
     assert(result.success);
-    result = regex_test(&r, "ac", &arena);
+    result = regex_test(&r, "ac");
     assert(!result.success);
 
-    r = regex_parse("a.*c", &arena);
-    result = regex_test(&r, "acc", &arena);
+    r = regex_parse("a.*c");
+    result = regex_test(&r, "acc");
     assert(result.success);
 }
 

@@ -512,6 +512,17 @@ intern_str(char *value) {
     return intern_str(value, value + len);
 }
 
+#define QUEUE_ALLOCATOR(name) void * name(size_t size)
+typedef QUEUE_ALLOCATOR(Queue_Alloc);
+
+QUEUE_ALLOCATOR(queue_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Queue_Alloc *queue_alloc = queue_alloc_default;
+
 struct Queue_Entry {
     Queue_Entry * next;
     Queue_Entry * prev;
@@ -539,8 +550,8 @@ queue_entry(Queue *q, size_t index) {
 }
 
 void
-queue_push(Queue *q, void *data, Arena *arena) {
-    Queue_Entry *entry = ALLOC_STRUCT(arena, Queue_Entry);
+queue_push(Queue *q, void *data) {
+    Queue_Entry *entry = (Queue_Entry *)queue_alloc(sizeof(Queue_Entry));
 
     if ( !q->curr ) {
         q->curr = &q->root;
@@ -589,8 +600,8 @@ queue_shift(Queue *q) {
 }
 
 void
-queue_unshift(Queue *q, void *data, Arena *arena) {
-    Queue_Entry *entry = ALLOC_STRUCT(arena, Queue_Entry);
+queue_unshift(Queue *q, void *data) {
+    Queue_Entry *entry = (Queue_Entry *)queue_alloc(sizeof(Queue_Entry));
 
     entry->data = data;
     entry->next = q->root.next;
