@@ -102,8 +102,6 @@ init_keywords() {
 
 internal_proc void
 parser_init(Parser *p, char *input, char *name) {
-    arena_init(&ast_arena, MB(1));
-
     p->lex.input = input;
     p->lex.pos.name = name;
     p->lex.pos.line = 1;
@@ -116,11 +114,6 @@ parser_init(Parser *p, char *input, char *name) {
     refill(&p->lex);
     init_keywords();
     next_raw_token(&p->lex);
-}
-
-internal_proc void
-parser_reset() {
-    arena_free(&ast_arena);
 }
 
 internal_proc b32

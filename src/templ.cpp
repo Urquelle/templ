@@ -163,10 +163,6 @@ global_var Resolved_Templ     * current_templ;
 #include "json.cpp"
 
 global_var Map                  global_blocks;
-global_var Arena                ast_arena;
-global_var Arena                resolve_arena;
-global_var Arena                exec_arena;
-global_var Arena                templ_arena;
 
 global_var char *symname_loop = intern_str("loop");
 global_var char *symname_index = intern_str("index");
@@ -180,6 +176,18 @@ global_var char *symname_index = intern_str("index");
 #include "resolve.cpp"
 #include "exec.cpp"
 
+#define TEMPL_ALLOCATOR(name) void * name(size_t size)
+typedef TEMPL_ALLOCATOR(Templ_Alloc);
+#define TEMPL_ALLOC_STRUCT(name) (name *)templ_alloc(sizeof(name))
+
+TEMPL_ALLOCATOR(templ_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Templ_Alloc *templ_alloc = templ_alloc_default;
+
 struct Templ_Var {
     char *name;
     Val *val;
@@ -188,7 +196,7 @@ struct Templ_Var {
 
 user_api Templ_Var *
 templ_object(char *name) {
-    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+    Templ_Var *result = TEMPL_ALLOC_STRUCT(Templ_Var);
     Scope *scope = scope_new(0, name);
 
     result->name = intern_str(name);
@@ -200,7 +208,7 @@ templ_object(char *name) {
 
 user_api Templ_Var *
 templ_list(char *name) {
-    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+    Templ_Var *result = TEMPL_ALLOC_STRUCT(Templ_Var);
 
     result->name = intern_str(name);
     result->val  = val_list(0, 0);
@@ -222,7 +230,7 @@ templ_var_add(Templ_Var *container, Templ_Var *var) {
 
 internal_proc Templ_Var *
 templ_var_new(char *name, Type *type) {
-    Templ_Var *result = ALLOC_STRUCT(&templ_arena, Templ_Var);
+    Templ_Var *result = TEMPL_ALLOC_STRUCT(Templ_Var);
 
     result->name = intern_str(name);
     result->type = type;
@@ -441,17 +449,13 @@ templ_render(Templ *templ, Templ_Vars *vars = 0) {
 
 user_api void
 templ_reset() {
-    parser_reset();
     resolve_reset();
     exec_reset();
 }
 
 user_api void
-templ_init(size_t parse_arena_size, size_t resolve_arena_size,
-        size_t exec_arena_size)
-{
-    resolve_init(resolve_arena_size);
-    arena_init(&templ_arena, MB(100));
+templ_init() {
+    resolve_init();
 }
 
 user_api void

@@ -11,7 +11,7 @@ main(int argc, char **argv) {
     using namespace templ::api;
     using namespace templ::devapi;
 
-    templ_init(MB(100), MB(100), MB(100));
+    templ_init();
     templ_register_proc("hello", custom_hello, 0, 0, type_str);
 
     Templ *templ = templ_compile_string(R"END(

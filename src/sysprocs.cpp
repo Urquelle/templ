@@ -1,3 +1,15 @@
+#define PROC_ALLOC(name) void * name(size_t size)
+typedef PROC_ALLOC(Proc_Alloc);
+#define PROC_ALLOC_STRUCT(name) (name *)proc_alloc(sizeof(name))
+
+PROC_ALLOC(proc_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Proc_Alloc *proc_alloc = proc_alloc_default;
+
 internal_proc void
 quicksort(Val **left, Val **right, b32 reverse, b32 case_sensitive, char *attr = 0) {
 #define compneq(left, right) ((attr) ? (scope_attr((left)->scope, attr) != (scope_attr((right)->scope, attr))) : (*left != *right))
@@ -219,7 +231,7 @@ internal_proc PROC_CALLBACK(proc_cycler_reset) {
 }
 
 internal_proc PROC_CALLBACK(proc_cycler) {
-    Cycler *cycler = ALLOC_STRUCT(&templ_arena, Cycler);
+    Cycler *cycler = PROC_ALLOC_STRUCT(Cycler);
     cycler->num_args = num_varargs;
     cycler->args = varargs;
     cycler->idx = 0;
@@ -263,7 +275,7 @@ internal_proc PROC_CALLBACK(proc_joiner_call) {
 }
 
 internal_proc PROC_CALLBACK(proc_joiner) {
-    Joiner *j = ALLOC_STRUCT(&templ_arena, Joiner);
+    Joiner *j = PROC_ALLOC_STRUCT(Joiner);
     j->val = arg_val(narg("sep"));
     j->counter = 0;
 
@@ -1900,7 +1912,7 @@ struct Url_Query_Pair {
 
 internal_proc Url_Query_Pair *
 url_query_pair(char *key, char *value) {
-    Url_Query_Pair *result = ALLOC_STRUCT(&resolve_arena, Url_Query_Pair);
+    Url_Query_Pair *result = PROC_ALLOC_STRUCT(Url_Query_Pair);
 
     result->key = key;
     result->value = value;

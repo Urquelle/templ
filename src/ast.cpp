@@ -1,11 +1,22 @@
+#define AST_ALLOCATOR(name) void * name(size_t size)
+typedef AST_ALLOCATOR(Ast_Alloc);
+#define AST_ALLOC_STRUCT(name) (name *)ast_alloc(sizeof(name))
+
+AST_ALLOCATOR(ast_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Ast_Alloc *ast_alloc = ast_alloc_default;
+
 internal_proc void *
 ast_dup(void *src, size_t size) {
     if (size == 0 || src == 0) {
         return NULL;
     }
 
-    /* @AUFGABE: arena benutzen */
-    void *ptr = xmalloc(size);
+    void *ptr = ast_alloc(size);
     memcpy(ptr, src, size);
 
     return ptr;
@@ -18,7 +29,7 @@ struct Pair {
 
 internal_proc Pair *
 pair_new(char *key, Expr *value) {
-    Pair *result = ALLOC_STRUCT(&ast_arena, Pair);
+    Pair *result = AST_ALLOC_STRUCT(Pair);
 
     result->key = key;
     result->value = value;
@@ -34,7 +45,7 @@ struct Arg {
 
 internal_proc Arg *
 arg_new(Pos pos, char *name, Expr *expr) {
-    Arg *result = ALLOC_STRUCT(&ast_arena, Arg);
+    Arg *result = AST_ALLOC_STRUCT(Arg);
 
     result->pos  = pos;
     result->name = name;
@@ -164,7 +175,7 @@ global_var Expr expr_illegal = {EXPR_NONE};
 
 internal_proc Expr *
 expr_new(Pos pos, Expr_Kind kind) {
-    Expr *result = ALLOC_STRUCT(&ast_arena, Expr);
+    Expr *result = AST_ALLOC_STRUCT(Expr);
 
     result->pos  = pos;
     result->kind = kind;
@@ -364,7 +375,7 @@ struct Param {
 
 internal_proc Param *
 param_new(char *name, Expr *default_value) {
-    Param *result = ALLOC_STRUCT(&ast_arena, Param);
+    Param *result = AST_ALLOC_STRUCT(Param);
 
     result->name = name;
     result->default_value = default_value;
@@ -379,7 +390,7 @@ struct Imported_Sym {
 
 internal_proc Imported_Sym *
 imported_sym(char *name, char *alias) {
-    Imported_Sym *result = ALLOC_STRUCT(&ast_arena, Imported_Sym);
+    Imported_Sym *result = AST_ALLOC_STRUCT(Imported_Sym);
 
     result->name = name;
     result->alias = alias;
@@ -550,7 +561,7 @@ global_var Stmt stmt_continue  = { STMT_CONTINUE };
 
 internal_proc Stmt *
 stmt_new(Stmt_Kind kind) {
-    Stmt *result = ALLOC_STRUCT(&ast_arena, Stmt);
+    Stmt *result = AST_ALLOC_STRUCT(Stmt);
 
     result->kind = kind;
     result->pos = {};
@@ -782,7 +793,7 @@ struct Parsed_Templ {
 
 internal_proc Parsed_Templ *
 parsed_templ(char *name) {
-    Parsed_Templ *result = ALLOC_STRUCT(&templ_arena, Parsed_Templ);
+    Parsed_Templ *result = AST_ALLOC_STRUCT(Parsed_Templ);
 
     result->name = name;
     result->parent = 0;

@@ -1,3 +1,15 @@
+#define VAL_ALLOCATOR(name) void * name(size_t size)
+typedef VAL_ALLOCATOR(Val_Alloc);
+#define VAL_ALLOC_STRUCT(name) (name *)val_alloc(sizeof(name))
+
+VAL_ALLOCATOR(val_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Val_Alloc *val_alloc = val_alloc_default;
+
 internal_proc char *
 utf8_str_escape(char *ptr) {
     char *result = "";
@@ -32,6 +44,8 @@ struct Scope {
     size_t num_syms;
 };
 
+global_var Scope **user_scopes;
+
 global_var Scope filter_scope;
 global_var Scope global_scope;
 global_var Scope system_scope;
@@ -52,12 +66,14 @@ global_var Scope *current_scope = &global_scope;
 
 internal_proc Scope *
 scope_new(Scope *parent, char *name = NULL) {
-    Scope *result = ALLOC_STRUCT(&resolve_arena, Scope);
+    Scope *result = VAL_ALLOC_STRUCT(Scope);
 
     result->sym_list = 0;
     result->name   = name;
     result->parent = parent;
     result->syms   = {};
+
+    buf_push(user_scopes, result);
 
     return result;
 }
@@ -109,6 +125,12 @@ scope_elem(Scope *scope, size_t idx) {
 
     return result;
 }
+
+internal_proc void
+scope_reset(Scope *scope) {
+    map_reset(&scope->syms);
+    buf_free(scope->sym_list);
+}
 /* }}} */
 /* val {{{ */
 enum Val_Kind {
@@ -150,12 +172,12 @@ struct Val {
 
 internal_proc Val *
 val_new(Val_Kind kind, size_t size) {
-    Val *result = ALLOC_STRUCT(&resolve_arena, Val);
+    Val *result = VAL_ALLOC_STRUCT(Val);
 
     result->kind = kind;
     result->size = size;
     result->len  = 1;
-    result->ptr  = (void *)ALLOC_SIZE(&resolve_arena, size);
+    result->ptr  = val_alloc(size);
     result->user_data = 0;
     result->scope = 0;
 
@@ -320,7 +342,7 @@ struct Resolved_Pair {
 
 internal_proc Resolved_Pair *
 resolved_pair(Val *key, Val *value) {
-    Resolved_Pair *result = ALLOC_STRUCT(&resolve_arena, Resolved_Pair);
+    Resolved_Pair *result = VAL_ALLOC_STRUCT(Resolved_Pair);
 
     result->key = key;
     result->value = value;
@@ -417,7 +439,7 @@ val_proc(Type_Field **params, size_t num_params, Type *ret,
 {
     Val *result = val_new(VAL_PROC, sizeof(Type *));
 
-    Val_Proc *ptr = ALLOC_STRUCT(&resolve_arena, Val_Proc);
+    Val_Proc *ptr = VAL_ALLOC_STRUCT(Val_Proc);
 
     ptr->params = (Type_Field **)AST_DUP(params);
     ptr->num_params = num_params;
@@ -1156,7 +1178,7 @@ struct Type_Field {
 
 internal_proc Type_Field *
 type_field(char *name, Type *type, Val *default_value = val_undefined()) {
-    Type_Field *result = ALLOC_STRUCT(&resolve_arena, Type_Field);
+    Type_Field *result = VAL_ALLOC_STRUCT(Type_Field);
 
     result->name = intern_str(name);
     result->type = type;
@@ -1263,7 +1285,7 @@ type_base(Type *type) {
 
 internal_proc Type *
 type_new(Type_Kind kind) {
-    Type *result = ALLOC_STRUCT(&resolve_arena, Type);
+    Type *result = VAL_ALLOC_STRUCT(Type);
 
     result->kind  = kind;
     result->scope = 0;

@@ -4,6 +4,18 @@ global_var char *json_keyword_true = intern_str("true");
 global_var char *json_keyword_false = intern_str("false");
 global_var char *json_keyword_null = intern_str("null");
 
+#define JSON_ALLOCATOR(name) void * name(size_t size)
+typedef JSON_ALLOCATOR(Json_Alloc);
+#define JSON_ALLOC_STRUCT(name) (name *)json_alloc(sizeof(name))
+
+JSON_ALLOCATOR(json_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Json_Alloc *json_alloc = json_alloc_default;
+
 struct Json_Pair {
     char *name;
     Json_Node *value;
@@ -11,7 +23,7 @@ struct Json_Pair {
 
 internal_proc Json_Pair *
 json_pair(char *name, Json_Node *value) {
-    Json_Pair *result = (Json_Pair *)xmalloc(sizeof(Json_Pair));
+    Json_Pair *result = JSON_ALLOC_STRUCT(Json_Pair);
 
     result->name = intern_str(name);
     result->value = value;
@@ -69,7 +81,7 @@ struct Json_Node {
 
 internal_proc Json_Node *
 json_new(Json_Node_Kind kind) {
-    Json_Node *result = (Json_Node *)xmalloc(sizeof(Json_Node));
+    Json_Node *result = JSON_ALLOC_STRUCT(Json_Node);
 
     result->kind = kind;
 

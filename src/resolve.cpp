@@ -1,3 +1,15 @@
+#define RESOLVE_ALLOCATOR(name) void * name(size_t size)
+typedef RESOLVE_ALLOCATOR(Resolve_Alloc);
+#define RESOLVE_ALLOC_STRUCT(name) (name *)resolve_alloc(sizeof(name))
+
+RESOLVE_ALLOCATOR(resolve_alloc_default) {
+    void *result = malloc(size);
+
+    return result;
+}
+
+Resolve_Alloc *resolve_alloc = resolve_alloc_default;
+
 /* sym {{{ */
 enum Sym_Kind {
     SYM_UNDEFINED,
@@ -29,7 +41,7 @@ sym_invalid(Sym *sym) {
 
 internal_proc Sym *
 sym_new(Sym_Kind kind, char *name, Type *type, Val *val = val_undefined()) {
-    Sym *result = ALLOC_STRUCT(&resolve_arena, Sym);
+    Sym *result = RESOLVE_ALLOC_STRUCT(Sym);
 
     result->kind  = kind;
     result->name  = name;
@@ -61,12 +73,12 @@ sym_get(char *name) {
 }
 
 internal_proc void
-sym_clear() {
-    for ( Scope *scope = current_scope; scope; scope = scope->parent ) {
-        if ( scope == &system_scope ) {
+sym_clear(Scope *scope) {
+    for ( Scope *s = scope; s; s = s->parent ) {
+        if ( s == &system_scope ) {
             break;
         }
-        map_reset(&scope->syms);
+        map_reset(&s->syms);
     }
 }
 
@@ -157,7 +169,7 @@ struct Resolved_Arg {
 
 internal_proc Resolved_Arg *
 resolved_arg(Pos pos, char *name, Type *type, Val *val) {
-    Resolved_Arg *result = ALLOC_STRUCT(&resolve_arena, Resolved_Arg);
+    Resolved_Arg *result = RESOLVE_ALLOC_STRUCT(Resolved_Arg);
 
     result->pos = pos;
     result->name = name;
@@ -311,7 +323,7 @@ expr_field_base(Resolved_Expr *expr) {
 
 internal_proc Resolved_Expr *
 resolved_expr_new(Expr_Kind kind, Type *type = 0) {
-    Resolved_Expr *result = ALLOC_STRUCT(&resolve_arena, Resolved_Expr);
+    Resolved_Expr *result = RESOLVE_ALLOC_STRUCT(Resolved_Expr);
 
     result->type = type;
     result->kind = kind;
@@ -733,7 +745,7 @@ stmt_for_vars(Resolved_Stmt *stmt) {
 
 internal_proc Resolved_Stmt *
 resolved_stmt_new(Stmt_Kind kind) {
-    Resolved_Stmt *result = ALLOC_STRUCT(&resolve_arena, Resolved_Stmt);
+    Resolved_Stmt *result = RESOLVE_ALLOC_STRUCT(Resolved_Stmt);
 
     result->kind = kind;
 
@@ -1001,7 +1013,7 @@ struct Resolved_Templ {
 
 internal_proc Resolved_Templ *
 resolved_templ(char *name) {
-    Resolved_Templ *result = ALLOC_STRUCT(&resolve_arena, Resolved_Templ);
+    Resolved_Templ *result = RESOLVE_ALLOC_STRUCT(Resolved_Templ);
 
     result->name = name;
     result->stmts = 0;
@@ -1486,7 +1498,7 @@ resolve_expr_call(Expr *expr, Scope *name_scope = current_scope) {
 
     Resolved_Expr **args = 0;
     /* benamte argumente */
-    Map *nargs = ALLOC_STRUCT(&resolve_arena, Map);
+    Map *nargs = RESOLVE_ALLOC_STRUCT(Map);
     char **narg_keys = 0;
     /* benamte argumente, die nicht im typen definiert wurden */
     Resolved_Arg **kwargs = 0;
@@ -2073,11 +2085,6 @@ resolve_init_builtin_type_procs() {
 }
 
 internal_proc void
-resolve_init_arenas(size_t size) {
-    arena_init(&resolve_arena, size);
-}
-
-internal_proc void
 resolve_init_builtin_types() {
     type_bool  = type_new(TYPE_BOOL);
     type_bool->size = 1;
@@ -2145,13 +2152,15 @@ resolve_init_scope() {
 
 internal_proc void
 resolve_reset() {
-    sym_clear();
+    scope_reset(&global_scope);
+    for ( int i = 0; i < buf_len(user_scopes); ++i ) {
+        scope_reset(user_scopes[i]);
+    }
 }
 
 internal_proc void
-resolve_init(size_t arena_size) {
+resolve_init() {
     resolve_init_scope();
-    resolve_init_arenas(arena_size);
     resolve_init_builtin_types();
     resolve_init_builtin_type_procs();
     resolve_init_builtin_procs();

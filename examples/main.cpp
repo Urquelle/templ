@@ -4,7 +4,7 @@ int
 main(int argc, char **argv) {
     using namespace templ::api;
 
-    templ_init(MB(100), MB(100), MB(100));
+    templ_init();
 
     char *data;
     os_file_read("data.json", &data);
@@ -19,7 +19,7 @@ main(int argc, char **argv) {
 
     char *result = "";
 
-    int num_iterations = 1;
+    int num_iterations = 2;
     for (int i = 0; i < num_iterations; ++i) {
         result = templ_render(templ, &vars);
         os_file_write("out.html", result, utf8_str_size(result));

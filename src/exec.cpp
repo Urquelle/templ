@@ -606,7 +606,6 @@ exec_stmt(Resolved_Stmt *stmt) {
 internal_proc void
 exec_reset() {
     if ( gen_result && utf8_str_len(gen_result) ) {
-        free(gen_result);
         gen_result = "";
     }
 }

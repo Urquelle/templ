@@ -1,14 +1,13 @@
-internal_proc void *
-xmalloc(size_t size) {
-    void *mem = malloc(size);
+#define COMMON_ALLOCATOR(name) void * name(size_t size)
+typedef COMMON_ALLOCATOR(Common_Alloc);
 
-    if ( !mem ) {
-        ASSERT(!"speicher konnte nicht reserviert werden!");
-        exit(1);
-    }
+COMMON_ALLOCATOR(common_alloc_default) {
+    void *result = malloc(size);
 
-    return mem;
+    return result;
 }
+
+Common_Alloc *common_alloc = common_alloc_default;
 
 internal_proc void *
 xcalloc(size_t num, size_t size) {
@@ -34,7 +33,7 @@ xrealloc(void *ptr, size_t num_bytes) {
 
 internal_proc void *
 memdup(void *mem, size_t size) {
-    void *result = xmalloc(size);
+    void *result = common_alloc(size);
 
     memcpy(result, mem, size);
 
@@ -63,7 +62,7 @@ global_var Status global_status = {STATUS_OK};
 
 internal_proc Status *
 status_error(char *filename, s64 line, char *message) {
-    Status *result = (Status *)xmalloc(sizeof(Status));
+    Status *result = (Status *)common_alloc(sizeof(Status));
 
     result->kind = STATUS_ERROR;
     result->filename = filename;
@@ -75,7 +74,7 @@ status_error(char *filename, s64 line, char *message) {
 
 internal_proc Status *
 status_warning(char *filename, s64 line, char *message) {
-    Status *result = (Status *)xmalloc(sizeof(Status));
+    Status *result = (Status *)common_alloc(sizeof(Status));
 
     result->kind = STATUS_WARNING;
     result->filename = filename;
@@ -209,7 +208,7 @@ strf(char *fmt, ...) {
     int size = 1 + vsnprintf(NULL, 0, fmt, args);
     va_end(args);
 
-    char *str = (char *)xmalloc(size);
+    char *str = (char *)common_alloc(size);
 
     va_start(args, fmt);
     vsnprintf(str, size, fmt, args);
@@ -237,7 +236,7 @@ buf__grow(const void *buf, size_t new_len, size_t elem_size) {
     if (buf) {
         new_hdr = (Buf_Hdr *)xrealloc(buf__hdr(buf), new_size);
     } else {
-        new_hdr = (Buf_Hdr *)xmalloc(new_size);
+        new_hdr = (Buf_Hdr *)common_alloc(new_size);
         new_hdr->len = 0;
     }
     new_hdr->cap = new_cap;
@@ -374,7 +373,7 @@ map_grow(Map *map, size_t new_cap) {
     Map new_map = {};
 
     new_map.keys = (void **)xcalloc(new_cap, sizeof(void *));
-    new_map.vals = (void **)xmalloc(new_cap * sizeof(void *));
+    new_map.vals = (void **)common_alloc(new_cap * sizeof(void *));
     new_map.cap  = new_cap;
 
     for ( size_t i = 0; i < map->cap; i++ ) {
@@ -467,6 +466,14 @@ arena_alloc(Arena *arena, size_t size) {
 
 internal_proc void
 arena_free(Arena *arena) {
+    for ( int i = 0; i < buf_len(arena->buckets); ++i ) {
+        buf_free(arena->buckets[i]);
+    }
+    free(arena->base);
+}
+
+internal_proc void
+arena_reset(Arena *arena) {
     for ( int i = 0; i < buf_len(arena->buckets); ++i ) {
         buf__hdr(arena->buckets[i])->len = 0;
     }
